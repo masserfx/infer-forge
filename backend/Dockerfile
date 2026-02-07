@@ -18,7 +18,10 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY pyproject.toml ./
 
 # Install dependencies using uv (system-wide, no venv)
-RUN uv pip install --system --no-cache -r pyproject.toml
+# Use CPU-only PyTorch to avoid downloading ~4GB of CUDA libraries
+RUN uv pip install --system --no-cache \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    -r pyproject.toml
 
 # Copy application code
 COPY . .
