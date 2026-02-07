@@ -14,6 +14,10 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# Backend URL for API proxy rewrites (build-time configuration)
+ARG BACKEND_URL=http://backend:8000
+ENV BACKEND_URL=${BACKEND_URL}
+
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 
