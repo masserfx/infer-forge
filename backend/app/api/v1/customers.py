@@ -1,12 +1,12 @@
 """Customer API endpoints."""
 
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
+from app.api.deps import get_current_user, get_db, require_role
+from app.models.user import User, UserRole
 from app.schemas import CustomerCreate, CustomerResponse, CustomerUpdate
 from app.services import CustomerService
 
@@ -17,18 +17,10 @@ router = APIRouter(prefix="/zakaznici", tags=["Zákazníci"])
 async def get_customers(
     skip: int = Query(default=0, ge=0, description="Number of records to skip"),
     limit: int = Query(default=100, ge=1, le=1000, description="Maximum number of records"),
+    _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[CustomerResponse]:
-    """Get all customers with pagination.
-
-    Args:
-        skip: Number of records to skip
-        limit: Maximum number of records to return
-        db: Database session
-
-    Returns:
-        List of customers
-    """
+    """Get all customers with pagination."""
     service = CustomerService(db)
     customers = await service.get_all(skip=skip, limit=limit)
     return [CustomerResponse.model_validate(c) for c in customers]
@@ -41,20 +33,10 @@ async def get_customers(
 )
 async def create_customer(
     customer_data: CustomerCreate,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> CustomerResponse:
-    """Create a new customer.
-
-    Args:
-        customer_data: Customer creation data
-        db: Database session
-
-    Returns:
-        Created customer
-
-    Raises:
-        HTTPException: If customer with same IČO already exists
-    """
+    """Create a new customer."""
     service = CustomerService(db)
     try:
         customer = await service.create(customer_data)
@@ -66,27 +48,17 @@ async def create_customer(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Customer with IČO {customer_data.ico} already exists",
-            )
+            ) from e
         raise
 
 
 @router.get("/{customer_id}", response_model=CustomerResponse)
 async def get_customer(
     customer_id: UUID,
+    _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> CustomerResponse:
-    """Get customer by ID.
-
-    Args:
-        customer_id: Customer UUID
-        db: Database session
-
-    Returns:
-        Customer details
-
-    Raises:
-        HTTPException: If customer not found
-    """
+    """Get customer by ID."""
     service = CustomerService(db)
     customer = await service.get_by_id(customer_id)
     if not customer:
@@ -101,21 +73,10 @@ async def get_customer(
 async def update_customer(
     customer_id: UUID,
     customer_data: CustomerUpdate,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> CustomerResponse:
-    """Update customer.
-
-    Args:
-        customer_id: Customer UUID
-        customer_data: Customer update data
-        db: Database session
-
-    Returns:
-        Updated customer
-
-    Raises:
-        HTTPException: If customer not found
-    """
+    """Update customer."""
     service = CustomerService(db)
     customer = await service.update(customer_id, customer_data)
     if not customer:

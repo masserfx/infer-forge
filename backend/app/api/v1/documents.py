@@ -1,14 +1,14 @@
 """Document API endpoints."""
 
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
+from app.api.deps import get_current_user, get_db, require_role
 from app.models import DocumentCategory
+from app.models.user import User, UserRole
 from app.schemas import DocumentResponse, DocumentUpdate, DocumentUpload
 from app.services import DocumentService
 
@@ -27,16 +27,13 @@ async def upload_document(
     category: DocumentCategory = Form(
         default=DocumentCategory.OSTATNI, description="Document category"
     ),
-    description: Optional[str] = Form(None, description="Document description"),
+    description: str | None = Form(None, description="Document description"),
+    _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> DocumentResponse:
-    """Upload a document file.
-
-    Accepts multipart form data with file and metadata.
-    """
+    """Upload a document file."""
     service = DocumentService(db)
 
-    # Read file content
     content = await file.read()
     if not content:
         raise HTTPException(
@@ -65,15 +62,16 @@ async def upload_document(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from e
 
 
 @router.get("/", response_model=list[DocumentResponse])
 async def list_documents(
-    entity_type: Optional[str] = Query(None, description="Filter by entity type"),
-    category: Optional[DocumentCategory] = Query(None, description="Filter by category"),
+    entity_type: str | None = Query(None, description="Filter by entity type"),
+    category: DocumentCategory | None = Query(None, description="Filter by category"),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
+    _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[DocumentResponse]:
     """List all documents with optional filters."""
@@ -91,9 +89,10 @@ async def list_documents(
 async def get_entity_documents(
     entity_type: str,
     entity_id: UUID,
-    category: Optional[DocumentCategory] = Query(None, description="Filter by category"),
+    category: DocumentCategory | None = Query(None, description="Filter by category"),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
+    _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[DocumentResponse]:
     """Get documents for a specific entity."""
@@ -111,6 +110,7 @@ async def get_entity_documents(
 @router.get("/{document_id}", response_model=DocumentResponse)
 async def get_document(
     document_id: UUID,
+    _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> DocumentResponse:
     """Get document metadata by ID."""
@@ -127,6 +127,7 @@ async def get_document(
 @router.get("/{document_id}/download")
 async def download_document(
     document_id: UUID,
+    _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
     """Download document file."""
@@ -154,6 +155,7 @@ async def download_document(
 async def update_document(
     document_id: UUID,
     update_data: DocumentUpdate,
+    _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> DocumentResponse:
     """Update document metadata."""
@@ -171,6 +173,7 @@ async def update_document(
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_document(
     document_id: UUID,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Delete a document (file and DB record)."""

@@ -1,13 +1,13 @@
 """Calculation API endpoints."""
 
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
+from app.api.deps import get_current_user, get_db, require_role
 from app.models import CalculationStatus
+from app.models.user import User, UserRole
 from app.schemas import (
     CalculationCreate,
     CalculationItemCreate,
@@ -15,7 +15,6 @@ from app.schemas import (
     CalculationResponse,
     CalculationUpdate,
 )
-from app.schemas.order import OrderResponse
 from app.services import CalculationService
 
 router = APIRouter(prefix="/kalkulace", tags=["Kalkulace"])
@@ -28,6 +27,7 @@ router = APIRouter(prefix="/kalkulace", tags=["Kalkulace"])
 )
 async def create_calculation(
     data: CalculationCreate,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG)),
     db: AsyncSession = Depends(get_db),
 ) -> CalculationResponse:
     """Create a new calculation for an order."""
@@ -41,16 +41,17 @@ async def create_calculation(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from e
 
 
 @router.get("/", response_model=list[CalculationResponse])
 async def list_calculations(
-    status_filter: Optional[CalculationStatus] = Query(
+    status_filter: CalculationStatus | None = Query(
         None, alias="status", description="Filter by status"
     ),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
+    _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[CalculationResponse]:
     """List all calculations with optional status filter."""
@@ -66,6 +67,7 @@ async def list_calculations(
 @router.get("/{calculation_id}", response_model=CalculationResponse)
 async def get_calculation(
     calculation_id: UUID,
+    _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> CalculationResponse:
     """Get calculation by ID with all items."""
@@ -82,6 +84,7 @@ async def get_calculation(
 @router.get("/zakazka/{order_id}", response_model=list[CalculationResponse])
 async def get_order_calculations(
     order_id: UUID,
+    _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[CalculationResponse]:
     """Get all calculations for an order."""
@@ -94,6 +97,7 @@ async def get_order_calculations(
 async def update_calculation(
     calculation_id: UUID,
     data: CalculationUpdate,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG)),
     db: AsyncSession = Depends(get_db),
 ) -> CalculationResponse:
     """Update calculation metadata (name, note, margin, status)."""
@@ -111,6 +115,7 @@ async def update_calculation(
 @router.delete("/{calculation_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_calculation(
     calculation_id: UUID,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Delete a calculation."""
@@ -135,6 +140,7 @@ async def delete_calculation(
 async def add_calculation_item(
     calculation_id: UUID,
     item_data: CalculationItemCreate,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG)),
     db: AsyncSession = Depends(get_db),
 ) -> CalculationResponse:
     """Add an item to a calculation."""
@@ -157,6 +163,7 @@ async def update_calculation_item(
     calculation_id: UUID,
     item_id: UUID,
     item_data: CalculationItemUpdate,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG)),
     db: AsyncSession = Depends(get_db),
 ) -> CalculationResponse:
     """Update a calculation item."""
@@ -178,6 +185,7 @@ async def update_calculation_item(
 async def remove_calculation_item(
     calculation_id: UUID,
     item_id: UUID,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG)),
     db: AsyncSession = Depends(get_db),
 ) -> CalculationResponse:
     """Remove an item from a calculation."""
@@ -203,6 +211,7 @@ async def generate_offer(
     calculation_id: UUID,
     offer_number: str = Query(..., description="Offer number"),
     valid_days: int = Query(default=30, ge=1, le=365, description="Offer validity in days"),
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Generate an Offer from a calculation."""
@@ -228,4 +237,4 @@ async def generate_offer(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from e

@@ -1,13 +1,13 @@
 """Inbox API endpoints."""
 
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
+from app.api.deps import get_current_user, get_db, require_role
 from app.models import InboxClassification, InboxStatus
+from app.models.user import User, UserRole
 from app.schemas import InboxAssign, InboxMessageResponse, InboxReclassify
 from app.services import InboxService
 
@@ -18,24 +18,14 @@ router = APIRouter(prefix="/inbox", tags=["Inbox"])
 async def get_inbox_messages(
     skip: int = Query(default=0, ge=0, description="Number of records to skip"),
     limit: int = Query(default=100, ge=1, le=1000, description="Maximum number of records"),
-    status: Optional[InboxStatus] = Query(default=None, description="Filter by status"),
-    classification: Optional[InboxClassification] = Query(
+    status: InboxStatus | None = Query(default=None, description="Filter by status"),
+    classification: InboxClassification | None = Query(
         default=None, description="Filter by classification"
     ),
+    _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[InboxMessageResponse]:
-    """Get all inbox messages with pagination and filtering.
-
-    Args:
-        skip: Number of records to skip
-        limit: Maximum number of records to return
-        status: Optional status filter
-        classification: Optional classification filter
-        db: Database session
-
-    Returns:
-        List of inbox messages
-    """
+    """Get all inbox messages with pagination and filtering."""
     service = InboxService(db)
     messages = await service.get_all(
         skip=skip,
@@ -49,20 +39,10 @@ async def get_inbox_messages(
 @router.get("/{message_id}", response_model=InboxMessageResponse)
 async def get_inbox_message(
     message_id: UUID,
+    _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> InboxMessageResponse:
-    """Get inbox message by ID.
-
-    Args:
-        message_id: Message UUID
-        db: Database session
-
-    Returns:
-        Inbox message details
-
-    Raises:
-        HTTPException: If message not found
-    """
+    """Get inbox message by ID."""
     service = InboxService(db)
     message = await service.get_by_id(message_id)
     if not message:
@@ -77,21 +57,10 @@ async def get_inbox_message(
 async def assign_inbox_message(
     message_id: UUID,
     assign_data: InboxAssign,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> InboxMessageResponse:
-    """Assign inbox message to customer and/or order.
-
-    Args:
-        message_id: Message UUID
-        assign_data: Assignment data
-        db: Database session
-
-    Returns:
-        Updated inbox message
-
-    Raises:
-        HTTPException: If message not found
-    """
+    """Assign inbox message to customer and/or order."""
     service = InboxService(db)
     message = await service.assign_to(
         message_id=message_id,
@@ -111,21 +80,10 @@ async def assign_inbox_message(
 async def reclassify_inbox_message(
     message_id: UUID,
     reclassify_data: InboxReclassify,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> InboxMessageResponse:
-    """Manually reclassify inbox message.
-
-    Args:
-        message_id: Message UUID
-        reclassify_data: New classification
-        db: Database session
-
-    Returns:
-        Updated inbox message
-
-    Raises:
-        HTTPException: If message not found
-    """
+    """Manually reclassify inbox message."""
     service = InboxService(db)
     message = await service.reclassify(
         message_id=message_id,
