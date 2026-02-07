@@ -67,3 +67,9 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+
+[dependency-groups]
+dev = [
+    "lxml-stubs>=0.5.1",
+    "types-lxml>=2026.1.1",
+]

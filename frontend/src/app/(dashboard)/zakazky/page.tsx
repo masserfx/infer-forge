@@ -1,0 +1,75 @@
+"use client";
+
+import { OrderFilters } from "@/components/zakazky/order-filters";
+import { OrdersTable } from "@/components/zakazky/orders-table";
+import { Button } from "@/components/ui/button";
+import { getOrders } from "@/lib/api";
+import type { OrderStatus } from "@/types";
+import { useQuery } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
+import { useState } from "react";
+
+export default function ZakazkyPage() {
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [skip] = useState(0);
+  const [limit] = useState(50);
+
+  const { data: orders, isLoading } = useQuery({
+    queryKey: ["orders", { status: statusFilter, skip, limit }],
+    queryFn: () =>
+      getOrders({
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        skip,
+        limit,
+      }),
+  });
+
+  // Client-side search filtering
+  const filteredOrders = orders?.filter((order) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      order.number.toLowerCase().includes(query) ||
+      order.customer?.company_name?.toLowerCase().includes(query) ||
+      order.customer?.contact_name?.toLowerCase().includes(query)
+    );
+  });
+
+  return (
+    <div className="flex h-full flex-col gap-6 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Zakázky</h1>
+          <p className="text-muted-foreground">
+            Přehled všech zakázek a objednávek
+          </p>
+        </div>
+        <Button disabled>
+          <Plus className="mr-2 h-4 w-4" />
+          Nová zakázka
+        </Button>
+      </div>
+
+      <OrderFilters
+        statusFilter={statusFilter}
+        onStatusChange={(value) => setStatusFilter(value)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
+
+      {isLoading ? (
+        <div className="flex min-h-[400px] items-center justify-center rounded-lg border">
+          <div className="text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="mt-4 text-sm text-muted-foreground">
+              Načítání zakázek...
+            </p>
+          </div>
+        </div>
+      ) : (
+        <OrdersTable orders={filteredOrders || []} />
+      )}
+    </div>
+  );
+}

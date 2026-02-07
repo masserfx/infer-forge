@@ -146,10 +146,10 @@ class PohodaXMLParser:
                 note_elem = item_elem.find("rsp:note", namespaces=RSP_NAMESPACES)
                 id_elem = item_elem.find("rsp:id", namespaces=RSP_NAMESPACES)
 
-                state = state_elem.text if state_elem is not None else "error"
-                note = note_elem.text if note_elem is not None else ""
-                # Handle both missing element and empty element text
-                item_id = (id_elem.text if id_elem is not None else "") or ""
+                # Extract text values, handle None (missing) and "" (empty) elements
+                state = (state_elem.text if state_elem is not None else None) or "error"
+                note = (note_elem.text if note_elem is not None else None) or ""
+                item_id = (id_elem.text if id_elem is not None else None) or ""
 
                 items.append(
                     PohodaResponseItem(

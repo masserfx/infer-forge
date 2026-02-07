@@ -10,7 +10,7 @@ INFER FORGE — automatizační platforma pro strojírenskou firmu Infer s.r.o. 
 
 - **Backend:** Python 3.12, FastAPI, SQLAlchemy 2.0 (async), Celery + Redis, Alembic migrace
 - **Database:** PostgreSQL 16 + pgvector (embedding vyhledávání)
-- **Frontend:** Next.js 14 (App Router), TypeScript strict, Tailwind CSS, shadcn/ui, TanStack Query
+- **Frontend:** Next.js 16 (App Router), TypeScript strict, Tailwind CSS 4, shadcn/ui, TanStack Query, lucide-react
 - **Integrace:** Pohoda XML API (Windows-1250, XSD 2.0), IMAP/SMTP, openpyxl, Tesseract OCR
 - **AI:** Anthropic Claude API, LangChain, sentence-transformers (multilingual pro češtinu)
 - **Deploy:** Docker Compose, on-premise (citlivá data zákazníků nesmí do cloudu)
