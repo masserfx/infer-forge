@@ -1,13 +1,14 @@
 """Document model for file management."""
 
 import enum
-from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import BigInteger, Index, Integer, String, Text
+from sqlalchemy import BigInteger, Enum, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base, TimestampMixin, UUIDPKMixin
+from app.core.database import Base
+
+from .base import TimestampMixin, UUIDPKMixin
 
 
 class DocumentCategory(str, enum.Enum):
@@ -37,11 +38,13 @@ class Document(Base, UUIDPKMixin, TimestampMixin):
     file_size: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     category: Mapped[DocumentCategory] = mapped_column(
-        nullable=False, default=DocumentCategory.OSTATNI
+        Enum(DocumentCategory, native_enum=False, length=20),
+        nullable=False,
+        default=DocumentCategory.OSTATNI,
     )
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    ocr_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    uploaded_by: Mapped[Optional[UUID]] = mapped_column(nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ocr_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    uploaded_by: Mapped[UUID | None] = mapped_column(nullable=True)
 
     __table_args__ = (
         Index("ix_documents_entity", "entity_type", "entity_id"),

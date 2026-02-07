@@ -6,9 +6,10 @@ Tests cover:
 - Exception handling
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import httpx
+import pytest
 
 from app.integrations.pohoda import (
     PohodaClient,
@@ -16,11 +17,9 @@ from app.integrations.pohoda import (
     PohodaError,
     PohodaResponse,
     PohodaResponseError,
-    PohodaResponseItem,
     PohodaXMLError,
     PohodaXMLParser,
 )
-
 
 # ============================================================================
 # Exception Tests
@@ -68,7 +67,7 @@ def test_parse_response_success():
     <rsp:id>67890</rsp:id>
   </rsp:responsePackItem>
 </rsp:responsePack>"""
-    xml = xml_str.encode('windows-1250')
+    xml = xml_str.encode("windows-1250")
 
     parser = PohodaXMLParser()
     response = parser.parse_response(xml)
@@ -101,7 +100,7 @@ def test_parse_response_error():
     <rsp:id></rsp:id>
   </rsp:responsePackItem>
 </rsp:responsePack>"""
-    xml = xml_str.encode('windows-1250')
+    xml = xml_str.encode("windows-1250")
 
     parser = PohodaXMLParser()
     response = parser.parse_response(xml)
@@ -130,7 +129,7 @@ def test_parse_response_mixed_states():
     <rsp:id></rsp:id>
   </rsp:responsePackItem>
 </rsp:responsePack>"""
-    xml = xml_str.encode('windows-1250')
+    xml = xml_str.encode("windows-1250")
 
     parser = PohodaXMLParser()
     response = parser.parse_response(xml)
@@ -286,9 +285,7 @@ async def test_client_connection_failure_exhausted():
     """Test client raises PohodaConnectionError after max retries."""
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = AsyncMock()
-        mock_client.post = AsyncMock(
-            side_effect=httpx.ConnectError("Connection refused")
-        )
+        mock_client.post = AsyncMock(side_effect=httpx.ConnectError("Connection refused"))
         mock_client_class.return_value = mock_client
 
         client = PohodaClient(
@@ -311,9 +308,7 @@ async def test_client_context_manager():
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client.aclose = AsyncMock()
-        mock_client.post = AsyncMock(
-            return_value=MagicMock(status_code=200, content=b"<ok/>")
-        )
+        mock_client.post = AsyncMock(return_value=MagicMock(status_code=200, content=b"<ok/>"))
         mock_client_class.return_value = mock_client
 
         async with PohodaClient(

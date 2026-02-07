@@ -108,9 +108,7 @@ async def get_sync_status(
 async def get_sync_logs(
     entity_type: str | None = Query(None, description="Filter by entity type"),
     entity_id: UUID | None = Query(None, description="Filter by entity ID"),
-    sync_status: SyncStatus | None = Query(
-        None, alias="status", description="Filter by status"
-    ),
+    sync_status: SyncStatus | None = Query(None, alias="status", description="Filter by status"),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=500),
     _user: User = Depends(require_role(UserRole.UCETNI, UserRole.VEDENI)),

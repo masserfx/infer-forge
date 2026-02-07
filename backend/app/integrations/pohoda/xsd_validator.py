@@ -106,9 +106,7 @@ class XSDValidator:
                 if not is_valid:
                     # Collect all validation errors
                     for error in self.schema.error_log:
-                        errors.append(
-                            f"Line {error.line}: {error.message}"
-                        )
+                        errors.append(f"Line {error.line}: {error.message}")
                     return (False, errors)
 
                 # Validation passed
@@ -120,9 +118,7 @@ class XSDValidator:
 
         else:
             # No schema available - XML is well-formed, consider valid
-            logger.debug(
-                "No XSD schema loaded. XML is well-formed - considering valid."
-            )
+            logger.debug("No XSD schema loaded. XML is well-formed - considering valid.")
             return (True, [])
 
     def validate_string(

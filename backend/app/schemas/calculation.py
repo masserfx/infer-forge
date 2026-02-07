@@ -2,7 +2,6 @@
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -15,7 +14,7 @@ class CalculationItemCreate(BaseModel):
 
     cost_type: CostType = Field(..., description="Type of cost")
     name: str = Field(..., max_length=255, description="Item name")
-    description: Optional[str] = Field(None, description="Item description")
+    description: str | None = Field(None, description="Item description")
     quantity: Decimal = Field(default=Decimal("1"), ge=0, description="Quantity")
     unit: str = Field(default="ks", max_length=20, description="Unit")
     unit_price: Decimal = Field(default=Decimal("0"), ge=0, description="Unit price in CZK")
@@ -24,12 +23,12 @@ class CalculationItemCreate(BaseModel):
 class CalculationItemUpdate(BaseModel):
     """Schema for updating a calculation item."""
 
-    cost_type: Optional[CostType] = None
-    name: Optional[str] = Field(None, max_length=255)
-    description: Optional[str] = None
-    quantity: Optional[Decimal] = Field(None, ge=0)
-    unit: Optional[str] = Field(None, max_length=20)
-    unit_price: Optional[Decimal] = Field(None, ge=0)
+    cost_type: CostType | None = None
+    name: str | None = Field(None, max_length=255)
+    description: str | None = None
+    quantity: Decimal | None = Field(None, ge=0)
+    unit: str | None = Field(None, max_length=20)
+    unit_price: Decimal | None = Field(None, ge=0)
 
 
 class CalculationItemResponse(BaseModel):
@@ -39,7 +38,7 @@ class CalculationItemResponse(BaseModel):
     calculation_id: UUID
     cost_type: CostType
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     quantity: Decimal
     unit: str
     unit_price: Decimal
@@ -53,7 +52,7 @@ class CalculationCreate(BaseModel):
 
     order_id: UUID = Field(..., description="Order UUID")
     name: str = Field(..., max_length=255, description="Calculation name")
-    note: Optional[str] = Field(None, description="Notes")
+    note: str | None = Field(None, description="Notes")
     margin_percent: Decimal = Field(
         default=Decimal("15"), ge=0, le=100, description="Margin percentage"
     )
@@ -65,10 +64,10 @@ class CalculationCreate(BaseModel):
 class CalculationUpdate(BaseModel):
     """Schema for updating a calculation."""
 
-    name: Optional[str] = Field(None, max_length=255)
-    note: Optional[str] = None
-    margin_percent: Optional[Decimal] = Field(None, ge=0, le=100)
-    status: Optional[CalculationStatus] = None
+    name: str | None = Field(None, max_length=255)
+    note: str | None = None
+    margin_percent: Decimal | None = Field(None, ge=0, le=100)
+    status: CalculationStatus | None = None
 
 
 class CalculationResponse(BaseModel):
@@ -78,8 +77,8 @@ class CalculationResponse(BaseModel):
     order_id: UUID
     name: str
     status: CalculationStatus
-    note: Optional[str] = None
-    created_by: Optional[UUID] = None
+    note: str | None = None
+    created_by: UUID | None = None
     material_total: Decimal
     labor_total: Decimal
     cooperation_total: Decimal

@@ -4,7 +4,6 @@ Provides async engine, sessionmaker and dependency injection for FastAPI routes.
 """
 
 from collections.abc import AsyncGenerator
-from typing import Any
 
 from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import (

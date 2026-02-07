@@ -1,11 +1,9 @@
 """Unit tests for SQLAlchemy models."""
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
-import pytest
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
@@ -169,7 +167,7 @@ class TestInboxMessageModel:
             from_email="zakaznik@firma.cz",
             subject="Poptavka - kolena DN200 PN16",
             body_text="Dobry den, prosim o cenovou nabidku...",
-            received_at=datetime.now(timezone.utc),
+            received_at=datetime.now(UTC),
             classification=InboxClassification.POPTAVKA,
             confidence=0.95,
             status=InboxStatus.NEW,
@@ -203,7 +201,7 @@ class TestAuditLogModel:
             entity_type="customer",
             entity_id=entity_id,
             changes={"created": {"company_name": "Test"}},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         test_db.add(log)
         await test_db.flush()

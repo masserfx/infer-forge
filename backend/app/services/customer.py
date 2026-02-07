@@ -1,7 +1,6 @@
 """Customer business logic service."""
 
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -14,7 +13,7 @@ from app.schemas import CustomerCreate, CustomerUpdate
 class CustomerService:
     """Service for managing customers with audit trail."""
 
-    def __init__(self, db: AsyncSession, user_id: Optional[UUID] = None):
+    def __init__(self, db: AsyncSession, user_id: UUID | None = None):
         """Initialize service.
 
         Args:
@@ -28,7 +27,7 @@ class CustomerService:
         self,
         action: AuditAction,
         entity_id: UUID,
-        changes: Optional[dict] = None,
+        changes: dict | None = None,
     ) -> None:
         """Create audit log entry.
 
@@ -43,7 +42,7 @@ class CustomerService:
             entity_type="customer",
             entity_id=entity_id,
             changes=changes,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         self.db.add(audit)
 
@@ -70,7 +69,7 @@ class CustomerService:
 
         return customer
 
-    async def get_by_id(self, customer_id: UUID) -> Optional[Customer]:
+    async def get_by_id(self, customer_id: UUID) -> Customer | None:
         """Get customer by ID.
 
         Args:
@@ -79,9 +78,7 @@ class CustomerService:
         Returns:
             Customer instance or None if not found
         """
-        result = await self.db.execute(
-            select(Customer).where(Customer.id == customer_id)
-        )
+        result = await self.db.execute(select(Customer).where(Customer.id == customer_id))
         return result.scalar_one_or_none()
 
     async def get_all(
@@ -99,10 +96,7 @@ class CustomerService:
             List of customer instances
         """
         result = await self.db.execute(
-            select(Customer)
-            .order_by(Customer.created_at.desc())
-            .offset(skip)
-            .limit(limit)
+            select(Customer).order_by(Customer.created_at.desc()).offset(skip).limit(limit)
         )
         return list(result.scalars().all())
 
@@ -110,7 +104,7 @@ class CustomerService:
         self,
         customer_id: UUID,
         customer_data: CustomerUpdate,
-    ) -> Optional[Customer]:
+    ) -> Customer | None:
         """Update customer.
 
         Args:

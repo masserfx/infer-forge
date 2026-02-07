@@ -1,11 +1,9 @@
 """Seed demo data for INFER FORGE local development."""
 
 import asyncio
-from datetime import date, timedelta
+from datetime import UTC, date, timedelta
 from decimal import Decimal
 from uuid import uuid4
-
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.core.security import get_password_hash
@@ -33,7 +31,7 @@ async def seed() -> None:
     """Create demo data."""
     async with AsyncSessionLocal() as db:
         # Check if data already exists
-        from sqlalchemy import select, func
+        from sqlalchemy import func, select
 
         count = (await db.execute(select(func.count()).select_from(Customer))).scalar()
         if count and count > 0:
@@ -222,20 +220,102 @@ async def seed() -> None:
         # --- Order Items ---
         items = [
             # ZAK-2026-001
-            OrderItem(id=uuid4(), order_id=orders[0].id, name="Koleno 90° DN150 PN16", material="P265GH", quantity=Decimal("20"), unit="ks", dn="DN150", pn="PN16"),
-            OrderItem(id=uuid4(), order_id=orders[0].id, name="Přechod DN150/DN100", material="P265GH", quantity=Decimal("10"), unit="ks", dn="DN150"),
-            OrderItem(id=uuid4(), order_id=orders[0].id, name="T-kus DN150", material="P265GH", quantity=Decimal("5"), unit="ks", dn="DN150", pn="PN16"),
+            OrderItem(
+                id=uuid4(),
+                order_id=orders[0].id,
+                name="Koleno 90° DN150 PN16",
+                material="P265GH",
+                quantity=Decimal("20"),
+                unit="ks",
+                dn="DN150",
+                pn="PN16",
+            ),
+            OrderItem(
+                id=uuid4(),
+                order_id=orders[0].id,
+                name="Přechod DN150/DN100",
+                material="P265GH",
+                quantity=Decimal("10"),
+                unit="ks",
+                dn="DN150",
+            ),
+            OrderItem(
+                id=uuid4(),
+                order_id=orders[0].id,
+                name="T-kus DN150",
+                material="P265GH",
+                quantity=Decimal("5"),
+                unit="ks",
+                dn="DN150",
+                pn="PN16",
+            ),
             # ZAK-2026-002
-            OrderItem(id=uuid4(), order_id=orders[1].id, name="Ocelový rám HEB 200", material="S355J2", quantity=Decimal("4"), unit="ks"),
-            OrderItem(id=uuid4(), order_id=orders[1].id, name="Nosník IPE 300", material="S355J2", quantity=Decimal("8"), unit="ks"),
+            OrderItem(
+                id=uuid4(),
+                order_id=orders[1].id,
+                name="Ocelový rám HEB 200",
+                material="S355J2",
+                quantity=Decimal("4"),
+                unit="ks",
+            ),
+            OrderItem(
+                id=uuid4(),
+                order_id=orders[1].id,
+                name="Nosník IPE 300",
+                material="S355J2",
+                quantity=Decimal("8"),
+                unit="ks",
+            ),
             # ZAK-2026-003
-            OrderItem(id=uuid4(), order_id=orders[2].id, name="Potrubí bezešvé DN200", material="P235GH", quantity=Decimal("120"), unit="m", dn="DN200"),
-            OrderItem(id=uuid4(), order_id=orders[2].id, name="Příruba DN200 PN25", material="P250GH", quantity=Decimal("24"), unit="ks", dn="DN200", pn="PN25"),
+            OrderItem(
+                id=uuid4(),
+                order_id=orders[2].id,
+                name="Potrubí bezešvé DN200",
+                material="P235GH",
+                quantity=Decimal("120"),
+                unit="m",
+                dn="DN200",
+            ),
+            OrderItem(
+                id=uuid4(),
+                order_id=orders[2].id,
+                name="Příruba DN200 PN25",
+                material="P250GH",
+                quantity=Decimal("24"),
+                unit="ks",
+                dn="DN200",
+                pn="PN25",
+            ),
             # ZAK-2026-004
-            OrderItem(id=uuid4(), order_id=orders[3].id, name="Potrubní oblouk DN250", material="16Mo3", quantity=Decimal("6"), unit="ks", dn="DN250"),
+            OrderItem(
+                id=uuid4(),
+                order_id=orders[3].id,
+                name="Potrubní oblouk DN250",
+                material="16Mo3",
+                quantity=Decimal("6"),
+                unit="ks",
+                dn="DN250",
+            ),
             # ZAK-2026-008
-            OrderItem(id=uuid4(), order_id=orders[7].id, name="T-kus DN300 PN25", material="P265GH", quantity=Decimal("12"), unit="ks", dn="DN300", pn="PN25"),
-            OrderItem(id=uuid4(), order_id=orders[7].id, name="Redukce DN300/DN200", material="P265GH", quantity=Decimal("6"), unit="ks", dn="DN300"),
+            OrderItem(
+                id=uuid4(),
+                order_id=orders[7].id,
+                name="T-kus DN300 PN25",
+                material="P265GH",
+                quantity=Decimal("12"),
+                unit="ks",
+                dn="DN300",
+                pn="PN25",
+            ),
+            OrderItem(
+                id=uuid4(),
+                order_id=orders[7].id,
+                name="Redukce DN300/DN200",
+                material="P265GH",
+                quantity=Decimal("6"),
+                unit="ks",
+                dn="DN300",
+            ),
         ]
         db.add_all(items)
         await db.flush()
@@ -287,18 +367,73 @@ async def seed() -> None:
 
         # --- Calculation Items ---
         calc_items = [
-            CalculationItem(id=uuid4(), calculation_id=calc1.id, cost_type=CostType.MATERIAL, name="Ocelová trubka P265GH DN150", quantity=Decimal("35"), unit="m", unit_price=Decimal("3200"), total_price=Decimal("112000")),
-            CalculationItem(id=uuid4(), calculation_id=calc1.id, cost_type=CostType.MATERIAL, name="Příruby P265GH DN150 PN16", quantity=Decimal("20"), unit="ks", unit_price=Decimal("3650"), total_price=Decimal("73000")),
-            CalculationItem(id=uuid4(), calculation_id=calc1.id, cost_type=CostType.LABOR, name="Svařování WPS-01", quantity=Decimal("160"), unit="hod", unit_price=Decimal("450"), total_price=Decimal("72000")),
-            CalculationItem(id=uuid4(), calculation_id=calc1.id, cost_type=CostType.LABOR, name="Broušení a povrchová úprava", quantity=Decimal("40"), unit="hod", unit_price=Decimal("500"), total_price=Decimal("20000")),
-            CalculationItem(id=uuid4(), calculation_id=calc1.id, cost_type=CostType.COOPERATION, name="NDT kontrola — rentgen", quantity=Decimal("1"), unit="komplet", unit_price=Decimal("25000"), total_price=Decimal("25000")),
-            CalculationItem(id=uuid4(), calculation_id=calc1.id, cost_type=CostType.OVERHEAD, name="Doprava na stavbu", quantity=Decimal("1"), unit="komplet", unit_price=Decimal("18000"), total_price=Decimal("18000")),
+            CalculationItem(
+                id=uuid4(),
+                calculation_id=calc1.id,
+                cost_type=CostType.MATERIAL,
+                name="Ocelová trubka P265GH DN150",
+                quantity=Decimal("35"),
+                unit="m",
+                unit_price=Decimal("3200"),
+                total_price=Decimal("112000"),
+            ),
+            CalculationItem(
+                id=uuid4(),
+                calculation_id=calc1.id,
+                cost_type=CostType.MATERIAL,
+                name="Příruby P265GH DN150 PN16",
+                quantity=Decimal("20"),
+                unit="ks",
+                unit_price=Decimal("3650"),
+                total_price=Decimal("73000"),
+            ),
+            CalculationItem(
+                id=uuid4(),
+                calculation_id=calc1.id,
+                cost_type=CostType.LABOR,
+                name="Svařování WPS-01",
+                quantity=Decimal("160"),
+                unit="hod",
+                unit_price=Decimal("450"),
+                total_price=Decimal("72000"),
+            ),
+            CalculationItem(
+                id=uuid4(),
+                calculation_id=calc1.id,
+                cost_type=CostType.LABOR,
+                name="Broušení a povrchová úprava",
+                quantity=Decimal("40"),
+                unit="hod",
+                unit_price=Decimal("500"),
+                total_price=Decimal("20000"),
+            ),
+            CalculationItem(
+                id=uuid4(),
+                calculation_id=calc1.id,
+                cost_type=CostType.COOPERATION,
+                name="NDT kontrola — rentgen",
+                quantity=Decimal("1"),
+                unit="komplet",
+                unit_price=Decimal("25000"),
+                total_price=Decimal("25000"),
+            ),
+            CalculationItem(
+                id=uuid4(),
+                calculation_id=calc1.id,
+                cost_type=CostType.OVERHEAD,
+                name="Doprava na stavbu",
+                quantity=Decimal("1"),
+                unit="komplet",
+                unit_price=Decimal("18000"),
+                total_price=Decimal("18000"),
+            ),
         ]
         db.add_all(calc_items)
 
         # --- Inbox Messages ---
-        from datetime import datetime as dt, timezone
-        now = dt.now(timezone.utc)
+        from datetime import datetime as dt
+
+        now = dt.now(UTC)
         inbox_msgs = [
             InboxMessage(
                 id=uuid4(),
@@ -402,9 +537,11 @@ async def seed() -> None:
         db.add_all(docs)
 
         await db.commit()
-        print(f"Seeded: {len(users)} users, {len(customers)} customers, {len(orders)} orders, "
-              f"{len(items)} order items, 3 calculations, "
-              f"{len(inbox_msgs)} inbox messages, {len(docs)} documents")
+        print(
+            f"Seeded: {len(users)} users, {len(customers)} customers, {len(orders)} orders, "
+            f"{len(items)} order items, 3 calculations, "
+            f"{len(inbox_msgs)} inbox messages, {len(docs)} documents"
+        )
         print("Login: admin@infer.cz / admin123")
 
 

@@ -217,9 +217,7 @@ async def generate_offer(
     """Generate an Offer from a calculation."""
     service = CalculationService(db)
     try:
-        offer = await service.generate_offer(
-            calculation_id, offer_number, valid_days
-        )
+        offer = await service.generate_offer(calculation_id, offer_number, valid_days)
         if not offer:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

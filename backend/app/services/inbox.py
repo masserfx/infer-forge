@@ -1,7 +1,6 @@
 """Inbox business logic service."""
 
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -13,7 +12,7 @@ from app.models import AuditAction, AuditLog, InboxClassification, InboxMessage,
 class InboxService:
     """Service for managing inbox messages with audit trail."""
 
-    def __init__(self, db: AsyncSession, user_id: Optional[UUID] = None):
+    def __init__(self, db: AsyncSession, user_id: UUID | None = None):
         """Initialize service.
 
         Args:
@@ -27,7 +26,7 @@ class InboxService:
         self,
         action: AuditAction,
         entity_id: UUID,
-        changes: Optional[dict] = None,
+        changes: dict | None = None,
     ) -> None:
         """Create audit log entry.
 
@@ -42,7 +41,7 @@ class InboxService:
             entity_type="inbox_message",
             entity_id=entity_id,
             changes=changes,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         self.db.add(audit)
 
@@ -50,8 +49,8 @@ class InboxService:
         self,
         skip: int = 0,
         limit: int = 100,
-        status: Optional[InboxStatus] = None,
-        classification: Optional[InboxClassification] = None,
+        status: InboxStatus | None = None,
+        classification: InboxClassification | None = None,
     ) -> list[InboxMessage]:
         """Get all inbox messages with pagination and filtering.
 
@@ -76,7 +75,7 @@ class InboxService:
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
-    async def get_by_id(self, message_id: UUID) -> Optional[InboxMessage]:
+    async def get_by_id(self, message_id: UUID) -> InboxMessage | None:
         """Get inbox message by ID.
 
         Args:
@@ -85,17 +84,15 @@ class InboxService:
         Returns:
             InboxMessage instance or None if not found
         """
-        result = await self.db.execute(
-            select(InboxMessage).where(InboxMessage.id == message_id)
-        )
+        result = await self.db.execute(select(InboxMessage).where(InboxMessage.id == message_id))
         return result.scalar_one_or_none()
 
     async def assign_to(
         self,
         message_id: UUID,
-        customer_id: Optional[UUID] = None,
-        order_id: Optional[UUID] = None,
-    ) -> Optional[InboxMessage]:
+        customer_id: UUID | None = None,
+        order_id: UUID | None = None,
+    ) -> InboxMessage | None:
         """Assign inbox message to customer and/or order.
 
         Args:
@@ -154,7 +151,7 @@ class InboxService:
         self,
         message_id: UUID,
         new_classification: InboxClassification,
-    ) -> Optional[InboxMessage]:
+    ) -> InboxMessage | None:
         """Reclassify inbox message.
 
         Args:

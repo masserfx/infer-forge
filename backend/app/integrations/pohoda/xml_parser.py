@@ -112,9 +112,7 @@ class PohodaXMLParser:
                     xml_string = xml_bytes.decode("windows-1250")
                 except UnicodeDecodeError:
                     # Fallback to UTF-8 (some test scenarios)
-                    logger.warning(
-                        "Failed to decode as Windows-1250, trying UTF-8"
-                    )
+                    logger.warning("Failed to decode as Windows-1250, trying UTF-8")
                     xml_string = xml_bytes.decode("utf-8")
             else:
                 xml_string = xml_bytes
@@ -123,9 +121,7 @@ class PohodaXMLParser:
             try:
                 root = etree.fromstring(xml_bytes)
             except etree.XMLSyntaxError as e:
-                raise PohodaXMLError(
-                    f"Invalid XML syntax: {str(e)}"
-                ) from e
+                raise PohodaXMLError(f"Invalid XML syntax: {str(e)}") from e
 
             # Extract pack ID from root element
             pack_id = root.get("id", "")

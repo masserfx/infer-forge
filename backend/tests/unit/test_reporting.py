@@ -1,7 +1,7 @@
 """Unit tests for Reporting module."""
 
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -151,7 +151,7 @@ async def sample_data(test_db: AsyncSession) -> dict:
         message_id="msg-001@example.com",
         subject="Nová poptávka",
         from_email="klient@example.com",
-        received_at=datetime.now(timezone.utc),
+        received_at=datetime.now(UTC),
         status=InboxStatus.NEW,
         body_text="Dobrý den, prosím o nabídku.",
     )
@@ -159,7 +159,7 @@ async def sample_data(test_db: AsyncSession) -> dict:
         message_id="msg-002@example.com",
         subject="Re: Faktura",
         from_email="klient2@example.com",
-        received_at=datetime.now(timezone.utc),
+        received_at=datetime.now(UTC),
         status=InboxStatus.PROCESSED,
         body_text="Děkujeme za fakturu.",
     )
@@ -361,9 +361,7 @@ class TestReportingService:
         # Accepted offers
         assert report.accepted_offers == 0
 
-    async def test_get_revenue_report_approved_count_only(
-        self, test_db: AsyncSession
-    ) -> None:
+    async def test_get_revenue_report_approved_count_only(self, test_db: AsyncSession) -> None:
         """Test get_revenue_report counts only APPROVED status (not OFFERED)."""
         service = ReportingService(test_db)
 
@@ -426,7 +424,7 @@ class TestReportingService:
         assert len(report.monthly) > 0
 
         # Each item should have period in YYYY-MM format
-        current_period = datetime.now(timezone.utc).strftime("%Y-%m")
+        current_period = datetime.now(UTC).strftime("%Y-%m")
         periods = [item.period for item in report.monthly]
         assert current_period in periods
 
@@ -468,9 +466,7 @@ class TestReportingService:
         # Orders list should include active orders
         assert len(report.orders) > 0
 
-    async def test_get_production_report_overdue_detection(
-        self, test_db: AsyncSession
-    ) -> None:
+    async def test_get_production_report_overdue_detection(self, test_db: AsyncSession) -> None:
         """Test get_production_report correctly detects overdue orders."""
         service = ReportingService(test_db)
 
@@ -514,15 +510,11 @@ class TestReportingService:
         assert report.overdue == 1
 
         # Find the overdue order item
-        overdue_item = next(
-            (o for o in report.orders if o.order_number == "OVERDUE-1"), None
-        )
+        overdue_item = next((o for o in report.orders if o.order_number == "OVERDUE-1"), None)
         assert overdue_item is not None
         assert overdue_item.days_until_due == -5
 
-    async def test_get_production_report_due_this_week(
-        self, test_db: AsyncSession
-    ) -> None:
+    async def test_get_production_report_due_this_week(self, test_db: AsyncSession) -> None:
         """Test get_production_report tracks orders due this week."""
         service = ReportingService(test_db)
 
@@ -560,9 +552,7 @@ class TestReportingService:
         # Should count order1 but not order2
         assert report.due_this_week == 1
 
-    async def test_get_production_report_due_this_month(
-        self, test_db: AsyncSession
-    ) -> None:
+    async def test_get_production_report_due_this_month(self, test_db: AsyncSession) -> None:
         """Test get_production_report tracks orders due this month."""
         service = ReportingService(test_db)
 
@@ -612,9 +602,7 @@ class TestReportingService:
         report = await service.get_production_report()
 
         # Find an order in production
-        prod_item = next(
-            (o for o in report.orders if o.status == "vyroba"), None
-        )
+        prod_item = next((o for o in report.orders if o.status == "vyroba"), None)
         assert prod_item is not None
         assert prod_item.customer_name != ""
         assert "Zákazník" in prod_item.customer_name
@@ -659,9 +647,7 @@ class TestReportingService:
         assert "Zákazník A" in top_customer.company_name
         assert top_customer.total_value > Decimal("0")
 
-    async def test_get_customer_report_limit_parameter(
-        self, test_db: AsyncSession
-    ) -> None:
+    async def test_get_customer_report_limit_parameter(self, test_db: AsyncSession) -> None:
         """Test get_customer_report respects limit parameter."""
         service = ReportingService(test_db)
 

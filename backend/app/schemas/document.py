@@ -1,7 +1,6 @@
 """Document Pydantic schemas."""
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -17,14 +16,14 @@ class DocumentUpload(BaseModel):
     category: DocumentCategory = Field(
         default=DocumentCategory.OSTATNI, description="Document category"
     )
-    description: Optional[str] = Field(None, description="Document description")
+    description: str | None = Field(None, description="Document description")
 
 
 class DocumentUpdate(BaseModel):
     """Schema for updating document metadata."""
 
-    category: Optional[DocumentCategory] = None
-    description: Optional[str] = None
+    category: DocumentCategory | None = None
+    description: str | None = None
 
 
 class DocumentResponse(BaseModel):
@@ -39,9 +38,9 @@ class DocumentResponse(BaseModel):
     file_size: int
     version: int
     category: DocumentCategory
-    description: Optional[str] = None
-    ocr_text: Optional[str] = None
-    uploaded_by: Optional[UUID] = None
+    description: str | None = None
+    ocr_text: str | None = None
+    uploaded_by: UUID | None = None
     created_at: datetime
     updated_at: datetime
 

@@ -1,8 +1,8 @@
 """AuditLog model."""
 
 import enum
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import JSON, DateTime, Enum, Index, String
@@ -24,17 +24,17 @@ class AuditLog(Base, UUIDPKMixin):
 
     __tablename__ = "audit_logs"
 
-    user_id: Mapped[Optional[UUID]] = mapped_column(nullable=True, index=True)
+    user_id: Mapped[UUID | None] = mapped_column(nullable=True, index=True)
     action: Mapped[AuditAction] = mapped_column(
         Enum(AuditAction, native_enum=False, length=20),
         nullable=False,
     )
     entity_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     entity_id: Mapped[UUID] = mapped_column(nullable=False, index=True)
-    changes: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    changes: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 

@@ -3,8 +3,7 @@
 Provides test database, async client, and mock settings.
 """
 
-import asyncio
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -12,11 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.core.config import Settings
-from app.core.database import Base, get_db
-
 # Import all models so they register with Base.metadata
 import app.models  # noqa: F401
+from app.core.config import Settings
+from app.core.database import Base, get_db
 
 # Test database URL (use in-memory SQLite with shared cache for fast tests)
 # file::memory:?cache=shared allows multiple connections to share the same in-memory DB
@@ -106,5 +104,3 @@ def test_settings() -> Settings:
         SECRET_KEY="test_secret_key_not_for_production",
         ANTHROPIC_API_KEY="test_key",
     )
-
-

@@ -1,9 +1,8 @@
 """Reporting service for analytics and dashboards."""
 
 import logging
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,8 +45,12 @@ ORDER_STATUS_LABELS = {
 
 PRODUCTION_STATUSES = {OrderStatus.VYROBA, OrderStatus.EXPEDICE}
 ACTIVE_STATUSES = {
-    OrderStatus.POPTAVKA, OrderStatus.NABIDKA, OrderStatus.OBJEDNAVKA,
-    OrderStatus.VYROBA, OrderStatus.EXPEDICE, OrderStatus.FAKTURACE,
+    OrderStatus.POPTAVKA,
+    OrderStatus.NABIDKA,
+    OrderStatus.OBJEDNAVKA,
+    OrderStatus.VYROBA,
+    OrderStatus.EXPEDICE,
+    OrderStatus.FAKTURACE,
 }
 
 
@@ -64,41 +67,33 @@ class ReportingService:
 
         # Specific counts
         production_count = sum(
-            s.count for s in pipeline.statuses
-            if s.status in ("vyroba", "expedice")
+            s.count for s in pipeline.statuses if s.status in ("vyroba", "expedice")
         )
-        invoicing_count = sum(
-            s.count for s in pipeline.statuses
-            if s.status == "fakturace"
-        )
+        invoicing_count = sum(s.count for s in pipeline.statuses if s.status == "fakturace")
 
         # Inbox new messages
         inbox_result = await self.db.execute(
-            select(func.count(InboxMessage.id)).where(
-                InboxMessage.status == InboxStatus.NEW
-            )
+            select(func.count(InboxMessage.id)).where(InboxMessage.status == InboxStatus.NEW)
         )
         new_messages = inbox_result.scalar() or 0
 
         # Documents count
-        docs_result = await self.db.execute(
-            select(func.count(Document.id))
-        )
+        docs_result = await self.db.execute(select(func.count(Document.id)))
         total_documents = docs_result.scalar() or 0
 
         # Calculations count
-        calc_result = await self.db.execute(
-            select(func.count(Calculation.id))
-        )
+        calc_result = await self.db.execute(select(func.count(Calculation.id)))
         total_calculations = calc_result.scalar() or 0
 
         # Total revenue (from approved/offered calculations)
         revenue_result = await self.db.execute(
             select(func.sum(Calculation.total_price)).where(
-                Calculation.status.in_([
-                    CalculationStatus.APPROVED,
-                    CalculationStatus.OFFERED,
-                ])
+                Calculation.status.in_(
+                    [
+                        CalculationStatus.APPROVED,
+                        CalculationStatus.OFFERED,
+                    ]
+                )
             )
         )
         total_revenue = revenue_result.scalar() or Decimal("0")
@@ -108,7 +103,7 @@ class ReportingService:
         overdue_result = await self.db.execute(
             select(func.count(Order.id)).where(
                 Order.due_date < today,
-                Order.status.in_([s for s in ACTIVE_STATUSES]),
+                Order.status.in_(list(ACTIVE_STATUSES)),
             )
         )
         overdue_orders = overdue_result.scalar() or 0
@@ -141,11 +136,13 @@ class ReportingService:
             status_value = row[0].value if hasattr(row[0], "value") else str(row[0])
             count = row[1]
             total += count
-            statuses.append(StatusCount(
-                status=status_value,
-                count=count,
-                label=ORDER_STATUS_LABELS.get(status_value, status_value),
-            ))
+            statuses.append(
+                StatusCount(
+                    status=status_value,
+                    count=count,
+                    label=ORDER_STATUS_LABELS.get(status_value, status_value),
+                )
+            )
 
         # Ensure all statuses are present
         existing = {s.status for s in statuses}
@@ -155,7 +152,9 @@ class ReportingService:
 
         # Sort by pipeline order
         status_order = list(ORDER_STATUS_LABELS.keys())
-        statuses.sort(key=lambda s: status_order.index(s.status) if s.status in status_order else 99)
+        statuses.sort(
+            key=lambda s: status_order.index(s.status) if s.status in status_order else 99
+        )
 
         return PipelineReport(statuses=statuses, total_orders=total)
 
@@ -164,17 +163,17 @@ class ReportingService:
         # Total values
         calc_result = await self.db.execute(
             select(func.sum(Calculation.total_price)).where(
-                Calculation.status.in_([
-                    CalculationStatus.APPROVED,
-                    CalculationStatus.OFFERED,
-                ])
+                Calculation.status.in_(
+                    [
+                        CalculationStatus.APPROVED,
+                        CalculationStatus.OFFERED,
+                    ]
+                )
             )
         )
         total_calc_value = calc_result.scalar() or Decimal("0")
 
-        offer_result = await self.db.execute(
-            select(func.sum(Offer.total_price))
-        )
+        offer_result = await self.db.execute(select(func.sum(Offer.total_price)))
         total_offer_value = offer_result.scalar() or Decimal("0")
 
         # Counts
@@ -193,14 +192,12 @@ class ReportingService:
         pending_offers = pending_offers_result.scalar() or 0
 
         accepted_offers_result = await self.db.execute(
-            select(func.count(Offer.id)).where(
-                Offer.status == OfferStatus.ACCEPTED
-            )
+            select(func.count(Offer.id)).where(Offer.status == OfferStatus.ACCEPTED)
         )
         accepted_offers = accepted_offers_result.scalar() or 0
 
         # Monthly breakdown from calculations
-        cutoff = datetime.now(timezone.utc) - timedelta(days=months * 30)
+        cutoff = datetime.now(UTC) - timedelta(days=months * 30)
         monthly_calc = await self.db.execute(
             select(
                 func.strftime("%Y-%m", Calculation.created_at).label("period"),
@@ -269,7 +266,7 @@ class ReportingService:
         # Get active production orders
         result = await self.db.execute(
             select(Order)
-            .where(Order.status.in_([s for s in ACTIVE_STATUSES]))
+            .where(Order.status.in_(list(ACTIVE_STATUSES)))
             .order_by(Order.due_date.asc().nullslast(), Order.priority.desc())
         )
         orders = list(result.scalars().all())
@@ -301,31 +298,30 @@ class ReportingService:
             customer_name = ""
             if order.customer_id:
                 cust = await self.db.execute(
-                    select(Customer.company_name).where(
-                        Customer.id == order.customer_id
-                    )
+                    select(Customer.company_name).where(Customer.id == order.customer_id)
                 )
                 customer_name = cust.scalar() or ""
 
             # Count items
             from app.models import OrderItem
+
             items_result = await self.db.execute(
-                select(func.count(OrderItem.id)).where(
-                    OrderItem.order_id == order.id
-                )
+                select(func.count(OrderItem.id)).where(OrderItem.order_id == order.id)
             )
             items_count = items_result.scalar() or 0
 
-            production_items.append(ProductionItem(
-                order_id=str(order.id),
-                order_number=order.number,
-                customer_name=customer_name,
-                status=order.status.value,
-                priority=order.priority.value,
-                due_date=order.due_date,
-                days_until_due=days_until_due,
-                items_count=items_count,
-            ))
+            production_items.append(
+                ProductionItem(
+                    order_id=str(order.id),
+                    order_number=order.number,
+                    customer_name=customer_name,
+                    status=order.status.value,
+                    priority=order.priority.value,
+                    due_date=order.due_date,
+                    days_until_due=days_until_due,
+                    items_count=items_count,
+                )
+            )
 
         return ProductionReport(
             in_production=in_production,
@@ -339,15 +335,13 @@ class ReportingService:
     async def get_customer_report(self, limit: int = 20) -> CustomerReport:
         """Get customer analytics with top customers by value."""
         # Total customers
-        total_result = await self.db.execute(
-            select(func.count(Customer.id))
-        )
+        total_result = await self.db.execute(select(func.count(Customer.id)))
         total_customers = total_result.scalar() or 0
 
         # Active customers (with at least one active order)
         active_result = await self.db.execute(
             select(func.count(func.distinct(Order.customer_id))).where(
-                Order.status.in_([s for s in ACTIVE_STATUSES])
+                Order.status.in_(list(ACTIVE_STATUSES))
             )
         )
         active_customers = active_result.scalar() or 0
@@ -374,19 +368,21 @@ class ReportingService:
             active_orders_result = await self.db.execute(
                 select(func.count(Order.id)).where(
                     Order.customer_id == row[0],
-                    Order.status.in_([s for s in ACTIVE_STATUSES]),
+                    Order.status.in_(list(ACTIVE_STATUSES)),
                 )
             )
             active_count = active_orders_result.scalar() or 0
 
-            top_customers.append(CustomerStats(
-                customer_id=str(row[0]),
-                company_name=row[1],
-                ico=row[2],
-                orders_count=row[3],
-                total_value=row[4] or Decimal("0"),
-                active_orders=active_count,
-            ))
+            top_customers.append(
+                CustomerStats(
+                    customer_id=str(row[0]),
+                    company_name=row[1],
+                    ico=row[2],
+                    orders_count=row[3],
+                    total_value=row[4] or Decimal("0"),
+                    active_orders=active_count,
+                )
+            )
 
         return CustomerReport(
             total_customers=total_customers,

@@ -3,7 +3,7 @@
 import enum
 from datetime import date, datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
@@ -68,12 +68,13 @@ class Order(Base, UUIDPKMixin, TimestampMixin):
         nullable=False,
         default=OrderPriority.NORMAL,
     )
-    due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
-    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_by: Mapped[Optional[UUID]] = mapped_column(nullable=True)
-    pohoda_id: Mapped[Optional[int]] = mapped_column(nullable=True)
-    pohoda_synced_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True,
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[UUID | None] = mapped_column(nullable=True)
+    pohoda_id: Mapped[int | None] = mapped_column(nullable=True)
+    pohoda_synced_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )
 
     # Relationships
@@ -114,16 +115,16 @@ class OrderItem(Base, UUIDPKMixin):
         index=True,
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    material: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    material: Mapped[str | None] = mapped_column(String(100), nullable=True)
     quantity: Mapped[Decimal] = mapped_column(
         Numeric(precision=10, scale=2),
         nullable=False,
     )
     unit: Mapped[str] = mapped_column(String(20), nullable=False, default="ks")
-    dn: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
-    pn: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
-    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    drawing_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    dn: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    pn: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    drawing_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     # Relationships
     order: Mapped["Order"] = relationship("Order", back_populates="items")

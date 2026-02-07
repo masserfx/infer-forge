@@ -1,6 +1,5 @@
 """Unit tests for security utilities."""
 
-import pytest
 from jose import jwt
 
 from app.core.config import get_settings

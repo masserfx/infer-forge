@@ -3,17 +3,21 @@
 Configures middleware, routes, and lifecycle events.
 """
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator
+from typing import Any
 
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import get_db, get_logger, get_settings
 from app.core.database import close_db, init_db
 from app.core.health import check_database, check_redis, get_version
+from app.core.sentry import init_sentry
+
+# Initialize Sentry (before app creation)
+init_sentry()
 
 settings = get_settings()
 logger = get_logger(__name__)
@@ -53,11 +57,16 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend dev server
+    allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Request logging middleware
+from app.core.middleware import RequestLoggingMiddleware
+
+app.add_middleware(RequestLoggingMiddleware)
 
 
 @app.get("/", status_code=status.HTTP_200_OK)

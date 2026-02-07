@@ -1,6 +1,6 @@
 """Tests for Pohoda XML builder, parser, and validator."""
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from unittest.mock import MagicMock
 from uuid import uuid4
@@ -11,12 +11,10 @@ from lxml import etree
 from app.integrations.pohoda.exceptions import PohodaXMLError
 from app.integrations.pohoda.xml_builder import NAMESPACES, PohodaXMLBuilder
 from app.integrations.pohoda.xml_parser import (
-    PohodaResponse,
     PohodaResponseItem,
     PohodaXMLParser,
 )
 from app.integrations.pohoda.xsd_validator import XSDValidator
-
 
 # --- Fixtures ---
 
@@ -49,7 +47,7 @@ def mock_order(mock_customer: MagicMock) -> MagicMock:
     order = MagicMock()
     order.id = uuid4()
     order.number = "ZAK-2025-001"
-    order.created_at = datetime(2025, 6, 15, 10, 30, tzinfo=timezone.utc)
+    order.created_at = datetime(2025, 6, 15, 10, 30, tzinfo=UTC)
     order.due_date = date(2025, 9, 30)
     order.note = "Testovací zakázka"
     order.customer = mock_customer
@@ -85,7 +83,7 @@ def mock_offer(mock_order: MagicMock) -> MagicMock:
     offer.number = "NAB-2025-001"
     offer.total_price = Decimal("125000.50")
     offer.valid_until = date(2025, 8, 31)
-    offer.created_at = datetime(2025, 6, 20, 14, 0, tzinfo=timezone.utc)
+    offer.created_at = datetime(2025, 6, 20, 14, 0, tzinfo=UTC)
     offer.order = mock_order
     return offer
 
@@ -286,9 +284,7 @@ class TestPohodaXMLParser:
 
     def test_parse_success_response(self) -> None:
         """Parser should correctly parse successful response."""
-        xml_bytes = self._build_response_xml(
-            [("ok", "Záznam byl úspěšně vytvořen.", "12345")]
-        )
+        xml_bytes = self._build_response_xml([("ok", "Záznam byl úspěšně vytvořen.", "12345")])
         result = PohodaXMLParser.parse_response(xml_bytes)
 
         assert result.success is True
@@ -300,9 +296,7 @@ class TestPohodaXMLParser:
 
     def test_parse_error_response(self) -> None:
         """Parser should correctly parse error response."""
-        xml_bytes = self._build_response_xml(
-            [("error", "IČO nebylo nalezeno.", "")]
-        )
+        xml_bytes = self._build_response_xml([("error", "IČO nebylo nalezeno.", "")])
         result = PohodaXMLParser.parse_response(xml_bytes)
 
         assert result.success is False
@@ -312,11 +306,13 @@ class TestPohodaXMLParser:
 
     def test_parse_multiple_items(self) -> None:
         """Parser should handle multiple response items."""
-        xml_bytes = self._build_response_xml([
-            ("ok", "Vytvořeno.", "100"),
-            ("ok", "Vytvořeno.", "101"),
-            ("error", "Duplicitní záznam.", ""),
-        ])
+        xml_bytes = self._build_response_xml(
+            [
+                ("ok", "Vytvořeno.", "100"),
+                ("ok", "Vytvořeno.", "101"),
+                ("error", "Duplicitní záznam.", ""),
+            ]
+        )
         result = PohodaXMLParser.parse_response(xml_bytes)
 
         assert result.success is False  # One error -> not all ok
@@ -324,10 +320,12 @@ class TestPohodaXMLParser:
 
     def test_parse_all_success(self) -> None:
         """All items ok -> overall success."""
-        xml_bytes = self._build_response_xml([
-            ("ok", "OK", "100"),
-            ("ok", "OK", "101"),
-        ])
+        xml_bytes = self._build_response_xml(
+            [
+                ("ok", "OK", "100"),
+                ("ok", "OK", "101"),
+            ]
+        )
         result = PohodaXMLParser.parse_response(xml_bytes)
         assert result.success is True
 
@@ -398,6 +396,7 @@ class TestXSDValidator:
     def test_missing_xsd_directory_logs_warning(self) -> None:
         """Missing XSD directory should not crash, just log warning."""
         from pathlib import Path
+
         validator = XSDValidator(xsd_dir=Path("/nonexistent/xsd"))
         assert validator.schema is None
 

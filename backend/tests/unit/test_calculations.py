@@ -15,7 +15,6 @@ from app.models import (
     CalculationStatus,
     CostType,
     Customer,
-    Offer,
     OfferStatus,
     Order,
     OrderStatus,
@@ -106,9 +105,7 @@ class TestCalculationModel:
         statuses = [CalculationStatus.DRAFT, CalculationStatus.APPROVED, CalculationStatus.OFFERED]
         assert len(statuses) == 3
 
-    async def test_default_values(
-        self, test_db: AsyncSession, test_order: Order
-    ) -> None:
+    async def test_default_values(self, test_db: AsyncSession, test_order: Order) -> None:
         """Test default values for Calculation."""
         calc = Calculation(
             order_id=test_order.id,
@@ -159,9 +156,7 @@ class TestCalculationModel:
         assert item.unit_price == Decimal("25.50")
         assert item.total_price == Decimal("267.75")
 
-    async def test_relationship_items(
-        self, test_db: AsyncSession, test_order: Order
-    ) -> None:
+    async def test_relationship_items(self, test_db: AsyncSession, test_order: Order) -> None:
         """Test Calculation-CalculationItem relationship."""
         calc = Calculation(
             order_id=test_order.id,
@@ -194,9 +189,7 @@ class TestCalculationModel:
 class TestCalculationService:
     """Tests for CalculationService."""
 
-    async def test_create_empty_calculation(
-        self, test_db: AsyncSession, test_order: Order
-    ) -> None:
+    async def test_create_empty_calculation(self, test_db: AsyncSession, test_order: Order) -> None:
         """Test create - empty calculation (0 items)."""
         service = CalculationService(test_db, user_id=uuid.uuid4())
         data = CalculationCreate(
@@ -256,9 +249,7 @@ class TestCalculationService:
         assert calc.margin_amount == expected_margin
         assert calc.total_price == subtotal + expected_margin
 
-    async def test_get_by_id_existing(
-        self, test_db: AsyncSession, test_order: Order
-    ) -> None:
+    async def test_get_by_id_existing(self, test_db: AsyncSession, test_order: Order) -> None:
         """Test get_by_id - existing calculation."""
         service = CalculationService(test_db)
         created = await service.create(
@@ -322,19 +313,13 @@ class TestCalculationService:
         calcs = await service.get_by_order(test_order.id)
         assert len(calcs) == 3
 
-    async def test_get_all_no_filters(
-        self, test_db: AsyncSession, test_order: Order
-    ) -> None:
+    async def test_get_all_no_filters(self, test_db: AsyncSession, test_order: Order) -> None:
         """Test get_all - without filters."""
         service = CalculationService(test_db)
 
         # Create 2 calculations
-        await service.create(
-            CalculationCreate(order_id=test_order.id, name="Calc 1")
-        )
-        await service.create(
-            CalculationCreate(order_id=test_order.id, name="Calc 2")
-        )
+        await service.create(CalculationCreate(order_id=test_order.id, name="Calc 1"))
+        await service.create(CalculationCreate(order_id=test_order.id, name="Calc 2"))
 
         calcs = await service.get_all()
         assert len(calcs) >= 2
@@ -346,12 +331,8 @@ class TestCalculationService:
         service = CalculationService(test_db)
 
         # Create 2 drafts, 1 approved
-        await service.create(
-            CalculationCreate(order_id=test_order.id, name="Draft 1")
-        )
-        await service.create(
-            CalculationCreate(order_id=test_order.id, name="Draft 2")
-        )
+        await service.create(CalculationCreate(order_id=test_order.id, name="Draft 1"))
+        await service.create(CalculationCreate(order_id=test_order.id, name="Draft 2"))
 
         approved_calc = await service.create(
             CalculationCreate(order_id=test_order.id, name="Approved")
@@ -367,14 +348,10 @@ class TestCalculationService:
         approved_calcs = await service.get_all(status=CalculationStatus.APPROVED)
         assert len(approved_calcs) >= 1
 
-    async def test_update_name(
-        self, test_db: AsyncSession, test_order: Order
-    ) -> None:
+    async def test_update_name(self, test_db: AsyncSession, test_order: Order) -> None:
         """Test update - change name."""
         service = CalculationService(test_db)
-        calc = await service.create(
-            CalculationCreate(order_id=test_order.id, name="Old Name")
-        )
+        calc = await service.create(CalculationCreate(order_id=test_order.id, name="Old Name"))
 
         updated = await service.update(
             calc.id,
@@ -429,9 +406,7 @@ class TestCalculationService:
         )
         assert result is None
 
-    async def test_add_item_material(
-        self, test_db: AsyncSession, test_order: Order
-    ) -> None:
+    async def test_add_item_material(self, test_db: AsyncSession, test_order: Order) -> None:
         """Test add_item - adding material item triggers recalculation."""
         service = CalculationService(test_db)
         calc = await service.create(
@@ -463,9 +438,7 @@ class TestCalculationService:
         # subtotal=500, margin=10% -> 50, total=550
         assert updated.total_price == Decimal("550")
 
-    async def test_add_item_labor(
-        self, test_db: AsyncSession, test_order: Order
-    ) -> None:
+    async def test_add_item_labor(self, test_db: AsyncSession, test_order: Order) -> None:
         """Test add_item - adding labor item triggers recalculation."""
         service = CalculationService(test_db)
         calc = await service.create(
@@ -587,9 +560,7 @@ class TestCalculationService:
     ) -> None:
         """Test update_item - nonexistent item returns None."""
         service = CalculationService(test_db)
-        calc = await service.create(
-            CalculationCreate(order_id=test_order.id, name="Test")
-        )
+        calc = await service.create(CalculationCreate(order_id=test_order.id, name="Test"))
 
         result = await service.update_item(
             calc.id,
@@ -599,9 +570,7 @@ class TestCalculationService:
 
         assert result is None
 
-    async def test_remove_item_recalculates(
-        self, test_db: AsyncSession, test_order: Order
-    ) -> None:
+    async def test_remove_item_recalculates(self, test_db: AsyncSession, test_order: Order) -> None:
         """Test remove_item - removing item triggers recalculation."""
         service = CalculationService(test_db)
         calc = await service.create(
@@ -640,14 +609,10 @@ class TestCalculationService:
         assert len(updated.items) == 1
         assert updated.total_price == Decimal("200")
 
-    async def test_remove_item_nonexistent(
-        self, test_db: AsyncSession, test_order: Order
-    ) -> None:
+    async def test_remove_item_nonexistent(self, test_db: AsyncSession, test_order: Order) -> None:
         """Test remove_item - nonexistent item returns None."""
         service = CalculationService(test_db)
-        calc = await service.create(
-            CalculationCreate(order_id=test_order.id, name="Test")
-        )
+        calc = await service.create(CalculationCreate(order_id=test_order.id, name="Test"))
 
         result = await service.remove_item(calc.id, uuid.uuid4())
         assert result is None
@@ -708,9 +673,7 @@ class TestCalculationService:
     ) -> None:
         """Test delete - removes calculation."""
         service = CalculationService(test_db)
-        calc = await service.create(
-            CalculationCreate(order_id=test_order.id, name="Test")
-        )
+        calc = await service.create(CalculationCreate(order_id=test_order.id, name="Test"))
 
         result = await service.delete(calc.id)
         assert result is True
@@ -778,9 +741,7 @@ class TestCalculationService:
         assert calc.margin_amount == expected_margin
         assert calc.total_price == subtotal + expected_margin
 
-    async def test_audit_trail_on_create(
-        self, test_db: AsyncSession, test_order: Order
-    ) -> None:
+    async def test_audit_trail_on_create(self, test_db: AsyncSession, test_order: Order) -> None:
         """Test audit log created on calculation create."""
         user_id = uuid.uuid4()
         service = CalculationService(test_db, user_id=user_id)
@@ -814,15 +775,11 @@ class TestCalculationService:
         assert audit.changes["name"] == "Audit Test"
         assert audit.changes["order_id"] == str(test_order.id)
 
-    async def test_audit_trail_on_update(
-        self, test_db: AsyncSession, test_order: Order
-    ) -> None:
+    async def test_audit_trail_on_update(self, test_db: AsyncSession, test_order: Order) -> None:
         """Test audit log created on calculation update."""
         user_id = uuid.uuid4()
         service = CalculationService(test_db, user_id=user_id)
-        calc = await service.create(
-            CalculationCreate(order_id=test_order.id, name="Original")
-        )
+        calc = await service.create(CalculationCreate(order_id=test_order.id, name="Original"))
 
         await service.update(calc.id, CalculationUpdate(name="Updated"))
 
@@ -843,15 +800,11 @@ class TestCalculationService:
         assert audit.changes["name"]["old"] == "Original"
         assert audit.changes["name"]["new"] == "Updated"
 
-    async def test_audit_trail_on_delete(
-        self, test_db: AsyncSession, test_order: Order
-    ) -> None:
+    async def test_audit_trail_on_delete(self, test_db: AsyncSession, test_order: Order) -> None:
         """Test audit log created on calculation delete."""
         user_id = uuid.uuid4()
         service = CalculationService(test_db, user_id=user_id)
-        calc = await service.create(
-            CalculationCreate(order_id=test_order.id, name="To Delete")
-        )
+        calc = await service.create(CalculationCreate(order_id=test_order.id, name="To Delete"))
 
         calc_id = calc.id
         await service.delete(calc_id)

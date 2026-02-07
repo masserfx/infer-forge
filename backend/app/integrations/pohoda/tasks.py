@@ -68,7 +68,7 @@ def sync_entity_task(self, entity_type: str, entity_id: str) -> dict:  # type: i
                     entity_id,
                     str(e),
                 )
-                raise self.retry(exc=e)
+                raise self.retry(exc=e) from e
 
     return _run_async(_sync())
 

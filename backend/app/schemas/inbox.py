@@ -1,7 +1,6 @@
 """Inbox Pydantic schemas."""
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -18,11 +17,13 @@ class InboxMessageResponse(BaseModel):
     subject: str = Field(..., description="Email subject")
     body_text: str = Field(..., description="Email body text")
     received_at: datetime = Field(..., description="Email received timestamp")
-    classification: Optional[InboxClassification] = Field(None, description="AI classification")
-    confidence: Optional[float] = Field(None, ge=0, le=1, description="Classification confidence score")
+    classification: InboxClassification | None = Field(None, description="AI classification")
+    confidence: float | None = Field(
+        None, ge=0, le=1, description="Classification confidence score"
+    )
     status: InboxStatus = Field(..., description="Processing status")
-    customer_id: Optional[UUID] = Field(None, description="Assigned customer ID")
-    order_id: Optional[UUID] = Field(None, description="Assigned order ID")
+    customer_id: UUID | None = Field(None, description="Assigned customer ID")
+    order_id: UUID | None = Field(None, description="Assigned order ID")
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -31,8 +32,8 @@ class InboxMessageResponse(BaseModel):
 class InboxAssign(BaseModel):
     """Schema for assigning inbox message to customer/order."""
 
-    customer_id: Optional[UUID] = Field(None, description="Customer to assign")
-    order_id: Optional[UUID] = Field(None, description="Order to assign")
+    customer_id: UUID | None = Field(None, description="Customer to assign")
+    order_id: UUID | None = Field(None, description="Order to assign")
 
 
 class InboxReclassify(BaseModel):

@@ -1,6 +1,9 @@
 __pycache__/
 *.pyc
 .env
+.env.local
+.env.prod
+.env.*.local
 .venv/
 node_modules/
 .next/
@@ -11,3 +14,20 @@ dist/
 .ruff_cache/
 pgdata/
 storage/
+uploads/
+
+# Backupy
+*.sql
+*.sql.gz
+*.rdb
+backup/
+backups/
+
+# SSL certifikáty
+*.pem
+*.crt
+*.key
+
+# Logs
+*.log
+logs/

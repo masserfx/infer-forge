@@ -1,11 +1,9 @@
 """Document business logic service."""
 
 import logging
-import os
 import shutil
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 from uuid import UUID, uuid4
 
 from sqlalchemy import select
@@ -39,7 +37,7 @@ class DocumentService:
         "text/xml",
     }
 
-    def __init__(self, db: AsyncSession, user_id: Optional[UUID] = None):
+    def __init__(self, db: AsyncSession, user_id: UUID | None = None):
         self.db = db
         self.user_id = user_id
         self.settings = get_settings()
@@ -48,7 +46,7 @@ class DocumentService:
         self,
         action: AuditAction,
         entity_id: UUID,
-        changes: Optional[dict] = None,
+        changes: dict | None = None,
     ) -> None:
         audit = AuditLog(
             user_id=self.user_id,
@@ -56,7 +54,7 @@ class DocumentService:
             entity_type="document",
             entity_id=entity_id,
             changes=changes,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         self.db.add(audit)
 
@@ -70,8 +68,7 @@ class DocumentService:
         max_bytes = self.settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
         if file_size > max_bytes:
             raise ValueError(
-                f"File size {file_size} exceeds maximum "
-                f"{self.settings.MAX_UPLOAD_SIZE_MB} MB"
+                f"File size {file_size} exceeds maximum " f"{self.settings.MAX_UPLOAD_SIZE_MB} MB"
             )
 
     async def upload(
@@ -164,7 +161,7 @@ class DocumentService:
         entity_type: str,
         entity_id: UUID,
         file_name: str,
-    ) -> Optional[Document]:
+    ) -> Document | None:
         """Get the latest version of a document by name."""
         result = await self.db.execute(
             select(Document)
@@ -178,14 +175,12 @@ class DocumentService:
         )
         return result.scalar_one_or_none()
 
-    async def get_by_id(self, document_id: UUID) -> Optional[Document]:
+    async def get_by_id(self, document_id: UUID) -> Document | None:
         """Get document by ID."""
-        result = await self.db.execute(
-            select(Document).where(Document.id == document_id)
-        )
+        result = await self.db.execute(select(Document).where(Document.id == document_id))
         return result.scalar_one_or_none()
 
-    async def get_file_content(self, document_id: UUID) -> Optional[tuple[Document, bytes]]:
+    async def get_file_content(self, document_id: UUID) -> tuple[Document, bytes] | None:
         """Get document metadata and file content for download.
 
         Returns:
@@ -211,17 +206,14 @@ class DocumentService:
         self,
         entity_type: str,
         entity_id: UUID,
-        category: Optional[DocumentCategory] = None,
+        category: DocumentCategory | None = None,
         skip: int = 0,
         limit: int = 100,
     ) -> list[Document]:
         """Get documents for an entity with optional category filter."""
-        query = (
-            select(Document)
-            .where(
-                Document.entity_type == entity_type,
-                Document.entity_id == entity_id,
-            )
+        query = select(Document).where(
+            Document.entity_type == entity_type,
+            Document.entity_id == entity_id,
         )
 
         if category:
@@ -234,8 +226,8 @@ class DocumentService:
 
     async def get_all(
         self,
-        entity_type: Optional[str] = None,
-        category: Optional[DocumentCategory] = None,
+        entity_type: str | None = None,
+        category: DocumentCategory | None = None,
         skip: int = 0,
         limit: int = 100,
     ) -> list[Document]:
@@ -256,7 +248,7 @@ class DocumentService:
         self,
         document_id: UUID,
         update_data: DocumentUpdate,
-    ) -> Optional[Document]:
+    ) -> Document | None:
         """Update document metadata."""
         document = await self.get_by_id(document_id)
         if not document:

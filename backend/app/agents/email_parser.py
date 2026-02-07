@@ -40,9 +40,7 @@ _PARSE_TOOL: dict[str, object] = {
             },
             "contact_name": {
                 "type": ["string", "null"],
-                "description": (
-                    "Jmeno kontaktni osoby (odesilatel, osoba uvedena v podpisu)."
-                ),
+                "description": ("Jmeno kontaktni osoby (odesilatel, osoba uvedena v podpisu)."),
             },
             "email": {
                 "type": ["string", "null"],

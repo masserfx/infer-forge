@@ -48,10 +48,21 @@ packages = ["app"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+extend-exclude = ["scripts/seed_demo.py", "app/integrations/*/example*.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "A", "C4", "T20"]
-ignore = ["B008"]  # Depends() in defaults is standard FastAPI pattern
+ignore = [
+    "B008",  # Depends() in defaults is standard FastAPI pattern
+    "E501",  # Line too long (handled by formatter)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*.py" = ["T201"]  # Allow print in scripts
+"seed_demo.py" = ["T201"]  # Allow print in seed script
+"app/integrations/*/example*.py" = ["T201"]  # Allow print in examples
+"tests/*.py" = ["N806"]  # Allow uppercase variables in tests (Mock objects)
+"app/main.py" = ["E402"]  # Allow imports after app initialization
 
 [tool.mypy]
 python_version = "3.12"

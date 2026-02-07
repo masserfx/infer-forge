@@ -2,7 +2,7 @@
 
 import enum
 from decimal import Decimal
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import Enum, ForeignKey, Index, Numeric, String, Text
@@ -47,8 +47,8 @@ class Calculation(Base, UUIDPKMixin, TimestampMixin):
         nullable=False,
         default=CalculationStatus.DRAFT,
     )
-    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_by: Mapped[Optional[UUID]] = mapped_column(nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[UUID | None] = mapped_column(nullable=True)
 
     # Aggregated totals (recalculated from items)
     material_total: Mapped[Decimal] = mapped_column(
@@ -81,14 +81,11 @@ class Calculation(Base, UUIDPKMixin, TimestampMixin):
         cascade="all, delete-orphan",
     )
 
-    __table_args__ = (
-        Index("ix_calculations_status", "status"),
-    )
+    __table_args__ = (Index("ix_calculations_status", "status"),)
 
     def __repr__(self) -> str:
         return (
-            f"<Calculation(id={self.id}, name='{self.name}', "
-            f"total_price={self.total_price})>"
+            f"<Calculation(id={self.id}, name='{self.name}', " f"total_price={self.total_price})>"
         )
 
 
@@ -107,7 +104,7 @@ class CalculationItem(Base, UUIDPKMixin):
         nullable=False,
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     quantity: Mapped[Decimal] = mapped_column(
         Numeric(precision=10, scale=3), nullable=False, default=Decimal("1")
     )
@@ -120,13 +117,9 @@ class CalculationItem(Base, UUIDPKMixin):
     )
 
     # Relationships
-    calculation: Mapped["Calculation"] = relationship(
-        "Calculation", back_populates="items"
-    )
+    calculation: Mapped["Calculation"] = relationship("Calculation", back_populates="items")
 
-    __table_args__ = (
-        Index("ix_calculation_items_cost_type", "cost_type"),
-    )
+    __table_args__ = (Index("ix_calculation_items_cost_type", "cost_type"),)
 
     def __repr__(self) -> str:
         return (

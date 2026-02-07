@@ -1,25 +1,19 @@
 """Tests for Pohoda service and HTTP client."""
 
-import asyncio
-from datetime import datetime, timezone
-from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from lxml import etree
 
 from app.integrations.pohoda.client import PohodaClient
 from app.integrations.pohoda.exceptions import (
-    PohodaConnectionError,
     PohodaResponseError,
 )
 from app.integrations.pohoda.xml_parser import (
     PohodaResponse,
     PohodaResponseItem,
 )
-from app.models.pohoda_sync import PohodaSyncLog, SyncDirection, SyncStatus
-
+from app.models.pohoda_sync import SyncDirection, SyncStatus
 
 # --- HTTP Client Tests ---
 

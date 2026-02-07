@@ -157,13 +157,33 @@ class TestEmailParser:
     async def test_parse_multiple_items(self, parser: EmailParser) -> None:
         """Test parsing email with multiple items."""
         items = [
-            {"name": "koleno 90", "material": "P235GH", "quantity": 50, "unit": "ks", "dimensions": "DN200"},
-            {"name": "T-kus", "material": "1.4301", "quantity": 10, "unit": "ks", "dimensions": "DN150"},
-            {"name": "priruba", "material": "S235JR", "quantity": 20, "unit": "ks", "dimensions": "DN200 PN16"},
+            {
+                "name": "koleno 90",
+                "material": "P235GH",
+                "quantity": 50,
+                "unit": "ks",
+                "dimensions": "DN200",
+            },
+            {
+                "name": "T-kus",
+                "material": "1.4301",
+                "quantity": 10,
+                "unit": "ks",
+                "dimensions": "DN150",
+            },
+            {
+                "name": "priruba",
+                "material": "S235JR",
+                "quantity": 20,
+                "unit": "ks",
+                "dimensions": "DN200 PN16",
+            },
         ]
-        mock_response = _make_response([
-            _make_parse_block(items=items),
-        ])
+        mock_response = _make_response(
+            [
+                _make_parse_block(items=items),
+            ]
+        )
 
         with patch.object(
             parser._client.messages,

@@ -3,7 +3,7 @@
 import enum
 from datetime import date
 from decimal import Decimal
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import Date, Enum, ForeignKey, Index, Numeric, String
@@ -46,7 +46,7 @@ class Offer(Base, UUIDPKMixin, TimestampMixin):
         nullable=False,
         default=OfferStatus.DRAFT,
     )
-    pohoda_id: Mapped[Optional[int]] = mapped_column(nullable=True)
+    pohoda_id: Mapped[int | None] = mapped_column(nullable=True)
 
     # Relationships
     order: Mapped["Order"] = relationship("Order", back_populates="offers")

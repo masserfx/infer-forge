@@ -1,8 +1,7 @@
 """PohodaSyncLog model for tracking Pohoda XML synchronization."""
 
 import enum
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import DateTime, Enum, Index, String, Text
@@ -40,20 +39,21 @@ class PohodaSyncLog(Base, UUIDPKMixin):
         Enum(SyncDirection, native_enum=False, length=10),
         nullable=False,
     )
-    pohoda_doc_number: Mapped[Optional[str]] = mapped_column(
-        String(50), nullable=True,
+    pohoda_doc_number: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
     )
-    xml_request: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    xml_response: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    xml_request: Mapped[str | None] = mapped_column(Text, nullable=True)
+    xml_response: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[SyncStatus] = mapped_column(
         Enum(SyncStatus, native_enum=False, length=10),
         nullable=False,
         default=SyncStatus.PENDING,
     )
-    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     synced_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 

@@ -1,5 +1,13 @@
 """Pydantic schemas for INFER FORGE API."""
 
+from .auth import (
+    LoginRequest,
+    PasswordChange,
+    TokenResponse,
+    UserCreate,
+    UserResponse,
+    UserUpdate,
+)
 from .calculation import (
     CalculationCreate,
     CalculationItemCreate,
@@ -25,14 +33,6 @@ from .pohoda import (
     PohodaSyncRequest,
     PohodaSyncResult,
     PohodaSyncStatusResponse,
-)
-from .auth import (
-    LoginRequest,
-    PasswordChange,
-    TokenResponse,
-    UserCreate,
-    UserResponse,
-    UserUpdate,
 )
 from .reporting import (
     CustomerReport,

@@ -118,6 +118,7 @@ def require_role(*roles: UserRole) -> Callable[..., User]:
     Returns:
         Dependency function that validates user role.
     """
+
     async def _check_role(
         user: User = Depends(get_current_user),
     ) -> User:

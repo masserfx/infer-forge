@@ -131,9 +131,7 @@ class TestDocumentModel:
 
         assert doc.category == DocumentCategory.OSTATNI
 
-    async def test_relationship_with_entity_type_and_id(
-        self, test_db: AsyncSession
-    ) -> None:
+    async def test_relationship_with_entity_type_and_id(self, test_db: AsyncSession) -> None:
         """Test Document can be linked to any entity via entity_type + entity_id."""
         entity_id = uuid.uuid4()
         doc1 = Document(

@@ -174,7 +174,7 @@ class PohodaXMLBuilder:
         # Split address into street, city, zip if possible
         if customer.address:
             # Simple split - take first line as street, rest as city/zip
-            address_lines = customer.address.strip().split('\n')
+            address_lines = customer.address.strip().split("\n")
             if address_lines:
                 street = address_lines[0][:64]
                 self._add_element(address, f"{{{NAMESPACES['typ']}}}street", street)

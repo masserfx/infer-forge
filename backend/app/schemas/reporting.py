@@ -2,7 +2,6 @@
 
 from datetime import date
 from decimal import Decimal
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -51,8 +50,8 @@ class ProductionItem(BaseModel):
     customer_name: str
     status: str
     priority: str
-    due_date: Optional[date] = None
-    days_until_due: Optional[int] = None
+    due_date: date | None = None
+    days_until_due: int | None = None
     items_count: int = 0
 
 

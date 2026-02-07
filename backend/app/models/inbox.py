@@ -2,7 +2,6 @@
 
 import enum
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import DateTime, Enum, Float, ForeignKey, Index, String, Text
@@ -45,23 +44,23 @@ class InboxMessage(Base, UUIDPKMixin, TimestampMixin):
     subject: Mapped[str] = mapped_column(String(500), nullable=False)
     body_text: Mapped[str] = mapped_column(Text, nullable=False)
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    classification: Mapped[Optional[InboxClassification]] = mapped_column(
+    classification: Mapped[InboxClassification | None] = mapped_column(
         Enum(InboxClassification, native_enum=False, length=20),
         nullable=True,
     )
-    confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     status: Mapped[InboxStatus] = mapped_column(
         Enum(InboxStatus, native_enum=False, length=20),
         nullable=False,
         default=InboxStatus.NEW,
         index=True,
     )
-    customer_id: Mapped[Optional[UUID]] = mapped_column(
+    customer_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("customers.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    order_id: Mapped[Optional[UUID]] = mapped_column(
+    order_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("orders.id", ondelete="SET NULL"),
         nullable=True,
         index=True,

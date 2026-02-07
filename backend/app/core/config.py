@@ -27,7 +27,9 @@ class Settings(BaseSettings):
 
     # Application
     APP_NAME: str = "INFER FORGE"
-    ENVIRONMENT: str = Field(default="development", description="Environment (development, staging, production)")
+    ENVIRONMENT: str = Field(
+        default="development", description="Environment (development, staging, production)"
+    )
     DEBUG: bool = False
 
     # Database
@@ -118,6 +120,12 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE_MB: int = Field(
         default=50,
         description="Maximum file upload size in megabytes",
+    )
+
+    # CORS
+    CORS_ORIGINS: str = Field(
+        default="http://localhost:3000",
+        description="Comma-separated list of allowed CORS origins",
     )
 
     # Sentry monitoring (optional)

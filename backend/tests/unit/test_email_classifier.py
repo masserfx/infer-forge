@@ -1,6 +1,5 @@
 """Unit tests for email classifier agent (mocked API)."""
 
-from dataclasses import dataclass
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -8,7 +7,6 @@ import pytest
 from app.agents.email_classifier import (
     ClassificationResult,
     EmailClassifier,
-    _ESCALATION_THRESHOLD,
 )
 
 
@@ -97,9 +95,11 @@ class TestEmailClassifier:
 
     async def test_classify_poptavka(self, classifier: EmailClassifier) -> None:
         """Test classifying an inquiry email."""
-        mock_response = _make_response([
-            _make_tool_use_block("poptavka", 0.95, "Email poptavka na kolena"),
-        ])
+        mock_response = _make_response(
+            [
+                _make_tool_use_block("poptavka", 0.95, "Email poptavka na kolena"),
+            ]
+        )
 
         with patch.object(
             classifier._client.messages,
@@ -118,9 +118,11 @@ class TestEmailClassifier:
 
     async def test_classify_reklamace(self, classifier: EmailClassifier) -> None:
         """Test classifying a complaint email."""
-        mock_response = _make_response([
-            _make_tool_use_block("reklamace", 0.88, "Email obsahuje reklamaci"),
-        ])
+        mock_response = _make_response(
+            [
+                _make_tool_use_block("reklamace", 0.88, "Email obsahuje reklamaci"),
+            ]
+        )
 
         with patch.object(
             classifier._client.messages,
@@ -137,13 +139,13 @@ class TestEmailClassifier:
         assert result.confidence == 0.88
         assert result.needs_escalation is False
 
-    async def test_classify_low_confidence_escalation(
-        self, classifier: EmailClassifier
-    ) -> None:
+    async def test_classify_low_confidence_escalation(self, classifier: EmailClassifier) -> None:
         """Test that low confidence triggers escalation."""
-        mock_response = _make_response([
-            _make_tool_use_block("dotaz", 0.6, "Nejasny email"),
-        ])
+        mock_response = _make_response(
+            [
+                _make_tool_use_block("dotaz", 0.6, "Nejasny email"),
+            ]
+        )
 
         with patch.object(
             classifier._client.messages,
@@ -195,9 +197,7 @@ class TestEmailClassifier:
         assert result.confidence == 0.0
         assert result.needs_escalation is True
 
-    async def test_classify_no_tool_use_block(
-        self, classifier: EmailClassifier
-    ) -> None:
+    async def test_classify_no_tool_use_block(self, classifier: EmailClassifier) -> None:
         """Test handling of response without tool_use block."""
         text_block = MagicMock()
         text_block.type = "text"
@@ -218,13 +218,13 @@ class TestEmailClassifier:
         assert result.category is None
         assert result.needs_escalation is True
 
-    async def test_classify_invalid_category(
-        self, classifier: EmailClassifier
-    ) -> None:
+    async def test_classify_invalid_category(self, classifier: EmailClassifier) -> None:
         """Test handling of invalid category from API."""
-        mock_response = _make_response([
-            _make_tool_use_block("invalid_category", 0.9, "Invalid"),
-        ])
+        mock_response = _make_response(
+            [
+                _make_tool_use_block("invalid_category", 0.9, "Invalid"),
+            ]
+        )
 
         with patch.object(
             classifier._client.messages,

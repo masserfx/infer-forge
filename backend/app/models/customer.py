@@ -1,8 +1,7 @@
 """Customer model."""
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
-from uuid import UUID
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -20,14 +19,15 @@ class Customer(Base, UUIDPKMixin, TimestampMixin):
 
     company_name: Mapped[str] = mapped_column(String(255), nullable=False)
     ico: Mapped[str] = mapped_column(String(8), unique=True, nullable=False, index=True)
-    dic: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    dic: Mapped[str | None] = mapped_column(String(20), nullable=True)
     contact_name: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(255), nullable=False)
-    phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    pohoda_id: Mapped[Optional[int]] = mapped_column(nullable=True)
-    pohoda_synced_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True,
+    phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    address: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pohoda_id: Mapped[int | None] = mapped_column(nullable=True)
+    pohoda_synced_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )
 
     # Relationships

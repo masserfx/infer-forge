@@ -1,11 +1,9 @@
 """Order business logic service."""
 
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -27,7 +25,7 @@ class OrderService:
         OrderStatus.DOKONCENO: [],  # Final state
     }
 
-    def __init__(self, db: AsyncSession, user_id: Optional[UUID] = None):
+    def __init__(self, db: AsyncSession, user_id: UUID | None = None):
         """Initialize service.
 
         Args:
@@ -41,7 +39,7 @@ class OrderService:
         self,
         action: AuditAction,
         entity_id: UUID,
-        changes: Optional[dict] = None,
+        changes: dict | None = None,
     ) -> None:
         """Create audit log entry.
 
@@ -56,7 +54,7 @@ class OrderService:
             entity_type="order",
             entity_id=entity_id,
             changes=changes,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         self.db.add(audit)
 
@@ -123,7 +121,7 @@ class OrderService:
 
         return order
 
-    async def get_by_id(self, order_id: UUID) -> Optional[Order]:
+    async def get_by_id(self, order_id: UUID) -> Order | None:
         """Get order by ID with related data.
 
         Args:
@@ -146,7 +144,7 @@ class OrderService:
         self,
         skip: int = 0,
         limit: int = 100,
-        status: Optional[OrderStatus] = None,
+        status: OrderStatus | None = None,
     ) -> list[Order]:
         """Get all orders with pagination and optional filtering.
 
@@ -175,7 +173,7 @@ class OrderService:
         self,
         order_id: UUID,
         order_data: OrderUpdate,
-    ) -> Optional[Order]:
+    ) -> Order | None:
         """Update order.
 
         Args:
@@ -216,7 +214,7 @@ class OrderService:
         self,
         order_id: UUID,
         new_status: OrderStatus,
-    ) -> Optional[Order]:
+    ) -> Order | None:
         """Change order status with validation.
 
         Args:
@@ -236,8 +234,7 @@ class OrderService:
         # Validate transition
         if not self._validate_status_transition(order.status, new_status):
             raise ValueError(
-                f"Invalid status transition from {order.status.value} "
-                f"to {new_status.value}"
+                f"Invalid status transition from {order.status.value} " f"to {new_status.value}"
             )
 
         old_status = order.status

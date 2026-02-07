@@ -270,7 +270,11 @@ class IMAPClient:
                     body_text = self._get_text_from_part(part)
                     break  # Prefer text/plain
 
-                if content_type == "text/html" and not body_text and "attachment" not in content_disposition:
+                if (
+                    content_type == "text/html"
+                    and not body_text
+                    and "attachment" not in content_disposition
+                ):
                     body_text = self._get_text_from_part(part)
 
                 # Extract attachments

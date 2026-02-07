@@ -1,9 +1,8 @@
 """Calculation business logic service."""
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import select
@@ -33,7 +32,7 @@ logger = logging.getLogger(__name__)
 class CalculationService:
     """Service for managing calculations with automatic totals recalculation."""
 
-    def __init__(self, db: AsyncSession, user_id: Optional[UUID] = None):
+    def __init__(self, db: AsyncSession, user_id: UUID | None = None):
         self.db = db
         self.user_id = user_id
 
@@ -41,7 +40,7 @@ class CalculationService:
         self,
         action: AuditAction,
         entity_id: UUID,
-        changes: Optional[dict] = None,
+        changes: dict | None = None,
     ) -> None:
         audit = AuditLog(
             user_id=self.user_id,
@@ -49,7 +48,7 @@ class CalculationService:
             entity_type="calculation",
             entity_id=entity_id,
             changes=changes,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         self.db.add(audit)
 
@@ -78,7 +77,9 @@ class CalculationService:
         calculation.overhead_total = overhead
 
         subtotal = material + labor + cooperation + overhead
-        calculation.margin_amount = (subtotal * calculation.margin_percent / Decimal("100")).quantize(Decimal("0.01"))
+        calculation.margin_amount = (
+            subtotal * calculation.margin_percent / Decimal("100")
+        ).quantize(Decimal("0.01"))
         calculation.total_price = subtotal + calculation.margin_amount
 
     async def create(self, data: CalculationCreate) -> Calculation:
@@ -137,7 +138,7 @@ class CalculationService:
 
         return calculation
 
-    async def get_by_id(self, calculation_id: UUID) -> Optional[Calculation]:
+    async def get_by_id(self, calculation_id: UUID) -> Calculation | None:
         """Get calculation by ID with items."""
         result = await self.db.execute(
             select(Calculation)
@@ -158,7 +159,7 @@ class CalculationService:
 
     async def get_all(
         self,
-        status: Optional[CalculationStatus] = None,
+        status: CalculationStatus | None = None,
         skip: int = 0,
         limit: int = 100,
     ) -> list[Calculation]:
@@ -177,7 +178,7 @@ class CalculationService:
         self,
         calculation_id: UUID,
         data: CalculationUpdate,
-    ) -> Optional[Calculation]:
+    ) -> Calculation | None:
         """Update calculation metadata (name, note, margin, status)."""
         calculation = await self.get_by_id(calculation_id)
         if not calculation:
@@ -215,7 +216,7 @@ class CalculationService:
         self,
         calculation_id: UUID,
         item_data: CalculationItemCreate,
-    ) -> Optional[Calculation]:
+    ) -> Calculation | None:
         """Add an item to a calculation and recalculate totals."""
         calculation = await self.get_by_id(calculation_id)
         if not calculation:
@@ -256,7 +257,7 @@ class CalculationService:
         calculation_id: UUID,
         item_id: UUID,
         item_data: CalculationItemUpdate,
-    ) -> Optional[Calculation]:
+    ) -> Calculation | None:
         """Update a calculation item and recalculate totals."""
         calculation = await self.get_by_id(calculation_id)
         if not calculation:
@@ -302,7 +303,7 @@ class CalculationService:
         self,
         calculation_id: UUID,
         item_id: UUID,
-    ) -> Optional[Calculation]:
+    ) -> Calculation | None:
         """Remove an item from a calculation and recalculate totals."""
         calculation = await self.get_by_id(calculation_id)
         if not calculation:
@@ -344,7 +345,7 @@ class CalculationService:
         calculation_id: UUID,
         offer_number: str,
         valid_days: int = 30,
-    ) -> Optional[Offer]:
+    ) -> Offer | None:
         """Generate an Offer from a calculation."""
         from datetime import timedelta
 
@@ -355,7 +356,7 @@ class CalculationService:
         if calculation.total_price <= 0:
             raise ValueError("Cannot generate offer from empty calculation")
 
-        valid_until = datetime.now(timezone.utc).date() + timedelta(days=valid_days)
+        valid_until = datetime.now(UTC).date() + timedelta(days=valid_days)
 
         offer = Offer(
             order_id=calculation.order_id,

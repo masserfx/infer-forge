@@ -111,8 +111,7 @@ class PohodaClient:
                 # Check HTTP status
                 if response.status_code != 200:
                     error_msg = (
-                        f"mServer returned HTTP {response.status_code}: "
-                        f"{response.text[:200]}"
+                        f"mServer returned HTTP {response.status_code}: " f"{response.text[:200]}"
                     )
                     logger.error(error_msg)
                     raise PohodaResponseError(
@@ -121,8 +120,7 @@ class PohodaClient:
                     )
 
                 logger.info(
-                    "Successfully received response from mServer "
-                    "(size: %d bytes)",
+                    "Successfully received response from mServer " "(size: %d bytes)",
                     len(response.content),
                 )
                 return response.content
@@ -133,8 +131,7 @@ class PohodaClient:
                     # Exponential backoff: 1s, 2s, 4s
                     wait_time = 2**attempt
                     logger.warning(
-                        "Connection failed (attempt %d/%d), "
-                        "retrying in %ds: %s",
+                        "Connection failed (attempt %d/%d), " "retrying in %ds: %s",
                         attempt + 1,
                         self.max_retries,
                         wait_time,
@@ -153,8 +150,7 @@ class PohodaClient:
                 if attempt < self.max_retries - 1:
                     wait_time = 2**attempt
                     logger.warning(
-                        "Request timeout (attempt %d/%d), "
-                        "retrying in %ds",
+                        "Request timeout (attempt %d/%d), " "retrying in %ds",
                         attempt + 1,
                         self.max_retries,
                         wait_time,
@@ -179,8 +175,7 @@ class PohodaClient:
 
         # All retries exhausted
         raise PohodaConnectionError(
-            f"Failed to connect to mServer after {self.max_retries} attempts: "
-            f"{str(last_error)}"
+            f"Failed to connect to mServer after {self.max_retries} attempts: " f"{str(last_error)}"
         ) from last_error
 
     async def close(self) -> None:

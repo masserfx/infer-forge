@@ -5,8 +5,7 @@ and recording sync results in the database.
 """
 
 import logging
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -24,7 +23,7 @@ settings = get_settings()
 class PohodaService:
     """Service for synchronizing data with Pohoda accounting system."""
 
-    def __init__(self, db: AsyncSession, user_id: Optional[UUID] = None):
+    def __init__(self, db: AsyncSession, user_id: UUID | None = None):
         """Initialize service.
 
         Args:
@@ -47,9 +46,7 @@ class PohodaService:
             ValueError: If customer not found
         """
         # Load customer
-        result = await self.db.execute(
-            select(Customer).where(Customer.id == customer_id)
-        )
+        result = await self.db.execute(select(Customer).where(Customer.id == customer_id))
         customer = result.scalar_one_or_none()
         if not customer:
             raise ValueError(f"Customer {customer_id} not found")
@@ -84,9 +81,7 @@ class PohodaService:
                 ) as client:
                     response_bytes = await client.send_xml(xml_data)
 
-                sync_log.xml_response = response_bytes.decode(
-                    "Windows-1250", errors="replace"
-                )
+                sync_log.xml_response = response_bytes.decode("Windows-1250", errors="replace")
 
                 # Parse response
                 parsed = PohodaXMLParser.parse_response(response_bytes)
@@ -98,7 +93,7 @@ class PohodaService:
                     # Update customer with Pohoda ID
                     if pohoda_id:
                         customer.pohoda_id = pohoda_id
-                    customer.pohoda_synced_at = datetime.now(timezone.utc)
+                    customer.pohoda_synced_at = datetime.now(UTC)
                 else:
                     error_notes = [item.note for item in parsed.items if item.state != "ok"]
                     sync_log.status = SyncStatus.ERROR
@@ -187,9 +182,7 @@ class PohodaService:
                 ) as client:
                     response_bytes = await client.send_xml(xml_data)
 
-                sync_log.xml_response = response_bytes.decode(
-                    "Windows-1250", errors="replace"
-                )
+                sync_log.xml_response = response_bytes.decode("Windows-1250", errors="replace")
 
                 parsed = PohodaXMLParser.parse_response(response_bytes)
                 if parsed.success and parsed.items:
@@ -199,7 +192,7 @@ class PohodaService:
 
                     if pohoda_id:
                         order.pohoda_id = pohoda_id
-                    order.pohoda_synced_at = datetime.now(timezone.utc)
+                    order.pohoda_synced_at = datetime.now(UTC)
                 else:
                     error_notes = [item.note for item in parsed.items if item.state != "ok"]
                     sync_log.status = SyncStatus.ERROR
@@ -283,9 +276,7 @@ class PohodaService:
                 ) as client:
                     response_bytes = await client.send_xml(xml_data)
 
-                sync_log.xml_response = response_bytes.decode(
-                    "Windows-1250", errors="replace"
-                )
+                sync_log.xml_response = response_bytes.decode("Windows-1250", errors="replace")
 
                 parsed = PohodaXMLParser.parse_response(response_bytes)
                 if parsed.success and parsed.items:
@@ -390,9 +381,9 @@ class PohodaService:
 
     async def get_sync_logs(
         self,
-        entity_type: Optional[str] = None,
-        entity_id: Optional[UUID] = None,
-        status: Optional[SyncStatus] = None,
+        entity_type: str | None = None,
+        entity_id: UUID | None = None,
+        status: SyncStatus | None = None,
         skip: int = 0,
         limit: int = 50,
     ) -> list[PohodaSyncLog]:
@@ -427,7 +418,7 @@ class PohodaService:
         action: AuditAction,
         entity_type: str,
         entity_id: UUID,
-        changes: Optional[dict] = None,
+        changes: dict | None = None,
     ) -> None:
         """Create audit log entry for sync operation."""
         audit = AuditLog(
@@ -436,6 +427,6 @@ class PohodaService:
             entity_type=entity_type,
             entity_id=entity_id,
             changes=changes,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         self.db.add(audit)

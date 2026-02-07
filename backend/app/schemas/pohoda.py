@@ -1,7 +1,6 @@
 """Pohoda integration Pydantic schemas."""
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -27,9 +26,9 @@ class PohodaSyncLogResponse(BaseModel):
     entity_type: str
     entity_id: UUID
     direction: SyncDirection
-    pohoda_doc_number: Optional[str] = None
+    pohoda_doc_number: str | None = None
     status: SyncStatus
-    error_message: Optional[str] = None
+    error_message: str | None = None
     synced_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -40,9 +39,9 @@ class PohodaSyncResult(BaseModel):
 
     success: bool
     sync_log_id: UUID
-    pohoda_id: Optional[int] = None
-    pohoda_doc_number: Optional[str] = None
-    error: Optional[str] = None
+    pohoda_id: int | None = None
+    pohoda_doc_number: str | None = None
+    error: str | None = None
 
 
 class PohodaSyncStatusResponse(BaseModel):
@@ -50,6 +49,6 @@ class PohodaSyncStatusResponse(BaseModel):
 
     entity_type: str
     entity_id: UUID
-    last_sync: Optional[PohodaSyncLogResponse] = None
+    last_sync: PohodaSyncLogResponse | None = None
     sync_count: int = 0
-    last_success: Optional[datetime] = None
+    last_success: datetime | None = None

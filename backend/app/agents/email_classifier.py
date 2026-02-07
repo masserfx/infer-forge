@@ -6,9 +6,7 @@ incoming emails into categories relevant for a steel fabrication company.
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Literal
 
 import structlog
@@ -78,8 +76,7 @@ _CLASSIFY_TOOL: dict[str, object] = {
                 "minimum": 0.0,
                 "maximum": 1.0,
                 "description": (
-                    "Mira jistoty klasifikace od 0.0 (zadna jistota) "
-                    "do 1.0 (absolutni jistota)."
+                    "Mira jistoty klasifikace od 0.0 (zadna jistota) " "do 1.0 (absolutni jistota)."
                 ),
             },
             "reasoning": {

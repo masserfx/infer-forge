@@ -7,10 +7,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
-    AuditAction,
-    AuditLog,
     Customer,
-    Order,
     OrderPriority,
     OrderStatus,
 )
