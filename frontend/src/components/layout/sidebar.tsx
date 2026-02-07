@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   ClipboardList,
   Calculator,
+  BarChart3,
   Inbox,
   FileText,
   RefreshCw,
@@ -34,6 +35,11 @@ const navItems: NavItem[] = [
     href: "/kalkulace",
     label: "Kalkulace",
     icon: Calculator,
+  },
+  {
+    href: "/reporting",
+    label: "Reporting",
+    icon: BarChart3,
   },
   {
     href: "/inbox",

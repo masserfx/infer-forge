@@ -262,3 +262,80 @@ export const CALCULATION_STATUS_LABELS: Record<CalculationStatus, string> = {
   approved: "Schváleno",
   offered: "Nabídnuto",
 };
+
+// --- Reporting ---
+
+export interface StatusCount {
+  status: string;
+  count: number;
+  label: string;
+}
+
+export interface PipelineReport {
+  statuses: StatusCount[];
+  total_orders: number;
+}
+
+export interface RevenueItem {
+  period: string;
+  total_calculations: number;
+  total_offers: number;
+  offers_count: number;
+  calculations_count: number;
+}
+
+export interface RevenueReport {
+  total_calculation_value: number;
+  total_offer_value: number;
+  approved_calculations: number;
+  pending_offers: number;
+  accepted_offers: number;
+  monthly: RevenueItem[];
+}
+
+export interface ProductionItem {
+  order_id: string;
+  order_number: string;
+  customer_name: string;
+  status: string;
+  priority: string;
+  due_date: string | null;
+  days_until_due: number | null;
+  items_count: number;
+}
+
+export interface ProductionReport {
+  in_production: number;
+  in_expedition: number;
+  overdue: number;
+  due_this_week: number;
+  due_this_month: number;
+  orders: ProductionItem[];
+}
+
+export interface CustomerStats {
+  customer_id: string;
+  company_name: string;
+  ico: string;
+  orders_count: number;
+  total_value: number;
+  active_orders: number;
+}
+
+export interface CustomerReport {
+  total_customers: number;
+  active_customers: number;
+  top_customers: CustomerStats[];
+}
+
+export interface DashboardStats {
+  total_orders: number;
+  orders_in_production: number;
+  new_inbox_messages: number;
+  pending_invoicing: number;
+  total_documents: number;
+  total_calculations: number;
+  total_revenue: number;
+  overdue_orders: number;
+  pipeline: PipelineReport;
+}

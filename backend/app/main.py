@@ -125,7 +125,7 @@ async def health_check_redis() -> dict[str, Any]:
 
 
 # API v1 routes
-from app.api.v1 import calculations, customers, documents, inbox, orders, pohoda
+from app.api.v1 import calculations, customers, documents, inbox, orders, pohoda, reporting
 
 app.include_router(customers.router, prefix="/api/v1")
 app.include_router(orders.router, prefix="/api/v1")
@@ -133,6 +133,7 @@ app.include_router(calculations.router, prefix="/api/v1")
 app.include_router(documents.router, prefix="/api/v1")
 app.include_router(inbox.router, prefix="/api/v1")
 app.include_router(pohoda.router, prefix="/api/v1")
+app.include_router(reporting.router, prefix="/api/v1")
 
 if __name__ == "__main__":
     import uvicorn

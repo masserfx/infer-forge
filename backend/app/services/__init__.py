@@ -6,6 +6,7 @@ from .document import DocumentService
 from .inbox import InboxService
 from .order import OrderService
 from .pohoda import PohodaService
+from .reporting import ReportingService
 
 __all__ = [
     "CalculationService",
@@ -14,4 +15,5 @@ __all__ = [
     "OrderService",
     "InboxService",
     "PohodaService",
+    "ReportingService",
 ]

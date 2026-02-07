@@ -26,6 +26,13 @@ from .pohoda import (
     PohodaSyncResult,
     PohodaSyncStatusResponse,
 )
+from .reporting import (
+    CustomerReport,
+    DashboardStats,
+    PipelineReport,
+    ProductionReport,
+    RevenueReport,
+)
 
 __all__ = [
     # Calculation
@@ -60,4 +67,10 @@ __all__ = [
     "PohodaSyncLogResponse",
     "PohodaSyncResult",
     "PohodaSyncStatusResponse",
+    # Reporting
+    "DashboardStats",
+    "PipelineReport",
+    "RevenueReport",
+    "ProductionReport",
+    "CustomerReport",
 ]

@@ -9,13 +9,18 @@ import type {
   CalculationStatus,
   CostType,
   Customer,
+  CustomerReport,
+  DashboardStats,
   Document,
   DocumentCategory,
   InboxMessage,
   Order,
   OrderStatus,
+  PipelineReport,
   PohodaSyncLog,
   PohodaSyncResult,
+  ProductionReport,
+  RevenueReport,
 } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -310,4 +315,32 @@ export async function generateOffer(
   }>(`/kalkulace/${calculationId}/nabidka?${searchParams.toString()}`, {
     method: "POST",
   });
+}
+
+// --- Reporting ---
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  return fetchApi<DashboardStats>("/reporting/dashboard");
+}
+
+export async function getPipelineReport(): Promise<PipelineReport> {
+  return fetchApi<PipelineReport>("/reporting/pipeline");
+}
+
+export async function getRevenueReport(months?: number): Promise<RevenueReport> {
+  const searchParams = new URLSearchParams();
+  if (months) searchParams.set("months", String(months));
+  const qs = searchParams.toString();
+  return fetchApi<RevenueReport>(`/reporting/revenue${qs ? `?${qs}` : ""}`);
+}
+
+export async function getProductionReport(): Promise<ProductionReport> {
+  return fetchApi<ProductionReport>("/reporting/production");
+}
+
+export async function getCustomerReport(limit?: number): Promise<CustomerReport> {
+  const searchParams = new URLSearchParams();
+  if (limit) searchParams.set("limit", String(limit));
+  const qs = searchParams.toString();
+  return fetchApi<CustomerReport>(`/reporting/customers${qs ? `?${qs}` : ""}`);
 }
