@@ -13,7 +13,7 @@ from app.services import CustomerService
 router = APIRouter(prefix="/zakaznici", tags=["Zákazníci"])
 
 
-@router.get("/", response_model=list[CustomerResponse])
+@router.get("", response_model=list[CustomerResponse])
 async def get_customers(
     skip: int = Query(default=0, ge=0, description="Number of records to skip"),
     limit: int = Query(default=100, ge=1, le=1000, description="Maximum number of records"),
@@ -27,7 +27,7 @@ async def get_customers(
 
 
 @router.post(
-    "/",
+    "",
     response_model=CustomerResponse,
     status_code=status.HTTP_201_CREATED,
 )

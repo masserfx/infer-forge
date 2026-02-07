@@ -21,7 +21,7 @@ router = APIRouter(prefix="/kalkulace", tags=["Kalkulace"])
 
 
 @router.post(
-    "/",
+    "",
     response_model=CalculationResponse,
     status_code=status.HTTP_201_CREATED,
 )
@@ -44,7 +44,7 @@ async def create_calculation(
         ) from e
 
 
-@router.get("/", response_model=list[CalculationResponse])
+@router.get("", response_model=list[CalculationResponse])
 async def list_calculations(
     status_filter: CalculationStatus | None = Query(
         None, alias="status", description="Filter by status"

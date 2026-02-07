@@ -14,7 +14,7 @@ from app.services import InboxService
 router = APIRouter(prefix="/inbox", tags=["Inbox"])
 
 
-@router.get("/", response_model=list[InboxMessageResponse])
+@router.get("", response_model=list[InboxMessageResponse])
 async def get_inbox_messages(
     skip: int = Query(default=0, ge=0, description="Number of records to skip"),
     limit: int = Query(default=100, ge=1, le=1000, description="Maximum number of records"),

@@ -65,7 +65,7 @@ async def upload_document(
         ) from e
 
 
-@router.get("/", response_model=list[DocumentResponse])
+@router.get("", response_model=list[DocumentResponse])
 async def list_documents(
     entity_type: str | None = Query(None, description="Filter by entity type"),
     category: DocumentCategory | None = Query(None, description="Filter by category"),

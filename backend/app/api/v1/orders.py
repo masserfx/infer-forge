@@ -14,7 +14,7 @@ from app.services import OrderService
 router = APIRouter(prefix="/zakazky", tags=["Zakázky"])
 
 
-@router.get("/", response_model=list[OrderResponse])
+@router.get("", response_model=list[OrderResponse])
 async def get_orders(
     skip: int = Query(default=0, ge=0, description="Number of records to skip"),
     limit: int = Query(default=100, ge=1, le=1000, description="Maximum number of records"),
@@ -29,7 +29,7 @@ async def get_orders(
 
 
 @router.post(
-    "/",
+    "",
     response_model=OrderResponse,
     status_code=status.HTTP_201_CREATED,
 )
