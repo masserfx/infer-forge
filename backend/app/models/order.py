@@ -21,6 +21,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base, TimestampMixin, UUIDPKMixin
 
 if TYPE_CHECKING:
+    from .calculation import Calculation
     from .customer import Customer
     from .offer import Offer
 
@@ -84,6 +85,11 @@ class Order(Base, UUIDPKMixin, TimestampMixin):
     )
     offers: Mapped[list["Offer"]] = relationship(
         "Offer",
+        back_populates="order",
+        cascade="all, delete-orphan",
+    )
+    calculations: Mapped[list["Calculation"]] = relationship(
+        "Calculation",
         back_populates="order",
         cascade="all, delete-orphan",
     )

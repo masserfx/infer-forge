@@ -1,3 +1,4 @@
+export { OrderCalculations } from "./order-calculations";
 export { OrderDetail } from "./order-detail";
 export { OrderFilters } from "./order-filters";
 export { OrderItemsTable } from "./order-items-table";

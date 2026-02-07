@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   ClipboardList,
+  Calculator,
   Inbox,
   FileText,
   RefreshCw,
@@ -28,6 +29,11 @@ const navItems: NavItem[] = [
     href: "/zakazky",
     label: "Zakázky",
     icon: ClipboardList,
+  },
+  {
+    href: "/kalkulace",
+    label: "Kalkulace",
+    icon: Calculator,
   },
   {
     href: "/inbox",

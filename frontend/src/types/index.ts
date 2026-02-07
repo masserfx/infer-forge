@@ -206,3 +206,59 @@ export const DOCUMENT_CATEGORY_LABELS: Record<DocumentCategory, string> = {
   protokol: "Protokol",
   ostatni: "Ostatní",
 };
+
+// --- Calculations ---
+
+export type CostType = "material" | "labor" | "cooperation" | "overhead";
+export type CalculationStatus = "draft" | "approved" | "offered";
+
+export interface CalculationItem {
+  id: string;
+  calculation_id: string;
+  cost_type: CostType;
+  name: string;
+  description: string | null;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total_price: number;
+}
+
+export interface Calculation {
+  id: string;
+  order_id: string;
+  name: string;
+  status: CalculationStatus;
+  note: string | null;
+  created_by: string | null;
+  material_total: number;
+  labor_total: number;
+  cooperation_total: number;
+  overhead_total: number;
+  margin_percent: number;
+  margin_amount: number;
+  total_price: number;
+  items: CalculationItem[];
+  created_at: string;
+  updated_at: string;
+}
+
+export const COST_TYPE_LABELS: Record<CostType, string> = {
+  material: "Materiál",
+  labor: "Práce",
+  cooperation: "Kooperace",
+  overhead: "Režie",
+};
+
+export const COST_TYPE_COLORS: Record<CostType, string> = {
+  material: "bg-blue-100 text-blue-800",
+  labor: "bg-green-100 text-green-800",
+  cooperation: "bg-purple-100 text-purple-800",
+  overhead: "bg-orange-100 text-orange-800",
+};
+
+export const CALCULATION_STATUS_LABELS: Record<CalculationStatus, string> = {
+  draft: "Koncept",
+  approved: "Schváleno",
+  offered: "Nabídnuto",
+};
