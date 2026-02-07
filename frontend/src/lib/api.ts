@@ -14,6 +14,7 @@ import type {
   Document,
   DocumentCategory,
   InboxMessage,
+  LoginResponse,
   Order,
   OrderStatus,
   PipelineReport,
@@ -21,6 +22,7 @@ import type {
   PohodaSyncResult,
   ProductionReport,
   RevenueReport,
+  User,
 } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -35,14 +37,38 @@ export class ApiError extends Error {
   }
 }
 
+// Token management
+export function setAuthToken(token: string | null) {
+  if (token) {
+    localStorage.setItem("auth_token", token);
+  } else {
+    localStorage.removeItem("auth_token");
+  }
+}
+
+export function getAuthToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("auth_token");
+}
+
 async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${path}`;
+  const token = getAuthToken();
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(url, {
+    ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...headers,
       ...options?.headers,
     },
-    ...options,
   });
 
   if (!res.ok) {
@@ -51,6 +77,19 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   return res.json() as Promise<T>;
+}
+
+// --- Auth ---
+
+export async function login(email: string, password: string): Promise<LoginResponse> {
+  return fetchApi<LoginResponse>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function getMe(): Promise<User> {
+  return fetchApi<User>("/auth/me");
 }
 
 // --- Orders ---

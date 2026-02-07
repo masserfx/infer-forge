@@ -51,7 +51,7 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "A", "C4", "T20"]
-ignore = []
+ignore = ["B008"]  # Depends() in defaults is standard FastAPI pattern
 
 [tool.mypy]
 python_version = "3.12"

@@ -5,6 +5,8 @@
 
 // --- Enums ---
 
+export type UserRole = "admin" | "obchodnik" | "technolog" | "vedeni" | "ucetni";
+
 export type OrderStatus =
   | "poptavka"
   | "nabidka"
@@ -28,6 +30,31 @@ export type InboxStatus = "new" | "classified" | "assigned" | "archived";
 
 export type SyncDirection = "export" | "import";
 export type SyncStatus = "pending" | "success" | "error";
+
+// --- Auth ---
+
+export interface User {
+  id: string;
+  email: string;
+  full_name: string;
+  role: UserRole;
+  is_active: boolean;
+  phone: string | null;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  user: User;
+}
+
+export const ROLE_LABELS: Record<UserRole, string> = {
+  admin: "Administrátor",
+  obchodnik: "Obchodník",
+  technolog: "Technolog",
+  vedeni: "Vedení",
+  ucetni: "Účetní",
+};
 
 // --- Customer ---
 

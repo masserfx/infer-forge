@@ -18,8 +18,9 @@ from app.core.database import Base, get_db
 # Import all models so they register with Base.metadata
 import app.models  # noqa: F401
 
-# Test database URL (use in-memory SQLite for fast tests)
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+# Test database URL (use in-memory SQLite with shared cache for fast tests)
+# file::memory:?cache=shared allows multiple connections to share the same in-memory DB
+TEST_DATABASE_URL = "sqlite+aiosqlite:///file::memory:?cache=shared&uri=true"
 
 
 @pytest.fixture(scope="function")
@@ -42,15 +43,17 @@ async def test_db() -> AsyncGenerator[AsyncSession, None]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # Create session
-    async_session = sessionmaker(
+    # Create session factory
+    async_session_maker = sessionmaker(
         engine,
         class_=AsyncSession,
         expire_on_commit=False,
     )
 
-    async with async_session() as session:
+    # Create a single session for the test
+    async with async_session_maker() as session:
         yield session
+        # Note: No explicit commit here - test controls transactions
 
     # Drop tables after test
     async with engine.begin() as conn:
@@ -72,7 +75,13 @@ async def test_client(test_db: AsyncSession) -> AsyncGenerator[AsyncClient, None
     from app.main import app
 
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-        yield test_db
+        # Return the same test_db session without commit/rollback
+        # This allows test to control transactions
+        try:
+            yield test_db
+        except Exception:
+            # Don't rollback - let test handle it
+            raise
 
     app.dependency_overrides[get_db] = override_get_db
 
@@ -97,3 +106,5 @@ def test_settings() -> Settings:
         SECRET_KEY="test_secret_key_not_for_production",
         ANTHROPIC_API_KEY="test_key",
     )
+
+

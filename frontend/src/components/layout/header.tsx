@@ -1,12 +1,21 @@
 "use client";
 
-import { Menu } from "lucide-react";
+import { Menu, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -20,6 +29,8 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-provider";
+import { ROLE_LABELS } from "@/types";
 
 interface NavItem {
   href: string;
@@ -72,6 +83,7 @@ const navItems: NavItem[] = [
 
 export function Header() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 lg:px-6">
@@ -121,11 +133,48 @@ export function Header() {
         </h1>
       </div>
 
-      {/* User placeholder */}
+      {/* User menu */}
       <div className="flex items-center gap-4">
-        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-          U
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
+                {user?.full_name.charAt(0).toUpperCase() || "U"}
+              </div>
+              <div className="hidden lg:block text-left">
+                <div className="text-sm font-medium">{user?.full_name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {user?.role && ROLE_LABELS[user.role]}
+                </div>
+              </div>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{user?.full_name}</p>
+                <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                {user?.role && (
+                  <Badge variant="secondary" className="w-fit mt-1">
+                    {ROLE_LABELS[user.role]}
+                  </Badge>
+                )}
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/nastaveni" className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
+                Nastavení
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600">
+              <LogOut className="mr-2 h-4 w-4" />
+              Odhlásit se
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

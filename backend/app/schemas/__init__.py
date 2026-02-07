@@ -26,6 +26,14 @@ from .pohoda import (
     PohodaSyncResult,
     PohodaSyncStatusResponse,
 )
+from .auth import (
+    LoginRequest,
+    PasswordChange,
+    TokenResponse,
+    UserCreate,
+    UserResponse,
+    UserUpdate,
+)
 from .reporting import (
     CustomerReport,
     DashboardStats,
@@ -67,6 +75,13 @@ __all__ = [
     "PohodaSyncLogResponse",
     "PohodaSyncResult",
     "PohodaSyncStatusResponse",
+    # Auth
+    "LoginRequest",
+    "TokenResponse",
+    "UserCreate",
+    "UserUpdate",
+    "UserResponse",
+    "PasswordChange",
     # Reporting
     "DashboardStats",
     "PipelineReport",

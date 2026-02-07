@@ -9,6 +9,7 @@ from .inbox import InboxClassification, InboxMessage, InboxStatus
 from .offer import Offer, OfferStatus
 from .order import Order, OrderItem, OrderPriority, OrderStatus
 from .pohoda_sync import PohodaSyncLog, SyncDirection, SyncStatus
+from .user import User, UserRole
 
 __all__ = [
     # Base
@@ -44,4 +45,7 @@ __all__ = [
     "PohodaSyncLog",
     "SyncDirection",
     "SyncStatus",
+    # User
+    "User",
+    "UserRole",
 ]
