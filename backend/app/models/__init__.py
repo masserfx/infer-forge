@@ -7,6 +7,7 @@ from .document import Document
 from .inbox import InboxClassification, InboxMessage, InboxStatus
 from .offer import Offer, OfferStatus
 from .order import Order, OrderItem, OrderPriority, OrderStatus
+from .pohoda_sync import PohodaSyncLog, SyncDirection, SyncStatus
 
 __all__ = [
     # Base
@@ -32,4 +33,8 @@ __all__ = [
     # Audit
     "AuditLog",
     "AuditAction",
+    # Pohoda Sync
+    "PohodaSyncLog",
+    "SyncDirection",
+    "SyncStatus",
 ]

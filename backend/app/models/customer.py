@@ -1,9 +1,10 @@
 """Customer model."""
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
-from sqlalchemy import Index, String, Text
+from sqlalchemy import DateTime, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin, UUIDPKMixin
@@ -25,6 +26,9 @@ class Customer(Base, UUIDPKMixin, TimestampMixin):
     phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     pohoda_id: Mapped[Optional[int]] = mapped_column(nullable=True)
+    pohoda_synced_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True,
+    )
 
     # Relationships
     orders: Mapped[list["Order"]] = relationship(

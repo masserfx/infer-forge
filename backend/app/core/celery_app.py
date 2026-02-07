@@ -17,6 +17,7 @@ celery_app = Celery(
     backend=str(settings.REDIS_URL),
     include=[
         "app.integrations.email.tasks",
+        "app.integrations.pohoda.tasks",
         "app.agents.tasks",
     ],
 )

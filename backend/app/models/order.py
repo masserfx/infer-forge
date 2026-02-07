@@ -1,13 +1,14 @@
 """Order and OrderItem models."""
 
 import enum
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
 from sqlalchemy import (
     Date,
+    DateTime,
     Enum,
     ForeignKey,
     Index,
@@ -69,6 +70,10 @@ class Order(Base, UUIDPKMixin, TimestampMixin):
     due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_by: Mapped[Optional[UUID]] = mapped_column(nullable=True)
+    pohoda_id: Mapped[Optional[int]] = mapped_column(nullable=True)
+    pohoda_synced_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True,
+    )
 
     # Relationships
     customer: Mapped["Customer"] = relationship("Customer", back_populates="orders")

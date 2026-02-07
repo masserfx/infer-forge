@@ -10,6 +10,12 @@ from .order import (
     OrderStatusUpdate,
     OrderUpdate,
 )
+from .pohoda import (
+    PohodaSyncLogResponse,
+    PohodaSyncRequest,
+    PohodaSyncResult,
+    PohodaSyncStatusResponse,
+)
 
 __all__ = [
     # Customer
@@ -27,4 +33,9 @@ __all__ = [
     "InboxMessageResponse",
     "InboxAssign",
     "InboxReclassify",
+    # Pohoda
+    "PohodaSyncRequest",
+    "PohodaSyncLogResponse",
+    "PohodaSyncResult",
+    "PohodaSyncStatusResponse",
 ]
