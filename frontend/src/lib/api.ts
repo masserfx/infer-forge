@@ -5,6 +5,8 @@
 
 import type {
   Customer,
+  Document,
+  DocumentCategory,
   InboxMessage,
   Order,
   OrderStatus,
@@ -14,7 +16,7 @@ import type {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
@@ -128,4 +130,50 @@ export async function getSyncLogs(params?: {
   if (params?.entity_id) searchParams.set("entity_id", params.entity_id);
   const qs = searchParams.toString();
   return fetchApi<PohodaSyncLog[]>(`/pohoda/logs${qs ? `?${qs}` : ""}`);
+}
+
+// --- Documents ---
+
+export async function getEntityDocuments(
+  entityType: string,
+  entityId: string,
+  category?: DocumentCategory,
+): Promise<Document[]> {
+  const searchParams = new URLSearchParams();
+  if (category) searchParams.set("category", category);
+  const qs = searchParams.toString();
+  return fetchApi<Document[]>(
+    `/dokumenty/entity/${entityType}/${entityId}${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export async function uploadDocument(
+  file: File,
+  entityType: string,
+  entityId: string,
+  category: DocumentCategory,
+  description?: string,
+): Promise<Document> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("entity_type", entityType);
+  formData.append("entity_id", entityId);
+  formData.append("category", category);
+  if (description) formData.append("description", description);
+
+  const url = `${API_BASE}/dokumenty/upload`;
+  const res = await fetch(url, { method: "POST", body: formData });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new ApiError(res.status, body || res.statusText);
+  }
+  return res.json() as Promise<Document>;
+}
+
+export async function deleteDocument(id: string): Promise<void> {
+  await fetchApi<void>(`/dokumenty/${id}`, { method: "DELETE" });
+}
+
+export function getDocumentDownloadUrl(id: string): string {
+  return `${API_BASE}/dokumenty/${id}/download`;
 }

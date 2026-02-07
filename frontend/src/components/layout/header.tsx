@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   ClipboardList,
   Inbox,
+  FileText,
   RefreshCw,
   Settings,
 } from "lucide-react";
@@ -39,6 +40,11 @@ const navItems: NavItem[] = [
     href: "/inbox",
     label: "Inbox",
     icon: Inbox,
+  },
+  {
+    href: "/dokumenty",
+    label: "Dokumenty",
+    icon: FileText,
   },
   {
     href: "/pohoda",

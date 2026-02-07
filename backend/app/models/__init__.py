@@ -3,7 +3,7 @@
 from .audit import AuditAction, AuditLog
 from .base import Base, TimestampMixin, UUIDPKMixin
 from .customer import Customer
-from .document import Document
+from .document import Document, DocumentCategory
 from .inbox import InboxClassification, InboxMessage, InboxStatus
 from .offer import Offer, OfferStatus
 from .order import Order, OrderItem, OrderPriority, OrderStatus
@@ -26,6 +26,7 @@ __all__ = [
     "OfferStatus",
     # Document
     "Document",
+    "DocumentCategory",
     # Inbox
     "InboxMessage",
     "InboxClassification",

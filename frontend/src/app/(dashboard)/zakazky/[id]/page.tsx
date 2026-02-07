@@ -2,6 +2,7 @@
 
 import { OrderDetail } from "@/components/zakazky/order-detail";
 import { OrderItemsTable } from "@/components/zakazky/order-items-table";
+import { OrderDocuments } from "@/components/zakazky/order-documents";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getOrder } from "@/lib/api";
@@ -89,6 +90,10 @@ export default function OrderDetailPage({ params }: PageProps) {
         </div>
         <OrderItemsTable items={order.items} />
       </div>
+
+      <Separator className="my-2" />
+
+      <OrderDocuments entityType="order" entityId={order.id} />
     </div>
   );
 }

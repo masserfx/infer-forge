@@ -164,3 +164,45 @@ export const CLASSIFICATION_LABELS: Record<InboxClassification, string> = {
   faktura: "Faktura",
   ostatni: "Ostatní",
 };
+
+// --- Documents ---
+
+export type DocumentCategory =
+  | "vykres"
+  | "atestace"
+  | "wps"
+  | "pruvodka"
+  | "faktura"
+  | "nabidka"
+  | "objednavka"
+  | "protokol"
+  | "ostatni";
+
+export interface Document {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  file_name: string;
+  file_path: string;
+  mime_type: string;
+  file_size: number;
+  version: number;
+  category: DocumentCategory;
+  description: string | null;
+  ocr_text: string | null;
+  uploaded_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const DOCUMENT_CATEGORY_LABELS: Record<DocumentCategory, string> = {
+  vykres: "Výkres",
+  atestace: "Atestace",
+  wps: "WPS",
+  pruvodka: "Průvodka",
+  faktura: "Faktura",
+  nabidka: "Nabídka",
+  objednavka: "Objednávka",
+  protokol: "Protokol",
+  ostatni: "Ostatní",
+};

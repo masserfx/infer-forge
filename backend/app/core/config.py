@@ -110,6 +110,16 @@ class Settings(BaseSettings):
     POHODA_XML_VERSION: str = "2.0"
     POHODA_APPLICATION: str = "INFER_FORGE"
 
+    # File uploads
+    UPLOAD_DIR: str = Field(
+        default="uploads",
+        description="Directory for uploaded document files",
+    )
+    MAX_UPLOAD_SIZE_MB: int = Field(
+        default=50,
+        description="Maximum file upload size in megabytes",
+    )
+
     # Sentry monitoring (optional)
     SENTRY_DSN: str = Field(
         default="",

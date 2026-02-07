@@ -1,6 +1,7 @@
 """Pydantic schemas for INFER FORGE API."""
 
 from .customer import CustomerCreate, CustomerResponse, CustomerUpdate
+from .document import DocumentResponse, DocumentUpdate, DocumentUpload
 from .inbox import InboxAssign, InboxMessageResponse, InboxReclassify
 from .order import (
     OrderCreate,
@@ -18,6 +19,10 @@ from .pohoda import (
 )
 
 __all__ = [
+    # Document
+    "DocumentUpload",
+    "DocumentUpdate",
+    "DocumentResponse",
     # Customer
     "CustomerCreate",
     "CustomerUpdate",
