@@ -11,8 +11,11 @@ import {
   FileText,
   RefreshCw,
   Settings,
+  LogOut,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-provider";
 
 interface NavItem {
   href: string;
@@ -65,6 +68,7 @@ const navItems: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   return (
     <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:border-r lg:bg-muted/40">
@@ -95,6 +99,24 @@ export function Sidebar() {
           );
         })}
       </nav>
+      {user && (
+        <div className="border-t p-4">
+          <div className="flex items-center gap-3 px-3 py-2">
+            <User className="h-5 w-5 text-muted-foreground" />
+            <div className="flex-1 min-w-0">
+              <p className="truncate text-sm font-medium">{user.full_name}</p>
+              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+            </div>
+          </div>
+          <button
+            onClick={logout}
+            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+          >
+            <LogOut className="h-5 w-5" />
+            Odhlásit se
+          </button>
+        </div>
+      )}
     </aside>
   );
 }

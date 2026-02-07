@@ -8,6 +8,16 @@ import {
   type OrderStatus,
 } from "@/types";
 
+const PIPELINE_BAR_COLORS: Record<OrderStatus, string> = {
+  poptavka: "bg-blue-500",
+  nabidka: "bg-purple-500",
+  objednavka: "bg-yellow-500",
+  vyroba: "bg-orange-500",
+  expedice: "bg-cyan-500",
+  fakturace: "bg-green-500",
+  dokonceno: "bg-gray-400",
+};
+
 interface PipelineChartProps {
   statusCounts: Record<OrderStatus, number>;
 }
@@ -51,7 +61,7 @@ export function PipelineChart({ statusCounts }: PipelineChartProps) {
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full bg-primary transition-all"
+                    className={`h-full transition-all ${PIPELINE_BAR_COLORS[status]}`}
                     style={{ width: `${percentage}%` }}
                   />
                 </div>

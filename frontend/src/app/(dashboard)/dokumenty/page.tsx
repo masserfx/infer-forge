@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getDocumentDownloadUrl } from "@/lib/api";
+import { getDocuments, getDocumentDownloadUrl } from "@/lib/api";
 import type { Document } from "@/types";
 import { DOCUMENT_CATEGORY_LABELS } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -19,8 +19,6 @@ import { FileText, Download, Search } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale/cs";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
-
 export default function DocumentsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>("all");
@@ -28,11 +26,7 @@ export default function DocumentsPage() {
 
   const { data: documents = [], isLoading } = useQuery<Document[]>({
     queryKey: ["documents", "all"],
-    queryFn: async () => {
-      const res = await fetch(`${API_BASE}/dokumenty?limit=100`);
-      if (!res.ok) throw new Error("Failed to fetch documents");
-      return res.json();
-    },
+    queryFn: () => getDocuments({ limit: 100 }),
   });
 
   const formatFileSize = (bytes: number): string => {

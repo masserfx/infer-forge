@@ -182,6 +182,21 @@ export async function getSyncLogs(params?: {
 
 // --- Documents ---
 
+export async function getDocuments(params?: {
+  entity_type?: string;
+  category?: DocumentCategory;
+  skip?: number;
+  limit?: number;
+}): Promise<Document[]> {
+  const searchParams = new URLSearchParams();
+  if (params?.entity_type) searchParams.set("entity_type", params.entity_type);
+  if (params?.category) searchParams.set("category", params.category);
+  if (params?.skip) searchParams.set("skip", String(params.skip));
+  if (params?.limit) searchParams.set("limit", String(params.limit));
+  const qs = searchParams.toString();
+  return fetchApi<Document[]>(`/dokumenty${qs ? `?${qs}` : ""}`);
+}
+
 export async function getEntityDocuments(
   entityType: string,
   entityId: string,
