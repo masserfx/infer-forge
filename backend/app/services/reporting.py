@@ -198,48 +198,55 @@ class ReportingService:
 
         # Monthly breakdown from calculations
         cutoff = datetime.now(UTC) - timedelta(days=months * 30)
+        # Use DB-agnostic year/month extraction (works on PostgreSQL and SQLite)
+        calc_year = func.extract("year", Calculation.created_at).label("yr")
+        calc_month = func.extract("month", Calculation.created_at).label("mn")
         monthly_calc = await self.db.execute(
             select(
-                func.strftime("%Y-%m", Calculation.created_at).label("period"),
+                calc_year,
+                calc_month,
                 func.sum(Calculation.total_price).label("total"),
                 func.count(Calculation.id).label("cnt"),
             )
             .where(Calculation.created_at >= cutoff)
-            .group_by("period")
-            .order_by("period")
+            .group_by(calc_year, calc_month)
+            .order_by(calc_year, calc_month)
         )
 
         monthly_items: dict[str, RevenueItem] = {}
         for row in monthly_calc.all():
-            period = row[0]
+            period = f"{int(row[0])}-{int(row[1]):02d}"
             monthly_items[period] = RevenueItem(
                 period=period,
-                total_calculations=row[1] or Decimal("0"),
-                calculations_count=row[2] or 0,
+                total_calculations=row[2] or Decimal("0"),
+                calculations_count=row[3] or 0,
             )
 
         # Monthly offers
+        offer_year = func.extract("year", Offer.created_at).label("yr")
+        offer_month = func.extract("month", Offer.created_at).label("mn")
         monthly_offer = await self.db.execute(
             select(
-                func.strftime("%Y-%m", Offer.created_at).label("period"),
+                offer_year,
+                offer_month,
                 func.sum(Offer.total_price).label("total"),
                 func.count(Offer.id).label("cnt"),
             )
             .where(Offer.created_at >= cutoff)
-            .group_by("period")
-            .order_by("period")
+            .group_by(offer_year, offer_month)
+            .order_by(offer_year, offer_month)
         )
 
         for row in monthly_offer.all():
-            period = row[0]
+            period = f"{int(row[0])}-{int(row[1]):02d}"
             if period in monthly_items:
-                monthly_items[period].total_offers = row[1] or Decimal("0")
-                monthly_items[period].offers_count = row[2] or 0
+                monthly_items[period].total_offers = row[2] or Decimal("0")
+                monthly_items[period].offers_count = row[3] or 0
             else:
                 monthly_items[period] = RevenueItem(
                     period=period,
-                    total_offers=row[1] or Decimal("0"),
-                    offers_count=row[2] or 0,
+                    total_offers=row[2] or Decimal("0"),
+                    offers_count=row[3] or 0,
                 )
 
         monthly = sorted(monthly_items.values(), key=lambda x: x.period)
