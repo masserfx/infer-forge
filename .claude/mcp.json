@@ -1,0 +1,12 @@
+{
+  "sentry": {
+    "command": "npx",
+    "args": ["-y", "@anthropic/sentry-mcp-server"],
+    "env": { "SENTRY_AUTH_TOKEN": "<token>" }
+  },
+  "slack": {
+    "command": "npx",
+    "args": ["-y", "@anthropic/slack-mcp-server"],
+    "env": { "SLACK_BOT_TOKEN": "<token>" }
+  }
+}
