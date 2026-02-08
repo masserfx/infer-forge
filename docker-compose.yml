@@ -72,8 +72,7 @@ services:
   loki:
     image: grafana/loki:3.0.0
     container_name: infer-forge-loki
-    ports:
-      - "3100:3100"
+    # No external port - accessed internally by promtail/grafana via Docker network
     volumes:
       - ./docker/loki/loki-config.yml:/etc/loki/local-config.yaml
       - loki-data:/loki
