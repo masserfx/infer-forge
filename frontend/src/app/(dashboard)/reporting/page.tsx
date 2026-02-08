@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import Link from "next/link";
 import { ORDER_STATUS_COLORS, ORDER_STATUS_LABELS, PRIORITY_COLORS, PRIORITY_LABELS } from "@/types";
 import type { OrderStatus, OrderPriority } from "@/types";
 import { PrintHeader } from "@/components/reporting/print-header";
+import { AITokenReportDialog } from "@/components/ai-token-usage-dialog";
 
 function StatCard({ title, value, description }: { title: string; value: string | number; description?: string }) {
   return (
@@ -303,7 +305,11 @@ function CustomersTab() {
   );
 }
 
-function InsightsTab() {
+function InsightsTab({
+  onOpenCostReport,
+}: {
+  onOpenCostReport: () => void;
+}) {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["insights"],
     queryFn: getInsights,
@@ -316,7 +322,14 @@ function InsightsTab() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div
+              className="flex items-center gap-2 cursor-context-menu"
+              onContextMenu={(e) => {
+                e.preventDefault();
+                onOpenCostReport();
+              }}
+              title="Prave tlacitko mysi = report nakladu AI"
+            >
               <Lightbulb className="h-5 w-5 text-yellow-500" />
               <CardTitle>AI Insights</CardTitle>
             </div>
@@ -324,7 +337,7 @@ function InsightsTab() {
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
-          <CardDescription>Automaticky generované poznatky z dat</CardDescription>
+          <CardDescription>Automaticky generovane poznatky z dat</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -365,6 +378,8 @@ function InsightsTab() {
 }
 
 export default function ReportingPage() {
+  const [costReportOpen, setCostReportOpen] = useState(false);
+
   const handlePrint = () => {
     window.print();
   };
@@ -376,6 +391,10 @@ export default function ReportingPage() {
 
   return (
     <>
+      <AITokenReportDialog
+        open={costReportOpen}
+        onOpenChange={setCostReportOpen}
+      />
       {/* Print-only styles */}
       <style jsx global>{`
         @media print {
@@ -495,7 +514,7 @@ export default function ReportingPage() {
 
           <TabsContent value="insights" className="print-section">
             <h2 className="hidden print:block text-2xl font-bold mb-4">AI Insights</h2>
-            <InsightsTab />
+            <InsightsTab onOpenCostReport={() => setCostReportOpen(true)} />
           </TabsContent>
         </Tabs>
       </div>

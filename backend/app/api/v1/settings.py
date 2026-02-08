@@ -1,6 +1,9 @@
 """Settings API endpoints for feature flags management."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import random
+from datetime import datetime, timedelta
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 
 from app.api.deps import require_role
@@ -135,3 +138,116 @@ async def get_integration_status(
     ))
 
     return integrations
+
+
+# --- AI Token Usage ---
+
+
+class AITokenCategoryUsage(BaseModel):
+    category: str
+    tokens_input: int
+    tokens_output: int
+    calls: int
+    cost_czk: float
+
+
+class AITokenTimePoint(BaseModel):
+    label: str
+    cost_czk: float
+    calls: int
+
+
+class AITokenUsageResponse(BaseModel):
+    period: str  # "day" | "month" | "year"
+    categories: list[AITokenCategoryUsage]
+    timeline: list[AITokenTimePoint]
+    total_cost_czk: float
+    total_calls: int
+    total_tokens: int
+
+
+# 5 AI usage categories
+_AI_CATEGORIES = [
+    ("Email klasifikace", 800, 200),
+    ("Kalkulace", 2000, 1500),
+    ("Parsování dokumentů", 1200, 600),
+    ("Orchestrace", 500, 300),
+    ("Doporučení", 1500, 1000),
+]
+
+# Approximate CZK cost per 1K tokens (Sonnet pricing)
+_INPUT_COST_PER_1K = 0.07  # CZK
+_OUTPUT_COST_PER_1K = 0.35  # CZK
+
+
+def _seed_for_period(period: str) -> int:
+    """Deterministic seed so data is consistent per day."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    return hash(f"{today}-{period}") % 2**31
+
+
+def _generate_usage(period: str) -> AITokenUsageResponse:
+    """Generate realistic mock AI token usage data."""
+    rng = random.Random(_seed_for_period(period))
+
+    if period == "day":
+        multiplier = 1
+        labels = [f"{h}:00" for h in range(0, 24)]
+    elif period == "month":
+        multiplier = 30
+        now = datetime.now()
+        labels = [(now - timedelta(days=29 - i)).strftime("%d.%m.") for i in range(30)]
+    else:  # year
+        multiplier = 365
+        now = datetime.now()
+        labels = [
+            (now.replace(day=1) - timedelta(days=30 * (11 - i))).strftime("%m/%Y")
+            for i in range(12)
+        ]
+
+    categories: list[AITokenCategoryUsage] = []
+    total_cost = 0.0
+    total_calls_sum = 0
+    total_tokens_sum = 0
+
+    for name, base_in, base_out in _AI_CATEGORIES:
+        tokens_in = int(base_in * multiplier * rng.uniform(0.7, 1.3))
+        tokens_out = int(base_out * multiplier * rng.uniform(0.7, 1.3))
+        calls = int(multiplier * rng.randint(2, 15))
+        cost = (tokens_in / 1000) * _INPUT_COST_PER_1K + (tokens_out / 1000) * _OUTPUT_COST_PER_1K
+        categories.append(AITokenCategoryUsage(
+            category=name,
+            tokens_input=tokens_in,
+            tokens_output=tokens_out,
+            calls=calls,
+            cost_czk=round(cost, 2),
+        ))
+        total_cost += cost
+        total_calls_sum += calls
+        total_tokens_sum += tokens_in + tokens_out
+
+    # Timeline
+    timeline: list[AITokenTimePoint] = []
+    n = len(labels)
+    for lbl in labels:
+        pt_cost = round(total_cost / n * rng.uniform(0.5, 1.5), 2)
+        pt_calls = max(1, int(total_calls_sum / n * rng.uniform(0.5, 1.5)))
+        timeline.append(AITokenTimePoint(label=lbl, cost_czk=pt_cost, calls=pt_calls))
+
+    return AITokenUsageResponse(
+        period=period,
+        categories=categories,
+        timeline=timeline,
+        total_cost_czk=round(total_cost, 2),
+        total_calls=total_calls_sum,
+        total_tokens=total_tokens_sum,
+    )
+
+
+@router.get("/ai-token-usage", response_model=AITokenUsageResponse)
+async def get_ai_token_usage(
+    period: str = Query("month", pattern="^(day|month|year)$"),
+    _user: User = Depends(require_role(UserRole.VEDENI)),
+) -> AITokenUsageResponse:
+    """Get AI token usage statistics by category and time period."""
+    return _generate_usage(period)

@@ -1,10 +1,12 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { User, Shield, Mail, Phone, Server, Settings2, ToggleLeft } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getFeatureFlags, updateFeatureFlags, getIntegrationStatus } from "@/lib/api";
+import { AITokenUsageDialog } from "@/components/ai-token-usage-dialog";
 import type { FeatureFlags } from "@/types";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -26,6 +28,17 @@ const ROLE_COLORS: Record<string, string> = {
 export default function NastaveniPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
+
+  const handleIntegrationContextMenu = useCallback(
+    (e: React.MouseEvent, name: string) => {
+      if (name === "AI Claude (Anthropic)") {
+        e.preventDefault();
+        setTokenDialogOpen(true);
+      }
+    },
+    [],
+  );
 
   const { data: flags } = useQuery({
     queryKey: ["feature-flags"],
@@ -203,7 +216,15 @@ export default function NastaveniPage() {
             </div>
             <div className="space-y-3 p-4">
               {integrations.map((integration) => (
-                <div key={integration.name} className="flex items-center justify-between text-sm">
+                <div
+                  key={integration.name}
+                  className={`flex items-center justify-between text-sm ${
+                    integration.name === "AI Claude (Anthropic)" ? "cursor-context-menu" : ""
+                  }`}
+                  onContextMenu={(e) =>
+                    handleIntegrationContextMenu(e, integration.name)
+                  }
+                >
                   <span>{integration.name}</span>
                   <Badge
                     variant="secondary"
@@ -266,6 +287,11 @@ export default function NastaveniPage() {
           </div>
         </div>
       </div>
+
+      <AITokenUsageDialog
+        open={tokenDialogOpen}
+        onOpenChange={setTokenDialogOpen}
+      />
     </div>
   );
 }

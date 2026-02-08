@@ -101,7 +101,7 @@ export default function PrezentacePage() {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  // 20 slides with transitions (0.5s overlap between each)
+  // 23 slides with transitions (0.5s overlap between each)
   // Timestamps: each slide starts at prev_start + prev_duration - 0.5s
   const slides = [
     // ACT 1: Úvod
@@ -119,15 +119,18 @@ export default function PrezentacePage() {
     { time: 62, label: "Pohoda sync" },
     // ACT 3: Inteligentní funkce
     { time: 69.5, label: "AI Email Agent" },
-    { time: 76, label: "Dashboard" },
-    { time: 82.5, label: "Reporting" },
-    { time: 89, label: "Materiály" },
-    { time: 95.5, label: "Dokumenty + OCR" },
+    { time: 76, label: "Orchestrační pipeline" },
+    { time: 83.5, label: "Dashboard" },
+    { time: 90, label: "AI Doporučení" },
+    { time: 96.5, label: "Reporting" },
+    { time: 103, label: "Materiály" },
+    { time: 109.5, label: "Dokumenty + OCR" },
     // ACT 4: Tým a výsledky
-    { time: 102, label: "Gamifikace" },
-    { time: 106.5, label: "Bezpečnost" },
-    { time: 111, label: "Statistiky" },
-    { time: 115.5, label: "Závěr" },
+    { time: 116, label: "Gamifikace" },
+    { time: 120.5, label: "Monitoring" },
+    { time: 126, label: "Bezpečnost" },
+    { time: 130.5, label: "Statistiky" },
+    { time: 135, label: "Závěr" },
   ];
 
   const jumpToSlide = useCallback((time: number) => {
@@ -303,9 +306,9 @@ export default function PrezentacePage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="rounded-xl border bg-card p-4">
           <div className="text-sm font-medium text-muted-foreground">Délka</div>
-          <div className="text-2xl font-bold mt-1">~125 sekund</div>
+          <div className="text-2xl font-bold mt-1">~140 sekund</div>
           <div className="text-xs text-muted-foreground mt-1">
-            20 kapitol, 4 akty
+            23 kapitol, 4 akty
           </div>
         </div>
         <div className="rounded-xl border bg-card p-4">

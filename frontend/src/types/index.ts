@@ -657,6 +657,31 @@ export interface InsightsResponse {
   generated_at: string;
 }
 
+// --- AI Token Usage ---
+
+export interface AITokenCategoryUsage {
+  category: string;
+  tokens_input: number;
+  tokens_output: number;
+  calls: number;
+  cost_czk: number;
+}
+
+export interface AITokenTimePoint {
+  label: string;
+  cost_czk: number;
+  calls: number;
+}
+
+export interface AITokenUsageResponse {
+  period: string;
+  categories: AITokenCategoryUsage[];
+  timeline: AITokenTimePoint[];
+  total_cost_czk: number;
+  total_calls: number;
+  total_tokens: number;
+}
+
 // --- Calculation Feedback ---
 
 export interface CalculationFeedback {

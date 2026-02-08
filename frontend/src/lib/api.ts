@@ -5,6 +5,7 @@
 
 import type {
   AIEstimate,
+  AITokenUsageResponse,
   AssignmentResponse,
   BulkAssignUpdate,
   BulkResult,
@@ -694,6 +695,10 @@ export async function updateFeatureFlags(flags: Partial<FeatureFlags>): Promise<
 
 export async function getIntegrationStatus(): Promise<IntegrationStatus[]> {
   return fetchApi<IntegrationStatus[]>("/nastaveni/integrations");
+}
+
+export async function getAITokenUsage(period: "day" | "month" | "year" = "month"): Promise<AITokenUsageResponse> {
+  return fetchApi<AITokenUsageResponse>(`/nastaveni/ai-token-usage?period=${period}`);
 }
 
 // --- Anomalies ---

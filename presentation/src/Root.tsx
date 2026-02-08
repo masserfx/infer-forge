@@ -1,9 +1,9 @@
 import { Composition } from "remotion";
 import { InferForgePresentation } from "./Presentation";
 
-// Total: 20 slides, 134s total duration, 19 transitions of 0.5s
-// = 134*30 - 19*15 = 4020 - 285 = 3735 frames (~124.5s)
-const TOTAL_FRAMES = 3750;
+// Total: 23 slides, 161s total duration, 22 transitions of 0.5s
+// = 161*30 - 22*15 = 4830 - 330 = 4500 frames (~150s)
+const TOTAL_FRAMES = 4500;
 
 export const RemotionRoot: React.FC = () => {
   return (

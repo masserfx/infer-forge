@@ -1,4 +1,5 @@
 import { AbsoluteFill, Sequence } from "remotion";
+import { TransitionWrapper } from "./slides/TransitionWrapper";
 import { TitleSlide } from "./slides/TitleSlide";
 import { ProblemSlide } from "./slides/ProblemSlide";
 import { SolutionSlide } from "./slides/SolutionSlide";
@@ -11,11 +12,14 @@ import { KanbanSlide } from "./slides/KanbanSlide";
 import { OperationsSlide } from "./slides/OperationsSlide";
 import { PohodaSlide } from "./slides/PohodaSlide";
 import { AiAgentSlide } from "./slides/AiAgentSlide";
+import { AutomationSlide } from "./slides/AutomationSlide";
 import { DashboardSlide } from "./slides/DashboardSlide";
+import { RecommendationsSlide } from "./slides/RecommendationsSlide";
 import { ReportingSlide } from "./slides/ReportingSlide";
 import { MaterialsSlide } from "./slides/MaterialsSlide";
 import { DocumentsSlide } from "./slides/DocumentsSlide";
 import { GamificationSlide } from "./slides/GamificationSlide";
+import { MonitoringSlide } from "./slides/MonitoringSlide";
 import { SecuritySlide } from "./slides/SecuritySlide";
 import { StatsSlide } from "./slides/StatsSlide";
 import { EndSlide } from "./slides/EndSlide";
@@ -40,15 +44,18 @@ const slideConfig: { element: React.ReactNode; durationSec: number }[] = [
   { element: <OperationsSlide />, durationSec: 8 },
   { element: <PohodaSlide />, durationSec: 8 },
 
-  // ACT 3: Inteligentni funkce (35s)
+  // ACT 3: Inteligentni funkce (56s)
   { element: <AiAgentSlide />, durationSec: 7 },
+  { element: <AutomationSlide />, durationSec: 8 },
   { element: <DashboardSlide />, durationSec: 7 },
+  { element: <RecommendationsSlide />, durationSec: 7 },
   { element: <ReportingSlide />, durationSec: 7 },
   { element: <MaterialsSlide />, durationSec: 7 },
   { element: <DocumentsSlide />, durationSec: 7 },
 
-  // ACT 4: Tym a vysledky (20s)
+  // ACT 4: Tym a vysledky (26s)
   { element: <GamificationSlide />, durationSec: 5 },
+  { element: <MonitoringSlide />, durationSec: 6 },
   { element: <SecuritySlide />, durationSec: 5 },
   { element: <StatsSlide />, durationSec: 5 },
   { element: <EndSlide />, durationSec: 5 },
@@ -71,7 +78,9 @@ export const InferForgePresentation: React.FC = () => {
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
       {slides.map((slide, i) => (
         <Sequence key={i} from={slide.from} durationInFrames={slide.duration}>
-          {slide.element}
+          <TransitionWrapper durationInFrames={slide.duration}>
+            {slide.element}
+          </TransitionWrapper>
         </Sequence>
       ))}
     </AbsoluteFill>
