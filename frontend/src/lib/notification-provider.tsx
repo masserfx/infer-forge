@@ -12,9 +12,11 @@ import { toast } from "sonner";
 import { useWebSocket } from "@/lib/use-websocket";
 import {
   getNotifications,
+  getAuthToken,
   markNotificationRead as apiMarkRead,
   markAllNotificationsRead as apiMarkAllRead,
 } from "@/lib/api";
+import { useAuth } from "@/lib/auth-provider";
 import type { Notification } from "@/types";
 
 interface NotificationContextType {
@@ -34,10 +36,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const { lastMessage, isConnected } = useWebSocket();
   const processedMessageIdsRef = useRef(new Set<string>());
+  const { isAuthenticated } = useAuth();
 
-  // Fetch initial notifications on mount
+  // Fetch initial notifications only when authenticated
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const loadNotifications = async () => {
+      const token = getAuthToken();
+      if (!token) return;
+
       try {
         const result = await getNotifications({ limit: 20 });
         setNotifications(result.items);
@@ -48,7 +56,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     };
 
     loadNotifications();
-  }, []);
+  }, [isAuthenticated]);
 
   // Process lastMessage when it changes
   useEffect(() => {
