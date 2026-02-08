@@ -156,6 +156,12 @@ async def _poll_inbox_async(settings: object) -> dict[str, object]:
     Returns:
         dict: Execution summary with processed/skipped/error counts.
     """
+    # Dispose stale connections from previous event loop
+    # (asyncio.run() creates a new loop each time in Celery workers)
+    from app.core.database import engine
+
+    await engine.dispose()
+
     # Type-safe access to settings
     imap_host = str(settings.IMAP_HOST)  # type: ignore[attr-defined]
     imap_port = int(settings.IMAP_PORT)  # type: ignore[attr-defined]

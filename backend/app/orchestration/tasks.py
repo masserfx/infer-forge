@@ -23,8 +23,19 @@ logger = structlog.get_logger(__name__)
 
 
 def _run_async(coro):
-    """Run async coroutine in sync context (Celery worker)."""
-    return asyncio.run(coro)
+    """Run async coroutine in sync context (Celery worker).
+
+    Note: Each asyncio.run() creates a new event loop. We dispose
+    the SQLAlchemy connection pool first to avoid 'Future attached
+    to a different loop' errors from stale connections.
+    """
+    async def _wrapper():
+        from app.core.database import engine
+
+        await engine.dispose()
+        return await coro
+
+    return asyncio.run(_wrapper())
 
 
 async def _record_processing_task(
