@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from .calculation import Calculation
     from .customer import Customer
     from .offer import Offer
+    from .operation import Operation
     from .order_embedding import OrderEmbedding
 
 
@@ -112,6 +113,12 @@ class Order(Base, UUIDPKMixin, TimestampMixin):
         foreign_keys=[source_offer_id],
         uselist=False,
         viewonly=True,
+    )
+    operations: Mapped[list["Operation"]] = relationship(
+        "Operation",
+        back_populates="order",
+        order_by="Operation.sequence",
+        cascade="all, delete-orphan",
     )
 
     __table_args__ = (

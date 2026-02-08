@@ -41,6 +41,13 @@ from .material_price import (
     MaterialPriceUpdate,
 )
 from .notification import NotificationCreate, NotificationList, NotificationResponse
+from .operation import (
+    OperationCreate,
+    OperationListResponse,
+    OperationReorderRequest,
+    OperationResponse,
+    OperationUpdate,
+)
 from .order import (
     OrderCreate,
     OrderItemCreate,
@@ -58,6 +65,8 @@ from .pohoda import (
 from .reporting import (
     CustomerReport,
     DashboardStats,
+    MaterialRequirementItem,
+    MaterialRequirementsResponse,
     PipelineReport,
     ProductionReport,
     RevenueReport,
@@ -122,6 +131,8 @@ __all__ = [
     "RevenueReport",
     "ProductionReport",
     "CustomerReport",
+    "MaterialRequirementItem",
+    "MaterialRequirementsResponse",
     # Embedding
     "SimilarOrderResult",
     "SimilarOrdersResponse",
@@ -130,4 +141,10 @@ __all__ = [
     "NotificationCreate",
     "NotificationResponse",
     "NotificationList",
+    # Operation
+    "OperationCreate",
+    "OperationUpdate",
+    "OperationResponse",
+    "OperationListResponse",
+    "OperationReorderRequest",
 ]

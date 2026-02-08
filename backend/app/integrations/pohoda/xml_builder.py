@@ -436,6 +436,8 @@ class PohodaXMLBuilder:
         invoice_date: date | None = None,
         due_days: int = 14,
         calculation: Calculation | None = None,
+        invoice_type: str = "final",
+        advance_percent: int = 50,
     ) -> bytes:
         """Build invoice XML document for Pohoda.
 
@@ -449,6 +451,8 @@ class PohodaXMLBuilder:
             invoice_date: Invoice issue date (defaults to today).
             due_days: Payment due in days (default 14).
             calculation: Optional approved calculation for pricing. If None, uses placeholder prices.
+            invoice_type: Type of invoice - "final" (konečná), "advance" (zálohová), "proforma" (proforma).
+            advance_percent: Percentage of advance payment (10-90, default 50). Only used for "advance" type.
 
         Returns:
             bytes: XML document as bytes in Windows-1250 encoding.
@@ -464,8 +468,16 @@ class PohodaXMLBuilder:
         # Invoice header
         header = self._add_element(inv, f"{{{NAMESPACES['inv']}}}invoiceHeader")
 
-        # Invoice type (issued invoice)
-        self._add_element(header, f"{{{NAMESPACES['inv']}}}invoiceType", "issuedInvoice")
+        # Invoice type - map to Pohoda XML types
+        pohoda_invoice_type: str
+        if invoice_type == "advance":
+            pohoda_invoice_type = "issuedAdvanceInvoice"
+        elif invoice_type == "proforma":
+            pohoda_invoice_type = "issuedProformaInvoice"
+        else:  # final
+            pohoda_invoice_type = "issuedInvoice"
+
+        self._add_element(header, f"{{{NAMESPACES['inv']}}}invoiceType", pohoda_invoice_type)
 
         # Invoice number
         number = self._add_element(header, f"{{{NAMESPACES['inv']}}}number")
@@ -478,8 +490,14 @@ class PohodaXMLBuilder:
         due_date = issue_date + timedelta(days=due_days)
         self._add_element(header, f"{{{NAMESPACES['inv']}}}dateDue", self._format_date(due_date))
 
-        # Text/description
-        text = f"Faktura za zakázku {order.number}"
+        # Text/description - adjust based on invoice type
+        if invoice_type == "advance":
+            text = f"Zálohová faktura - {advance_percent}% záloha za zakázku {order.number}"
+        elif invoice_type == "proforma":
+            text = f"Proforma faktura za zakázku {order.number}"
+        else:  # final
+            text = f"Faktura za zakázku {order.number}"
+
         if order.note:
             text += f" - {order.note[:100]}"
         self._add_element(header, f"{{{NAMESPACES['inv']}}}text", text[:240])
@@ -554,6 +572,12 @@ class PohodaXMLBuilder:
                     )
                 else:
                     unit_price = item_share
+
+                # Apply advance percentage if this is advance invoice
+                if invoice_type == "advance":
+                    unit_price = Decimal(unit_price * advance_percent / 100).quantize(
+                        Decimal("0.01")
+                    )
             else:
                 # No calculation provided - use placeholder
                 import logging
@@ -565,6 +589,12 @@ class PohodaXMLBuilder:
                     str(order.id),
                 )
                 unit_price = Decimal("1000.00")
+
+                # Apply advance percentage if this is advance invoice
+                if invoice_type == "advance":
+                    unit_price = Decimal(unit_price * advance_percent / 100).quantize(
+                        Decimal("0.01")
+                    )
 
             self._add_element(
                 home_currency,

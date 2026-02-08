@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Materiálový atest - {{ order.number }}{% endblock %}
+
+{% block extra_styles %}
+.cert-type-badge {
+    display: inline-block;
+    background-color: #1e3a5f;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 11pt;
+}
+.material-row {
+    display: grid;
+    grid-template-columns: 40px 2fr 1.5fr 1fr 1fr 1.5fr;
+    gap: 5px;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    font-size: 9pt;
+}
+.material-row:nth-child(even) {
+    background-color: #f8f9fa;
+}
+.material-header {
+    display: grid;
+    grid-template-columns: 40px 2fr 1.5fr 1fr 1fr 1.5fr;
+    gap: 5px;
+    background-color: #1e3a5f;
+    color: white;
+    padding: 8px 10px;
+    font-size: 9pt;
+    font-weight: 600;
+}
+{% endblock %}
+
+{% block content %}
+<h2 class="doc-title">Materiálový atest EN 10-204</h2>
+
+<div style="text-align: center; margin: 15px 0;">
+    <span class="cert-type-badge">Typ {{ certificate_type }}</span>
+</div>
+
+<div class="info-grid">
+    <div class="info-box">
+        <h3>Údaje o atestu</h3>
+        <p><span class="label">Číslo atestu:</span> <strong>{{ certificate_number }}</strong></p>
+        <p><span class="label">Datum:</span> {{ today }}</p>
+        <p><span class="label">Zakázka:</span> {{ order.number }}</p>
+        <p><span class="label">Typ atestu:</span> EN 10-204 {{ certificate_type }}</p>
+    </div>
+    <div class="info-box">
+        <h3>Odběratel</h3>
+        {% if order.customer %}
+        <p><strong>{{ order.customer.company_name }}</strong></p>
+        <p><span class="label">IČO:</span> {{ order.customer.ico }}</p>
+        <p><span class="label">Kontakt:</span> {{ order.customer.contact_name }}</p>
+        {% else %}
+        <p>Nepřiřazen</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="note" style="background-color: #e8eef5;">
+    <strong>Prohlášení dle EN 10-204:</strong><br>
+    {% if certificate_type == "3.1" %}
+    <strong>Typ 3.1:</strong> Protokol o přejímce s certifikací nezávislého zástupce výrobce.
+    {% elif certificate_type == "3.2" %}
+    <strong>Typ 3.2:</strong> Protokol o přejímce s certifikací oprávněného inspektora nezávislého na výrobě.
+    {% else %}
+    <strong>Typ {{ certificate_type }}:</strong> Certifikace dle evropské normy EN 10-204.
+    {% endif %}
+</div>
+
+<h3 style="color: #1e3a5f; margin: 20px 0 10px;">Materiálový výkaz</h3>
+
+<div class="material-header">
+    <span>#</span>
+    <span>Položka / Výrobek</span>
+    <span>Materiál / Třída</span>
+    <span>Norma</span>
+    <span>Tavba č.</span>
+    <span>Certifikát výrobce č.</span>
+</div>
+
+{% for item in items %}
+<div class="material-row">
+    <span>{{ loop.index }}</span>
+    <span>
+        <strong>{{ item.name }}</strong><br>
+        <small style="color: #666;">
+            {% if item.dn %}DN {{ item.dn }}{% endif %}
+            {% if item.pn %} / PN {{ item.pn }}{% endif %}
+        </small>
+    </span>
+    <span>{{ item.material or '_____________' }}</span>
+    <span>_____________</span>
+    <span>_____________</span>
+    <span>_____________</span>
+</div>
+{% endfor %}
+
+<h3 style="color: #1e3a5f; margin: 25px 0 10px;">Chemické složení materiálu (%)</h3>
+<table>
+    <thead>
+        <tr>
+            <th>C</th>
+            <th>Si</th>
+            <th>Mn</th>
+            <th>P</th>
+            <th>S</th>
+            <th>Cr</th>
+            <th>Ni</th>
+            <th>Mo</th>
+            <th>Cu</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: center;">____</td>
+            <td style="text-align: center;">____</td>
+            <td style="text-align: center;">____</td>
+            <td style="text-align: center;">____</td>
+            <td style="text-align: center;">____</td>
+            <td style="text-align: center;">____</td>
+            <td style="text-align: center;">____</td>
+            <td style="text-align: center;">____</td>
+            <td style="text-align: center;">____</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 style="color: #1e3a5f; margin: 25px 0 10px;">Mechanické vlastnosti</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Mez kluzu Rp0,2 (MPa)</th>
+            <th>Pevnost v tahu Rm (MPa)</th>
+            <th>Tažnost A5 (%)</th>
+            <th>Vrubová houževnatost KV (J)</th>
+            <th>Teplota zkoušky (°C)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: center;">____________</td>
+            <td style="text-align: center;">____________</td>
+            <td style="text-align: center;">____________</td>
+            <td style="text-align: center;">____________</td>
+            <td style="text-align: center;">____________</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 style="color: #1e3a5f; margin: 25px 0 10px;">Prohlášení o shodě</h3>
+<div style="font-size: 9pt; margin: 15px 0;">
+    <p>Potvrzujeme, že výše uvedené materiály byly dodány v souladu s požadavky normy
+    <strong>EN 10-204 typ {{ certificate_type }}</strong> a splňují požadavky na chemické složení,
+    mechanické vlastnosti a jakost dle objednávky.</p>
+
+    <p style="margin-top: 10px;">Veškerý dodaný materiál je řádně atestován výrobcem oceli
+    a splňuje požadavky evropských norem pro použití v tlakových zařízeních a ocelových konstrukcích.</p>
+
+    <p style="margin-top: 10px;"><strong>Trasovatelnost:</strong> Materiál je trasovatelný
+    k certifikátům výrobce oceli číslo: _________________________________</p>
+</div>
+
+<div class="signature-grid">
+    <div class="signature-box">
+        <div class="signature-line">Zpracoval</div>
+    </div>
+    <div class="signature-box">
+        <div class="signature-line">Ředitel kvality</div>
+    </div>
+</div>
+
+<div style="margin-top: 30px; font-size: 8pt; color: #666; text-align: center; border-top: 1px solid #ddd; padding-top: 10px;">
+    <p><strong>Infer s.r.o.</strong> | Certifikace ISO 9001:2016 | Tento atest je platný pouze v původním znění</p>
+</div>
+{% endblock %}

@@ -38,6 +38,17 @@ class InvoiceGenerateRequest(BaseModel):
         le=365,
         description="Payment due in days (default 14)",
     )
+    invoice_type: str = Field(
+        "final",
+        pattern="^(final|advance|proforma)$",
+        description="Type of invoice - final (konečná), advance (zálohová), proforma",
+    )
+    advance_percent: int = Field(
+        50,
+        ge=10,
+        le=90,
+        description="Percentage of advance payment (10-90, default 50). Only used for advance invoices.",
+    )
 
 
 class PohodaSyncLogResponse(BaseModel):

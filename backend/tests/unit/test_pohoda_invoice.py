@@ -581,3 +581,143 @@ class TestPohodaInvoiceXMLBuilder:
         assert unit_prices[0].text == "5000.00"  # 50000 / 10
         assert unit_prices[1].text == "2500.00"  # 50000 / 20
         assert unit_prices[2].text == "10000.00"  # 50000 / 5
+
+    def test_build_advance_invoice(
+        self,
+        builder: PohodaXMLBuilder,
+        mock_order_with_items: MagicMock,
+        mock_customer: MagicMock,
+        mock_approved_calculation: MagicMock,
+    ) -> None:
+        """Advance invoice should have correct type and 50% prices."""
+        xml_bytes = builder.build_invoice_xml(
+            order=mock_order_with_items,
+            customer=mock_customer,
+            invoice_number="FVZ-2025-042",
+            calculation=mock_approved_calculation,
+            invoice_type="advance",
+            advance_percent=50,
+        )
+        root = etree.fromstring(xml_bytes)
+
+        # Verify invoice type is advance
+        invoice_type = root.find(f".//{{{NAMESPACES['inv']}}}invoiceType")
+        assert invoice_type is not None
+        assert invoice_type.text == "issuedAdvanceInvoice"
+
+        # Verify prices are 50% of full price
+        # Full prices: 3000, 1500, 6000 -> 50%: 1500, 750, 3000
+        unit_prices = root.findall(f".//{{{NAMESPACES['typ']}}}unitPrice")
+        assert len(unit_prices) == 3
+        assert unit_prices[0].text == "1500.00"  # 3000 * 0.5
+        assert unit_prices[1].text == "750.00"   # 1500 * 0.5
+        assert unit_prices[2].text == "3000.00"  # 6000 * 0.5
+
+    def test_build_advance_invoice_custom_percent(
+        self,
+        builder: PohodaXMLBuilder,
+        mock_order_with_items: MagicMock,
+        mock_customer: MagicMock,
+        mock_approved_calculation: MagicMock,
+    ) -> None:
+        """Advance invoice with 30% should have correct prices."""
+        xml_bytes = builder.build_invoice_xml(
+            order=mock_order_with_items,
+            customer=mock_customer,
+            invoice_number="FVZ-2025-042",
+            calculation=mock_approved_calculation,
+            invoice_type="advance",
+            advance_percent=30,
+        )
+        root = etree.fromstring(xml_bytes)
+
+        # Verify invoice type is advance
+        invoice_type = root.find(f".//{{{NAMESPACES['inv']}}}invoiceType")
+        assert invoice_type is not None
+        assert invoice_type.text == "issuedAdvanceInvoice"
+
+        # Verify prices are 30% of full price
+        # Full prices: 3000, 1500, 6000 -> 30%: 900, 450, 1800
+        unit_prices = root.findall(f".//{{{NAMESPACES['typ']}}}unitPrice")
+        assert len(unit_prices) == 3
+        assert unit_prices[0].text == "900.00"   # 3000 * 0.3
+        assert unit_prices[1].text == "450.00"   # 1500 * 0.3
+        assert unit_prices[2].text == "1800.00"  # 6000 * 0.3
+
+    def test_build_proforma_invoice(
+        self,
+        builder: PohodaXMLBuilder,
+        mock_order_with_items: MagicMock,
+        mock_customer: MagicMock,
+        mock_approved_calculation: MagicMock,
+    ) -> None:
+        """Proforma invoice should have correct type."""
+        xml_bytes = builder.build_invoice_xml(
+            order=mock_order_with_items,
+            customer=mock_customer,
+            invoice_number="PRO-2025-042",
+            calculation=mock_approved_calculation,
+            invoice_type="proforma",
+        )
+        root = etree.fromstring(xml_bytes)
+
+        # Verify invoice type is proforma
+        invoice_type = root.find(f".//{{{NAMESPACES['inv']}}}invoiceType")
+        assert invoice_type is not None
+        assert invoice_type.text == "issuedProformaInvoice"
+
+        # Verify prices are full (not modified for proforma)
+        unit_prices = root.findall(f".//{{{NAMESPACES['typ']}}}unitPrice")
+        assert len(unit_prices) == 3
+        assert unit_prices[0].text == "3000.00"
+        assert unit_prices[1].text == "1500.00"
+        assert unit_prices[2].text == "6000.00"
+
+    def test_build_final_invoice_default(
+        self,
+        builder: PohodaXMLBuilder,
+        mock_order_with_items: MagicMock,
+        mock_customer: MagicMock,
+        mock_approved_calculation: MagicMock,
+    ) -> None:
+        """Final invoice (default) should have correct type."""
+        xml_bytes = builder.build_invoice_xml(
+            order=mock_order_with_items,
+            customer=mock_customer,
+            invoice_number="FV-2025-042",
+            calculation=mock_approved_calculation,
+            invoice_type="final",
+        )
+        root = etree.fromstring(xml_bytes)
+
+        # Verify invoice type is final
+        invoice_type = root.find(f".//{{{NAMESPACES['inv']}}}invoiceType")
+        assert invoice_type is not None
+        assert invoice_type.text == "issuedInvoice"
+
+        # Verify prices are full
+        unit_prices = root.findall(f".//{{{NAMESPACES['typ']}}}unitPrice")
+        assert len(unit_prices) == 3
+        assert unit_prices[0].text == "3000.00"
+        assert unit_prices[1].text == "1500.00"
+        assert unit_prices[2].text == "6000.00"
+
+    def test_advance_invoice_text(
+        self,
+        builder: PohodaXMLBuilder,
+        mock_order_with_items: MagicMock,
+        mock_customer: MagicMock,
+    ) -> None:
+        """Advance invoice text should contain 'Zálohová' and percentage."""
+        xml_bytes = builder.build_invoice_xml(
+            order=mock_order_with_items,
+            customer=mock_customer,
+            invoice_number="FVZ-2025-042",
+            invoice_type="advance",
+            advance_percent=50,
+        )
+        xml_str = xml_bytes.decode("Windows-1250")
+
+        assert "Zálohová faktura" in xml_str
+        assert "50%" in xml_str
+        assert "záloha" in xml_str

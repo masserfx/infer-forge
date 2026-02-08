@@ -1,13 +1,18 @@
 """Reporting API endpoints."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_role
+from app.integrations.excel.exporter import ExcelExporter
 from app.models.user import User, UserRole
 from app.schemas import (
     CustomerReport,
     DashboardStats,
+    MaterialRequirementsResponse,
     PipelineReport,
     ProductionReport,
     RevenueReport,
@@ -67,3 +72,44 @@ async def get_customer_report(
     """Get customer analytics."""
     service = ReportingService(db)
     return await service.get_customer_report(limit=limit)
+
+
+@router.get("/material-requirements")
+async def get_material_requirements(
+    order_ids: list[UUID] | None = Query(default=None, description="Filter by specific order IDs"),  # noqa: E501
+    status_filter: list[str] | None = Query(default=None, description="Filter by order status"),
+    response_format: str = Query(default="json", pattern="^(json|excel)$", description="Response format: json or excel", alias="format"),  # noqa: E501
+    user: User = Depends(require_role(UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> MaterialRequirementsResponse | StreamingResponse:
+    """Get aggregated material requirements (BOM / nákupní seznam).
+
+    Returns JSON response or Excel file depending on format parameter.
+    Accessible by TECHNOLOG and VEDENI roles.
+    """
+    service = ReportingService(db)
+    result = await service.get_material_requirements(
+        order_ids=order_ids,
+        status_filter=status_filter,
+    )
+
+    if response_format == "excel":
+        # Convert to dict for Excel export
+        items_dict = [item.model_dump() for item in result.items]
+
+        exporter = ExcelExporter()
+        excel_bytes = await exporter.export_material_requirements(
+            items=items_dict,
+            total_estimated_cost=result.total_estimated_cost,
+            order_count=result.order_count,
+        )
+
+        return StreamingResponse(
+            iter([excel_bytes]),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": "attachment; filename=materialova_potreba.xlsx"
+            },
+        )
+
+    return result

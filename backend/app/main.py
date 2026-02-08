@@ -196,6 +196,7 @@ from app.api.v1 import (
     inbox,
     material_prices,
     notifications,
+    operations,
     orders,
     pohoda,
     reporting,
@@ -205,6 +206,7 @@ from app.api.v1 import (
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(customers.router, prefix="/api/v1")
 app.include_router(orders.router, prefix="/api/v1")
+app.include_router(operations.router, prefix="/api/v1")
 app.include_router(calculations.router, prefix="/api/v1")
 app.include_router(documents.router, prefix="/api/v1")
 app.include_router(inbox.router, prefix="/api/v1")

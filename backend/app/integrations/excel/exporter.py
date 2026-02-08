@@ -2,6 +2,8 @@
 
 import asyncio
 from datetime import datetime
+from decimal import Decimal
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -327,4 +329,116 @@ class ExcelExporter:
         # Run in thread executor to avoid blocking
         result = await asyncio.to_thread(_export)
         self.logger.info("generic_exported", output_path=result)
+        return result
+
+    async def export_material_requirements(
+        self,
+        items: list[dict[str, Any]],
+        total_estimated_cost: Decimal | None = None,
+        order_count: int = 0,
+    ) -> bytes:
+        """Export aggregated material requirements to Excel (BOM / nákupní seznam).
+
+        Args:
+            items: List of MaterialRequirementItem dictionaries with keys:
+                   material_name, material_grade, total_quantity, unit,
+                   estimated_unit_price, total_price, order_numbers, supplier
+            total_estimated_cost: Total estimated cost across all materials
+            order_count: Number of orders included in the report
+
+        Returns:
+            Excel file as bytes (.xlsx)
+        """
+        self.logger.info(
+            "exporting_material_requirements",
+            count=len(items),
+            total_cost=str(total_estimated_cost) if total_estimated_cost else "N/A",
+            order_count=order_count,
+        )
+
+        def _export() -> bytes:
+            wb = Workbook()
+            ws = wb.active
+            if ws is None:
+                raise ValueError("No active worksheet")
+
+            ws.title = "Materiálová potřeba"
+
+            # Define columns
+            headers = [
+                "Materiál",
+                "Třída materiálu",
+                "Celkové množství",
+                "Jednotka",
+                "Cena/jednotku (Kč)",
+                "Celková cena (Kč)",
+                "Zakázky",
+                "Dodavatel",
+            ]
+
+            # Write header
+            ws.append(headers)
+            self._style_header_row(ws, headers)
+
+            # Write data rows
+            for item in items:
+                order_numbers_str = ", ".join(item.get("order_numbers", []))
+                row = [
+                    item.get("material_name", ""),
+                    item.get("material_grade") or "",
+                    float(item.get("total_quantity", 0)),
+                    item.get("unit", ""),
+                    float(item.get("estimated_unit_price") or 0),
+                    float(item.get("total_price") or 0),
+                    order_numbers_str,
+                    item.get("supplier") or "",
+                ]
+                ws.append(row)
+
+            # Add summary row if total cost is available
+            if total_estimated_cost:
+                ws.append([])  # Empty row
+                summary_row = [
+                    f"Celkem ({order_count} zakázek)",
+                    "",
+                    "",
+                    "",
+                    "",
+                    float(total_estimated_cost),
+                    "",
+                    "",
+                ]
+                ws.append(summary_row)
+
+                # Bold summary row
+                summary_row_idx = ws.max_row
+                for col_idx in range(1, 9):
+                    cell = ws.cell(row=summary_row_idx, column=col_idx)
+                    cell.font = Font(bold=True)
+
+            # Format currency columns (Cena/jednotku=5, Celková cena=6)
+            self._format_currency(ws, [5, 6])
+
+            # Auto-adjust columns
+            self._auto_adjust_columns(ws)
+
+            # Freeze header row
+            ws.freeze_panes = "A2"
+
+            # Add metadata
+            wb.properties.creator = "INFER FORGE"
+            wb.properties.created = datetime.now()
+            wb.properties.title = "Materiálová potřeba (BOM)"
+
+            # Save to BytesIO instead of file
+            output = BytesIO()
+            wb.save(output)
+            wb.close()
+
+            output.seek(0)
+            return output.read()
+
+        # Run in thread executor to avoid blocking
+        result = await asyncio.to_thread(_export)
+        self.logger.info("material_requirements_exported", size_bytes=len(result))
         return result

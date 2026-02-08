@@ -9,6 +9,7 @@ from .inbox import InboxClassification, InboxMessage, InboxStatus
 from .material_price import MaterialPrice
 from .notification import Notification, NotificationType
 from .offer import Offer, OfferStatus
+from .operation import Operation, OperationStatus
 from .order import Order, OrderItem, OrderPriority, OrderStatus
 from .order_embedding import OrderEmbedding
 from .pohoda_sync import PohodaSyncLog, SyncDirection, SyncStatus
@@ -32,6 +33,9 @@ __all__ = [
     "OrderItem",
     "OrderStatus",
     "OrderPriority",
+    # Operation
+    "Operation",
+    "OperationStatus",
     # Offer
     "Offer",
     "OfferStatus",

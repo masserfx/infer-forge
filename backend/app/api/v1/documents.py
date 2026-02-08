@@ -357,3 +357,79 @@ async def analyze_drawing(
     finally:
         # Clean up temporary file
         Path(tmp_path).unlink(missing_ok=True)
+
+
+@router.post("/generate/dimensional-protocol/{order_id}")
+async def generate_dimensional_protocol(
+    order_id: UUID,
+    _user: User = Depends(require_role(UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Generate dimensional protocol PDF for an order."""
+    service = DocumentGeneratorService(db)
+    try:
+        pdf_bytes = await service.generate_dimensional_protocol(order_id=order_id)
+
+        # Fetch order number for filename
+        from sqlalchemy import select as sql_select
+
+        from app.models.order import Order
+
+        result = await db.execute(sql_select(Order.number).where(Order.id == order_id))
+        order_number = result.scalar_one_or_none() or str(order_id)
+
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="protokol_rozmerovy_{order_number}.pdf"',
+            },
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
+
+
+@router.post("/generate/material-certificate/{order_id}")
+async def generate_material_certificate(
+    order_id: UUID,
+    certificate_type: str = Query(default="3.1", regex="^(3\\.1|3\\.2)$"),
+    _user: User = Depends(require_role(UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Generate material certificate PDF for an order (EN 10-204).
+
+    Args:
+        order_id: Order UUID.
+        certificate_type: Certificate type ("3.1" or "3.2"). Defaults to "3.1".
+    """
+    service = DocumentGeneratorService(db)
+    try:
+        pdf_bytes = await service.generate_material_certificate(
+            order_id=order_id,
+            certificate_type=certificate_type,
+        )
+
+        # Fetch order number for filename
+        from sqlalchemy import select as sql_select
+
+        from app.models.order import Order
+
+        result = await db.execute(sql_select(Order.number).where(Order.id == order_id))
+        order_number = result.scalar_one_or_none() or str(order_id)
+
+        cert_type_filename = certificate_type.replace(".", "")
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="atestace_{cert_type_filename}_{order_number}.pdf"',
+            },
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e

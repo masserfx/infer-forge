@@ -420,6 +420,8 @@ class PohodaService:
         invoice_number: str,
         invoice_date: date | None = None,
         due_days: int = 14,
+        invoice_type: str = "final",
+        advance_percent: int = 50,
     ) -> PohodaSyncLog:
         """Generate invoice XML for an order and send to Pohoda.
 
@@ -428,6 +430,8 @@ class PohodaService:
             invoice_number: Invoice number (e.g., "FV-2025-001")
             invoice_date: Invoice issue date (defaults to today)
             due_days: Payment due in days (default 14)
+            invoice_type: Type of invoice - "final", "advance", or "proforma"
+            advance_percent: Percentage of advance payment (10-90, default 50). Only for "advance" type.
 
         Returns:
             PohodaSyncLog with sync result
@@ -495,6 +499,8 @@ class PohodaService:
                 invoice_date=invoice_date,
                 due_days=due_days,
                 calculation=calculation,
+                invoice_type=invoice_type,
+                advance_percent=advance_percent,
             )
             sync_log.xml_request = xml_data.decode("Windows-1250", errors="replace")
 

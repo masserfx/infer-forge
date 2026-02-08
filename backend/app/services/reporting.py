@@ -3,17 +3,22 @@
 import logging
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from typing import Any
+from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
     Calculation,
+    CalculationItem,
     CalculationStatus,
+    CostType,
     Customer,
     Document,
     InboxMessage,
     InboxStatus,
+    MaterialPrice,
     Offer,
     OfferStatus,
     Order,
@@ -23,6 +28,8 @@ from app.schemas.reporting import (
     CustomerReport,
     CustomerStats,
     DashboardStats,
+    MaterialRequirementItem,
+    MaterialRequirementsResponse,
     PipelineReport,
     ProductionItem,
     ProductionReport,
@@ -395,4 +402,161 @@ class ReportingService:
             total_customers=total_customers,
             active_customers=active_customers,
             top_customers=top_customers,
+        )
+
+    async def get_material_requirements(
+        self,
+        order_ids: list[UUID] | None = None,
+        status_filter: list[str] | None = None,
+    ) -> MaterialRequirementsResponse:
+        """Get aggregated material requirements from calculations (BOM / nákupní seznam).
+
+        Args:
+            order_ids: Filter by specific order IDs. If None, uses active orders (OBJEDNAVKA, VYROBA).
+            status_filter: Filter orders by status. If None, uses OBJEDNAVKA and VYROBA.
+
+        Returns:
+            Aggregated material requirements with pricing from MaterialPrice database.
+        """
+        # Determine which orders to query
+        if order_ids:
+            orders_query = select(Order).where(Order.id.in_(order_ids))
+        else:
+            # Default: active orders (OBJEDNAVKA, VYROBA)
+            default_statuses = [OrderStatus.OBJEDNAVKA, OrderStatus.VYROBA]
+            if status_filter:
+                filter_enums = [OrderStatus(s) for s in status_filter if s in OrderStatus.__members__.values()]  # noqa: E501
+                orders_query = select(Order).where(Order.status.in_(filter_enums))
+            else:
+                orders_query = select(Order).where(Order.status.in_(default_statuses))
+
+        orders_result = await self.db.execute(orders_query)
+        orders = list(orders_result.scalars().all())
+
+        if not orders:
+            return MaterialRequirementsResponse(items=[], total_estimated_cost=Decimal("0"), order_count=0)  # noqa: E501
+
+        order_id_list = [o.id for o in orders]
+
+        # Get all calculations for these orders
+        calcs_result = await self.db.execute(
+            select(Calculation).where(Calculation.order_id.in_(order_id_list))
+        )
+        calculations = list(calcs_result.scalars().all())
+
+        if not calculations:
+            return MaterialRequirementsResponse(items=[], total_estimated_cost=Decimal("0"), order_count=len(orders))  # noqa: E501
+
+        calc_ids = [c.id for c in calculations]
+
+        # Get all material items from these calculations
+        items_result = await self.db.execute(
+            select(CalculationItem)
+            .where(
+                CalculationItem.calculation_id.in_(calc_ids),
+                CalculationItem.cost_type == CostType.MATERIAL,
+            )
+        )
+        material_items = list(items_result.scalars().all())
+
+        # Build map of order_id -> order_number for labeling
+        order_map = {o.id: o.number for o in orders}
+
+        # Build map of calculation_id -> order_number
+        calc_to_order = {c.id: order_map.get(c.order_id, "") for c in calculations}
+
+        # Aggregate by material name (normalize to lowercase for case-insensitive matching)
+        aggregated: dict[str, dict[str, Any]] = {}
+
+        for item in material_items:
+            material_key = item.name.strip().lower()
+            order_number = calc_to_order.get(item.calculation_id, "")
+
+            if material_key not in aggregated:
+                aggregated[material_key] = {
+                    "name": item.name.strip(),  # Use original casing for display
+                    "unit": item.unit,
+                    "total_quantity": Decimal("0"),
+                    "order_numbers": set(),
+                    "prices": [],  # Store all unit prices for averaging
+                }
+
+            aggregated[material_key]["total_quantity"] += item.quantity
+            if order_number:
+                aggregated[material_key]["order_numbers"].add(order_number)
+            if item.unit_price and item.unit_price > 0:
+                aggregated[material_key]["prices"].append(item.unit_price)
+
+        # Get material prices from database for matching
+        today = date.today()
+        prices_result = await self.db.execute(
+            select(MaterialPrice).where(
+                MaterialPrice.is_active == True,  # noqa: E712
+                MaterialPrice.valid_from <= today,
+                (MaterialPrice.valid_to.is_(None)) | (MaterialPrice.valid_to >= today),
+            )
+        )
+        material_prices = list(prices_result.scalars().all())
+
+        # Build result items
+        result_items: list[MaterialRequirementItem] = []
+        total_cost = Decimal("0")
+
+        for material_key, agg_data in aggregated.items():
+            material_name = agg_data["name"]
+            total_quantity = agg_data["total_quantity"]
+            unit = agg_data["unit"]
+            order_numbers = sorted(agg_data["order_numbers"])
+            prices = agg_data["prices"]
+
+            # Find best matching MaterialPrice by name similarity
+            best_price: MaterialPrice | None = None
+            for mp in material_prices:
+                if mp.name.strip().lower() == material_key:
+                    best_price = mp
+                    break
+                # Fallback: partial match
+                if material_key in mp.name.strip().lower() or mp.name.strip().lower() in material_key:  # noqa: E501
+                    if best_price is None:
+                        best_price = mp
+
+            # Determine estimated unit price
+            estimated_unit_price: Decimal | None = None
+            material_grade: str | None = None
+            supplier: str | None = None
+
+            if best_price:
+                estimated_unit_price = best_price.unit_price
+                material_grade = best_price.material_grade
+                supplier = best_price.supplier
+            elif prices:
+                # Use average of calculation item prices
+                estimated_unit_price = sum(prices, Decimal("0")) / len(prices)
+
+            total_price: Decimal | None = None
+            if estimated_unit_price:
+                total_price = total_quantity * estimated_unit_price
+                if total_price:
+                    total_cost += total_price
+
+            result_items.append(
+                MaterialRequirementItem(
+                    material_name=material_name,
+                    material_grade=material_grade,
+                    total_quantity=total_quantity,
+                    unit=unit,
+                    estimated_unit_price=estimated_unit_price,
+                    total_price=total_price,
+                    order_numbers=order_numbers,
+                    supplier=supplier,
+                )
+            )
+
+        # Sort by total price descending (most expensive first)
+        result_items.sort(key=lambda x: x.total_price or Decimal("0"), reverse=True)
+
+        return MaterialRequirementsResponse(
+            items=result_items,
+            total_estimated_cost=total_cost if total_cost > 0 else None,
+            order_count=len(orders),
         )

@@ -147,6 +147,8 @@ async def generate_invoice(
             invoice_number=request.invoice_number,
             invoice_date=request.invoice_date,
             due_days=request.due_days,
+            invoice_type=request.invoice_type,
+            advance_percent=request.advance_percent,
         )
 
         await db.commit()

@@ -97,3 +97,24 @@ class DashboardStats(BaseModel):
     total_revenue: Decimal = Decimal("0")
     overdue_orders: int = 0
     pipeline: PipelineReport = Field(default_factory=PipelineReport)
+
+
+class MaterialRequirementItem(BaseModel):
+    """Aggregated material requirement for procurement."""
+
+    material_name: str
+    material_grade: str | None = None
+    total_quantity: Decimal = Decimal("0")
+    unit: str = "ks"
+    estimated_unit_price: Decimal | None = None
+    total_price: Decimal | None = None
+    order_numbers: list[str] = Field(default_factory=list)
+    supplier: str | None = None
+
+
+class MaterialRequirementsResponse(BaseModel):
+    """Material requirements report (BOM / nákupní seznam)."""
+
+    items: list[MaterialRequirementItem] = Field(default_factory=list)
+    total_estimated_cost: Decimal | None = None
+    order_count: int = 0
