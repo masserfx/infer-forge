@@ -16,6 +16,7 @@ import {
   Settings,
   Package,
   Handshake,
+  Presentation,
   LogOut,
   User,
   ChevronLeft,
@@ -86,6 +87,11 @@ const navItems: NavItem[] = [
     href: "/pohoda",
     label: "Pohoda",
     icon: RefreshCw,
+  },
+  {
+    href: "/prezentace",
+    label: "Prezentace",
+    icon: Presentation,
   },
   {
     href: "/nastaveni",
