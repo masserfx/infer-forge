@@ -425,7 +425,7 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
 
 // --- Gamification ---
 
-export type PointsAction = "order_status_change" | "calculation_complete" | "document_upload" | "order_complete";
+export type PointsAction = "order_status_change" | "order_claim" | "calculation_complete" | "document_upload" | "order_complete";
 export type PointsPeriod = "daily" | "weekly" | "monthly" | "all_time";
 
 export interface LeaderboardEntry {
@@ -465,6 +465,7 @@ export interface UserStats {
 
 export const POINTS_ACTION_LABELS: Record<PointsAction, string> = {
   order_status_change: "Změna stavu zakázky",
+  order_claim: "Převzetí zakázky",
   calculation_complete: "Dokončení kalkulace",
   document_upload: "Nahrání dokumentu",
   order_complete: "Dokončení zakázky",

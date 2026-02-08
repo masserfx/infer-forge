@@ -338,6 +338,25 @@ class OrderService:
             },
         )
 
+        # Award gamification points for claiming an order
+        if old_assignee is None:
+            try:
+                from app.services.gamification import GamificationService
+
+                gamification = GamificationService(self.db)
+                await gamification.award_points(
+                    user_id=assignee_id,
+                    action=PointsAction.ORDER_CLAIM,
+                    points=3,
+                    description=f"Převzetí zakázky {order.number}",
+                    entity_type="order",
+                    entity_id=order.id,
+                )
+            except Exception:
+                logger.warning(
+                    "Failed to award claim points for order %s", str(order.id)
+                )
+
         return order
 
     async def delete(self, order_id: UUID) -> bool:

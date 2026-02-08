@@ -23,6 +23,7 @@ class PointsAction(str, enum.Enum):
     """Action that earned points."""
 
     ORDER_STATUS_CHANGE = "order_status_change"
+    ORDER_CLAIM = "order_claim"
     CALCULATION_COMPLETE = "calculation_complete"
     DOCUMENT_UPLOAD = "document_upload"
     ORDER_COMPLETE = "order_complete"
