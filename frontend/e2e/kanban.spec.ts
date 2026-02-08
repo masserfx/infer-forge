@@ -6,16 +6,10 @@ test.describe("Kanban Board", () => {
     await login(page);
   });
 
-  test("should display pipeline kanban board or 404", async ({ page }) => {
-    const response = await page.goto("/kanban");
+  test("should display pipeline kanban board", async ({ page }) => {
+    await page.goto("/kanban");
     await page.waitForLoadState("networkidle", { timeout: 30000 });
 
-    // Page might not be implemented yet (404)
-    if (response?.status() === 404) {
-      await expect(page.locator("text=404")).toBeVisible();
-    } else {
-      // If page exists, check for kanban content
-      await expect(page.locator("h1:has-text('Pipeline')").or(page.locator("text=Pipeline zakázek"))).toBeVisible({ timeout: 10000 });
-    }
+    await expect(page.locator("text=Pipeline zakázek")).toBeVisible({ timeout: 15000 });
   });
 });
