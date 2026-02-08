@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Odpověď zákazníkovi — {{ order_number }}{% endblock %}
+
+{% block extra_styles %}
+.email-body {
+    font-size: 10pt;
+    line-height: 1.6;
+}
+.greeting {
+    margin-bottom: 15px;
+}
+.email-body p {
+    margin: 8px 0;
+}
+.order-ref {
+    background-color: #e8eef5;
+    border: 1px solid #c5d3e3;
+    border-radius: 4px;
+    padding: 10px 15px;
+    margin: 15px 0;
+    font-size: 9pt;
+}
+.order-ref strong {
+    color: #1e3a5f;
+}
+.closing {
+    margin-top: 25px;
+}
+.closing p {
+    margin: 3px 0;
+}
+{% endblock %}
+
+{% block content %}
+<h2 class="doc-title">{{ subject }}</h2>
+
+<div class="email-body">
+    <div class="greeting">
+        <p>Vážený/á {{ contact_name | default("zákazníku", true) }},</p>
+    </div>
+
+    <p>{{ body }}</p>
+
+    {% if order_number %}
+    <div class="order-ref">
+        <strong>Číslo zakázky:</strong> {{ order_number }}<br>
+        {% if order_status %}
+        <strong>Stav:</strong> {{ order_status }}<br>
+        {% endif %}
+        {% if offer_number %}
+        <strong>Číslo nabídky:</strong> {{ offer_number }}<br>
+        {% endif %}
+        {% if valid_until %}
+        <strong>Platnost nabídky do:</strong> {{ valid_until }}<br>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if items and items|length > 0 %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Položka</th>
+                <th>Materiál</th>
+                <th>Množství</th>
+                <th>Jednotka</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.material | default("—") }}</td>
+                <td style="text-align: right;">{{ item.quantity }}</td>
+                <td>{{ item.unit }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if note %}
+    <div class="note">
+        <strong>Poznámka:</strong> {{ note }}
+    </div>
+    {% endif %}
+
+    <div class="closing">
+        <p>S pozdravem,</p>
+        <p><strong>{{ sender_name | default(company.name) }}</strong></p>
+        {% if sender_email %}
+        <p>{{ sender_email }}</p>
+        {% endif %}
+        {% if sender_phone %}
+        <p>{{ sender_phone }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

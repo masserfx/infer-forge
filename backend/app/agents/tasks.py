@@ -151,6 +151,14 @@ def run_calculation_estimate(
             for item in result.breakdown
         ]
 
+        # Prometheus metric
+        try:
+            from app.core.metrics import calculations_completed_total
+
+            calculations_completed_total.inc()
+        except Exception:
+            log.warning("task.calculation_estimate.metrics_failed")
+
         # Emit WebSocket notification
         try:
             import asyncio as _asyncio

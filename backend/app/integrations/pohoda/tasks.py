@@ -55,6 +55,14 @@ def sync_entity_task(self, entity_type: str, entity_id: str) -> dict:  # type: i
 
                 await session.commit()
 
+                # Prometheus metric
+                try:
+                    from app.core.metrics import pohoda_sync_total
+
+                    pohoda_sync_total.labels(status=sync_log.status.value).inc()
+                except Exception:
+                    logger.warning("pohoda_sync_metrics_failed entity_type=%s", entity_type)
+
                 # Emit WebSocket notification
                 try:
                     from app.core.websocket import manager

@@ -1,5 +1,6 @@
 """Order business logic service."""
 
+import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -7,8 +8,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.metrics import orders_created_total
 from app.models import AuditAction, AuditLog, Order, OrderItem, OrderStatus
 from app.schemas import OrderCreate, OrderUpdate
+
+logger = logging.getLogger(__name__)
 
 
 class OrderService:
@@ -118,6 +122,17 @@ class OrderService:
                 "items_count": len(order_data.items),
             },
         )
+
+        # Prometheus metric
+        orders_created_total.inc()
+
+        # Trigger embedding generation
+        try:
+            from app.services.embedding_tasks import generate_order_embedding
+
+            generate_order_embedding.delay(str(order.id))
+        except Exception:
+            logger.warning("Failed to queue embedding generation for order %s", order.id)
 
         return order
 
