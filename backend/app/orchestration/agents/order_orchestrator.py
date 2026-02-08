@@ -182,10 +182,16 @@ class OrderOrchestrator:
                 return customer, False
 
         # 4. Create new customer
+        # Derive company name from email domain if not provided
+        company_name = parsed_data.get("company_name")
+        if not company_name:
+            domain = email.split("@")[-1] if "@" in email else "unknown"
+            company_name = domain.split(".")[0].capitalize()
+
         customer = Customer(
-            company_name=parsed_data.get("company_name", "Unknown Company"),
-            ico=parsed_data.get("ico", "00000000"),  # Placeholder ICO
-            contact_name=parsed_data.get("contact_name", "Unknown Contact"),
+            company_name=company_name,
+            ico=parsed_data.get("ico") or f"X{abs(hash(email)) % 9999999:07d}",
+            contact_name=parsed_data.get("contact_name") or "Neznámý kontakt",
             email=email,
             phone=parsed_data.get("phone"),
             address=parsed_data.get("address"),
