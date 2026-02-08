@@ -68,6 +68,28 @@ class OrderOrchestrator:
             if not inbox_msg:
                 raise ValueError(f"InboxMessage not found: {inbox_message_id}")
 
+            # Dedup: if order already exists for this message, skip
+            if inbox_msg.order_id:
+                result = await session.execute(
+                    select(Order).where(Order.id == inbox_msg.order_id)
+                )
+                existing_order = result.scalar_one_or_none()
+                if existing_order:
+                    logger.info(
+                        "order_already_exists_for_message",
+                        inbox_message_id=str(inbox_message_id),
+                        order_id=str(existing_order.id),
+                        order_number=existing_order.number,
+                    )
+                    return {
+                        "customer_id": inbox_msg.customer_id,
+                        "order_id": existing_order.id,
+                        "customer_created": False,
+                        "order_created": False,
+                        "documents_linked": 0,
+                        "next_stage": None,
+                    }
+
             # Match or create customer
             customer, customer_created = await self._match_or_create_customer(
                 session, parsed_data, inbox_msg.from_email
