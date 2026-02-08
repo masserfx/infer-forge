@@ -267,6 +267,31 @@ async def _classify_email_async(ingest_result: dict) -> dict:
             msg.status = InboxStatus.CLASSIFIED if classification else InboxStatus.NEW
             await session.commit()
 
+        # WebSocket notification
+        try:
+            from app.models.notification import NotificationType
+            from app.services.notification import NotificationService
+
+            notif_service = NotificationService(session)
+            await notif_service.create_for_all(
+                notification_type=NotificationType.EMAIL_CLASSIFIED,
+                title="Email klasifikován",
+                message=f"'{ingest_result.get('subject', '')}' → {classification or 'neznámé'} ({method})",
+                link="/inbox",
+            )
+        except Exception:
+            pass
+
+        # Prometheus metric
+        try:
+            from app.core.metrics import emails_processed_total
+
+            emails_processed_total.labels(
+                classification=classification or "unknown"
+            ).inc()
+        except Exception:
+            pass
+
     return {
         **ingest_result,
         "classification": classification,
@@ -574,13 +599,19 @@ def orchestrate_order(self, pipeline_result: dict) -> dict:
 
 async def _orchestrate_order_async(pipeline_result: dict) -> dict:
     from app.orchestration.agents.order_orchestrator import OrderOrchestrator
+
+    # Merge classification and email context into parsed_data
+    # OrderOrchestrator.process() expects (inbox_message_id, parsed_data)
+    parsed_data = dict(pipeline_result.get("parsed_data") or {})
+    if "classification" not in parsed_data and pipeline_result.get("classification"):
+        parsed_data["classification"] = pipeline_result["classification"]
+    if "email" not in parsed_data and pipeline_result.get("from_email"):
+        parsed_data["email"] = pipeline_result["from_email"]
+
     orchestrator = OrderOrchestrator()
     return await orchestrator.process(
         inbox_message_id=UUID(pipeline_result["inbox_message_id"]),
-        parsed_data=pipeline_result.get("parsed_data") or {},
-        classification=pipeline_result.get("classification"),
-        from_email=pipeline_result.get("from_email"),
-        attachment_ids=pipeline_result.get("attachment_ids", []),
+        parsed_data=parsed_data,
     )
 
 
@@ -749,12 +780,17 @@ def run_pipeline(self, raw_email_data: dict) -> dict:
 def route_and_execute(self, classify_result: dict) -> dict:
     """Route classified email to appropriate processing stages.
 
+    Also sends auto-reply email after classification.
+
     Args:
         classify_result: Output from classify_email
 
     Returns:
         dict with final pipeline result
     """
+    # Send auto-reply right after classification
+    _send_pipeline_auto_reply(classify_result)
+
     stages = classify_result.get("stages", [])
 
     if not stages:
@@ -881,3 +917,67 @@ async def _notify_assignment(inbox_message_id: str | None) -> None:
             )
     except Exception:
         logger.warning("orchestration.notify_failed", inbox_message_id=inbox_message_id)
+
+
+def _send_pipeline_auto_reply(classify_result: dict) -> None:
+    """Send auto-reply email after classification in the orchestration pipeline.
+
+    Dispatches the auto-reply as a Celery task for async SMTP sending.
+
+    Args:
+        classify_result: Output from classify_email with from_email, subject, classification
+    """
+    from_email = classify_result.get("from_email")
+    subject = classify_result.get("subject", "")
+    classification = classify_result.get("classification")
+
+    if not from_email:
+        return
+
+    # Skip auto-reply for commercial messages
+    if classification == "obchodni_sdeleni":
+        return
+
+    try:
+        from app.integrations.email.tasks import send_auto_reply_task
+
+        reply_subject = f"Re: {subject}"
+        send_auto_reply_task.delay(
+            to_email=from_email,
+            subject=reply_subject,
+            classification=classification,
+            message_preview=classify_result.get("body_text", "")[:200],
+            original_message_id=classify_result.get("original_message_id"),
+        )
+
+        # Mark auto_reply_sent on InboxMessage
+        inbox_message_id = classify_result.get("inbox_message_id")
+        if inbox_message_id:
+            _run_async(_mark_auto_reply_sent(inbox_message_id))
+
+        logger.info(
+            "orchestration.auto_reply_dispatched",
+            to_email=from_email,
+            classification=classification,
+        )
+    except Exception:
+        logger.warning(
+            "orchestration.auto_reply_dispatch_failed",
+            from_email=from_email,
+        )
+
+
+async def _mark_auto_reply_sent(inbox_message_id: str) -> None:
+    """Mark InboxMessage as auto-reply sent."""
+    from sqlalchemy import select
+
+    from app.models.inbox import InboxMessage
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(InboxMessage).where(InboxMessage.id == UUID(inbox_message_id))
+        )
+        msg = result.scalar_one_or_none()
+        if msg:
+            msg.auto_reply_sent = True
+            await session.commit()

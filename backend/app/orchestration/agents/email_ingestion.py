@@ -121,6 +121,7 @@ class EmailIngestionAgent:
             "from_email": raw_email.from_email,
             "subject": raw_email.subject,
             "body_text": raw_email.body_text,
+            "original_message_id": raw_email.message_id,
             "thread_id": thread_id,
             "duplicate": False,
         }

@@ -36,6 +36,7 @@ class TestPollInboxAsync:
         settings.IMAP_USER = "test@example.com"
         settings.IMAP_PASSWORD = "password123"
         settings.ANTHROPIC_API_KEY = "test-api-key"
+        settings.ORCHESTRATION_ENABLED = False
         return settings
 
     @pytest.fixture
@@ -62,7 +63,7 @@ class TestPollInboxAsync:
 
     @pytest.mark.asyncio
     @patch("app.integrations.email.tasks.AsyncSessionLocal")
-    @patch("app.integrations.email.tasks.EmailClassifier")
+    @patch("app.agents.email_classifier.EmailClassifier")
     @patch("app.integrations.email.tasks.IMAPClient")
     async def test_poll_inbox_async_processes_emails(
         self,
@@ -159,7 +160,7 @@ class TestPollInboxAsync:
 
     @pytest.mark.asyncio
     @patch("app.integrations.email.tasks.AsyncSessionLocal")
-    @patch("app.integrations.email.tasks.EmailClassifier")
+    @patch("app.agents.email_classifier.EmailClassifier")
     @patch("app.integrations.email.tasks.IMAPClient")
     async def test_poll_inbox_async_skips_duplicates(
         self,
@@ -211,7 +212,7 @@ class TestPollInboxAsync:
 
     @pytest.mark.asyncio
     @patch("app.integrations.email.tasks.AsyncSessionLocal")
-    @patch("app.integrations.email.tasks.EmailClassifier")
+    @patch("app.agents.email_classifier.EmailClassifier")
     @patch("app.integrations.email.tasks.IMAPClient")
     async def test_poll_inbox_async_handles_classification_errors(
         self,
@@ -258,7 +259,7 @@ class TestPollInboxAsync:
 
     @pytest.mark.asyncio
     @patch("app.integrations.email.tasks.AsyncSessionLocal")
-    @patch("app.integrations.email.tasks.EmailClassifier")
+    @patch("app.agents.email_classifier.EmailClassifier")
     @patch("app.integrations.email.tasks.IMAPClient")
     async def test_poll_inbox_async_sets_escalation_status(
         self,

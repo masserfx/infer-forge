@@ -2,9 +2,14 @@
 
 Provides background tasks for fetching emails from IMAP server,
 classifying them with AI, and cleaning up old processed messages.
+
+When ORCHESTRATION_ENABLED=true, emails are dispatched to the
+orchestration pipeline (HeuristicClassifier → Claude fallback)
+instead of using the old EmailClassifier directly.
 """
 
 import asyncio
+import base64
 import smtplib
 from datetime import UTC, datetime, timedelta
 from email.mime.multipart import MIMEMultipart
@@ -17,11 +22,10 @@ from jinja2 import Environment, FileSystemLoader
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 
-from app.agents.email_classifier import EmailClassifier
 from app.core.celery_app import celery_app
 from app.core.config import get_settings
 from app.core.database import AsyncSessionLocal
-from app.integrations.email.imap_client import IMAPClient
+from app.integrations.email.imap_client import IMAPClient, RawEmail
 from app.models.inbox import InboxClassification, InboxMessage, InboxStatus
 
 logger = structlog.get_logger(__name__)
@@ -111,8 +115,40 @@ def poll_inbox(self) -> dict[str, object]:  # type: ignore[no-untyped-def]
             }
 
 
+def _serialize_raw_email(raw_email: RawEmail) -> dict:
+    """Serialize RawEmail to dict for Celery task dispatch.
+
+    Attachments are base64-encoded for JSON serialization.
+
+    Args:
+        raw_email: Parsed email from IMAP
+
+    Returns:
+        dict compatible with EmailIngestionAgent.process_from_dict()
+    """
+    return {
+        "message_id": raw_email.message_id,
+        "from_email": raw_email.from_email,
+        "subject": raw_email.subject,
+        "body_text": raw_email.body_text,
+        "received_at": raw_email.received_at.isoformat(),
+        "attachments": [
+            {
+                "filename": att.filename,
+                "content_type": att.content_type,
+                "data_b64": base64.b64encode(att.data).decode("ascii"),
+            }
+            for att in raw_email.attachments
+        ],
+    }
+
+
 async def _poll_inbox_async(settings: object) -> dict[str, object]:
     """Async implementation of inbox polling logic.
+
+    When ORCHESTRATION_ENABLED=true, dispatches each email to the
+    orchestration pipeline (ingest → classify → route → parse → orchestrate).
+    Otherwise falls back to legacy EmailClassifier flow.
 
     Args:
         settings: Application settings with IMAP and Anthropic config.
@@ -125,21 +161,19 @@ async def _poll_inbox_async(settings: object) -> dict[str, object]:
     imap_port = int(settings.IMAP_PORT)  # type: ignore[attr-defined]
     imap_user = str(settings.IMAP_USER)  # type: ignore[attr-defined]
     imap_password = str(settings.IMAP_PASSWORD)  # type: ignore[attr-defined]
-    anthropic_key = str(settings.ANTHROPIC_API_KEY)  # type: ignore[attr-defined]
+    orchestration_enabled = getattr(settings, "ORCHESTRATION_ENABLED", False)
 
     processed_count = 0
     skipped_count = 0
     error_count = 0
 
-    # Initialize IMAP client and email classifier
+    # Initialize IMAP client
     imap_client = IMAPClient(
         host=imap_host,
         port=imap_port,
         user=imap_user,
         password=imap_password,
     )
-
-    classifier = EmailClassifier(api_key=anthropic_key)
 
     try:
         # Connect to IMAP server
@@ -170,140 +204,29 @@ async def _poll_inbox_async(settings: object) -> dict[str, object]:
                         skipped_count += 1
                         continue
 
-                # Classify email with AI
-                classification_result = await classifier.classify(
-                    subject=raw_email.subject,
-                    body=raw_email.body_text,
-                )
+                if orchestration_enabled:
+                    # ── New orchestration pipeline ──
+                    # Dispatch to run_pipeline task (async Celery chain)
+                    # Pipeline handles: ingest → classify → route → parse → orchestrate
+                    from app.orchestration.tasks import run_pipeline
 
-                # Determine status based on classification
-                status = InboxStatus.NEW
-                if classification_result.needs_escalation:
-                    status = InboxStatus.ESCALATED
+                    raw_email_data = _serialize_raw_email(raw_email)
+                    run_pipeline.delay(raw_email_data)
 
-                # Map category to enum (handle None case)
-                classification_enum: InboxClassification | None = None
-                if classification_result.category:
-                    classification_enum = InboxClassification(
-                        classification_result.category
+                    processed_count += 1
+                    logger.info(
+                        "poll_inbox.dispatched_to_pipeline",
+                        message_id=raw_email.message_id,
+                        subject=raw_email.subject,
+                        attachment_count=len(raw_email.attachments),
                     )
-
-                # Create inbox message record
-                inbox_message = InboxMessage(
-                    message_id=raw_email.message_id,
-                    from_email=raw_email.from_email,
-                    subject=raw_email.subject,
-                    body_text=raw_email.body_text,
-                    received_at=raw_email.received_at,
-                    classification=classification_enum,
-                    confidence=classification_result.confidence,
-                    status=status,
-                    auto_reply_sent=False,
-                )
-
-                # Save to database
-                async with AsyncSessionLocal() as session:
-                    session.add(inbox_message)
-                    try:
-                        await session.commit()
-                        processed_count += 1
-
-                        # Emit WebSocket notification for classified email
-                        try:
-                            from app.models.notification import NotificationType
-                            from app.services.notification import NotificationService
-
-                            notif_service = NotificationService(session)
-                            await notif_service.create_for_all(
-                                notification_type=NotificationType.EMAIL_CLASSIFIED,
-                                title="Email klasifikován",
-                                message=f"'{raw_email.subject}' → {classification_result.category or 'neznámé'}",
-                                link="/inbox",
-                            )
-                        except Exception:
-                            logger.warning("poll_inbox.notification_failed", message_id=raw_email.message_id)
-
-                        # Prometheus metric
-                        try:
-                            from app.core.metrics import emails_processed_total
-
-                            emails_processed_total.labels(
-                                classification=classification_result.category or "unknown"
-                            ).inc()
-                        except Exception:
-                            pass
-
-                        # Match email to order
-                        order_number_for_reply = None
-                        try:
-                            from app.services.inbox import match_email_to_order
-
-                            matched_order_id = await match_email_to_order(session, inbox_message)
-                            if matched_order_id:
-                                inbox_message.order_id = matched_order_id
-                                await session.commit()
-
-                                # Fetch order number for auto-reply
-                                from app.models.order import Order
-
-                                order_result = await session.execute(
-                                    select(Order).where(Order.id == matched_order_id)
-                                )
-                                order = order_result.scalar_one_or_none()
-                                if order:
-                                    order_number_for_reply = order.number
-
-                                logger.info(
-                                    "poll_inbox.order_matched",
-                                    message_id=raw_email.message_id,
-                                    order_id=str(matched_order_id),
-                                    order_number=order_number_for_reply,
-                                )
-                        except Exception:
-                            logger.warning(
-                                "poll_inbox.order_matching_failed",
-                                message_id=raw_email.message_id,
-                            )
-
-                        # Send auto-reply (async task)
-                        try:
-                            reply_subject = f"Re: {raw_email.subject}"
-                            send_auto_reply_task.delay(
-                                to_email=raw_email.from_email,
-                                subject=reply_subject,
-                                order_number=order_number_for_reply,
-                                classification=classification_result.category,
-                                message_preview=raw_email.body_text[:200],
-                                original_message_id=raw_email.message_id,
-                            )
-
-                            # Mark as auto-reply sent
-                            inbox_message.auto_reply_sent = True
-                            await session.commit()
-
-                        except Exception:
-                            logger.warning(
-                                "poll_inbox.auto_reply_failed",
-                                message_id=raw_email.message_id,
-                            )
-
-                        logger.info(
-                            "poll_inbox.message_processed",
-                            message_id=raw_email.message_id,
-                            classification=classification_result.category,
-                            confidence=classification_result.confidence,
-                            status=status.value,
-                            auto_reply_sent=inbox_message.auto_reply_sent,
-                        )
-
-                    except IntegrityError:
-                        # Handle race condition if message was inserted between check and insert
-                        await session.rollback()
-                        logger.warning(
-                            "poll_inbox.duplicate_insert",
-                            message_id=raw_email.message_id,
-                        )
-                        skipped_count += 1
+                else:
+                    # ── Legacy flow (EmailClassifier) ──
+                    processed, skipped = await _process_email_legacy(
+                        settings, raw_email
+                    )
+                    processed_count += processed
+                    skipped_count += skipped
 
             except Exception as exc:
                 logger.exception(
@@ -323,8 +246,163 @@ async def _poll_inbox_async(settings: object) -> dict[str, object]:
         "processed": processed_count,
         "skipped": skipped_count,
         "errors": error_count,
+        "mode": "orchestration" if orchestration_enabled else "legacy",
         "timestamp": datetime.utcnow().isoformat(),
     }
+
+
+async def _process_email_legacy(
+    settings: object, raw_email: RawEmail
+) -> tuple[int, int]:
+    """Process email using legacy EmailClassifier flow.
+
+    Args:
+        settings: Application settings
+        raw_email: Parsed email from IMAP
+
+    Returns:
+        (processed_count, skipped_count) tuple
+    """
+    from app.agents.email_classifier import EmailClassifier
+
+    anthropic_key = str(settings.ANTHROPIC_API_KEY)  # type: ignore[attr-defined]
+    classifier = EmailClassifier(api_key=anthropic_key)
+
+    # Classify email with AI
+    classification_result = await classifier.classify(
+        subject=raw_email.subject,
+        body=raw_email.body_text,
+    )
+
+    # Determine status based on classification
+    status = InboxStatus.NEW
+    if classification_result.needs_escalation:
+        status = InboxStatus.ESCALATED
+
+    # Map category to enum (handle None case)
+    classification_enum: InboxClassification | None = None
+    if classification_result.category:
+        classification_enum = InboxClassification(
+            classification_result.category
+        )
+
+    # Create inbox message record
+    inbox_message = InboxMessage(
+        message_id=raw_email.message_id,
+        from_email=raw_email.from_email,
+        subject=raw_email.subject,
+        body_text=raw_email.body_text,
+        received_at=raw_email.received_at,
+        classification=classification_enum,
+        confidence=classification_result.confidence,
+        status=status,
+        auto_reply_sent=False,
+    )
+
+    # Save to database
+    async with AsyncSessionLocal() as session:
+        session.add(inbox_message)
+        try:
+            await session.commit()
+
+            # Emit WebSocket notification for classified email
+            try:
+                from app.models.notification import NotificationType
+                from app.services.notification import NotificationService
+
+                notif_service = NotificationService(session)
+                await notif_service.create_for_all(
+                    notification_type=NotificationType.EMAIL_CLASSIFIED,
+                    title="Email klasifikován",
+                    message=f"'{raw_email.subject}' → {classification_result.category or 'neznámé'}",
+                    link="/inbox",
+                )
+            except Exception:
+                logger.warning("poll_inbox.notification_failed", message_id=raw_email.message_id)
+
+            # Prometheus metric
+            try:
+                from app.core.metrics import emails_processed_total
+
+                emails_processed_total.labels(
+                    classification=classification_result.category or "unknown"
+                ).inc()
+            except Exception:
+                pass
+
+            # Match email to order
+            order_number_for_reply = None
+            try:
+                from app.services.inbox import match_email_to_order
+
+                matched_order_id = await match_email_to_order(session, inbox_message)
+                if matched_order_id:
+                    inbox_message.order_id = matched_order_id
+                    await session.commit()
+
+                    # Fetch order number for auto-reply
+                    from app.models.order import Order
+
+                    order_result = await session.execute(
+                        select(Order).where(Order.id == matched_order_id)
+                    )
+                    order = order_result.scalar_one_or_none()
+                    if order:
+                        order_number_for_reply = order.number
+
+                    logger.info(
+                        "poll_inbox.order_matched",
+                        message_id=raw_email.message_id,
+                        order_id=str(matched_order_id),
+                        order_number=order_number_for_reply,
+                    )
+            except Exception:
+                logger.warning(
+                    "poll_inbox.order_matching_failed",
+                    message_id=raw_email.message_id,
+                )
+
+            # Send auto-reply (async task)
+            try:
+                reply_subject = f"Re: {raw_email.subject}"
+                send_auto_reply_task.delay(
+                    to_email=raw_email.from_email,
+                    subject=reply_subject,
+                    order_number=order_number_for_reply,
+                    classification=classification_result.category,
+                    message_preview=raw_email.body_text[:200],
+                    original_message_id=raw_email.message_id,
+                )
+
+                # Mark as auto-reply sent
+                inbox_message.auto_reply_sent = True
+                await session.commit()
+
+            except Exception:
+                logger.warning(
+                    "poll_inbox.auto_reply_failed",
+                    message_id=raw_email.message_id,
+                )
+
+            logger.info(
+                "poll_inbox.message_processed",
+                message_id=raw_email.message_id,
+                classification=classification_result.category,
+                confidence=classification_result.confidence,
+                status=status.value,
+                auto_reply_sent=inbox_message.auto_reply_sent,
+            )
+
+            return 1, 0
+
+        except IntegrityError:
+            # Handle race condition if message was inserted between check and insert
+            await session.rollback()
+            logger.warning(
+                "poll_inbox.duplicate_insert",
+                message_id=raw_email.message_id,
+            )
+            return 0, 1
 
 
 @celery_app.task(bind=True, max_retries=3)
