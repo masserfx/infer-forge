@@ -11,16 +11,12 @@ from uuid import uuid4
 
 from app.core.database import AsyncSessionLocal
 from app.models import (
-    Calculation,
-    CalculationItem,
-    CalculationStatus,
-    CostType,
     Customer,
     Order,
     OrderItem,
-    OrderPriority,
-    OrderStatus,
 )
+from app.models.calculation import Calculation, CalculationItem, CalculationStatus, CostType
+from app.models.order import OrderPriority, OrderStatus
 from app.models.material_price import MaterialPrice
 
 
@@ -120,7 +116,7 @@ async def seed_manufacturing() -> None:
             id=uuid4(),
             number="ZAK-2025-001",
             customer_id=cez.id,
-            status=OrderStatus.IN_PROGRESS,
+            status=OrderStatus.VYROBA,
             priority=OrderPriority.HIGH,
             due_date=today + timedelta(days=42),
             note="T-kusy pro primární rozvod teplárny. Požadujeme 3.1 atestace.",
@@ -133,8 +129,8 @@ async def seed_manufacturing() -> None:
             id=uuid4(),
             number="ZAK-2025-002",
             customer_id=vitkovice.id,
-            status=OrderStatus.IN_PROGRESS,
-            priority=OrderPriority.MEDIUM,
+            status=OrderStatus.VYROBA,
+            priority=OrderPriority.NORMAL,
             due_date=today + timedelta(days=28),
             note="Redukce pro rekonstrukci potrubního mostu.",
         )
@@ -146,7 +142,7 @@ async def seed_manufacturing() -> None:
             id=uuid4(),
             number="ZAK-2025-003",
             customer_id=unipetrol.id,
-            status=OrderStatus.QUOTED,
+            status=OrderStatus.NABIDKA,
             priority=OrderPriority.HIGH,
             due_date=today + timedelta(days=56),
             note="Ohyby pro petrochemický provoz. Žáruvzdorný materiál.",
@@ -159,8 +155,8 @@ async def seed_manufacturing() -> None:
             id=uuid4(),
             number="ZAK-2025-004",
             customer_id=teplarna.id,
-            status=OrderStatus.NEW,
-            priority=OrderPriority.MEDIUM,
+            status=OrderStatus.POPTAVKA,
+            priority=OrderPriority.NORMAL,
             due_date=today + timedelta(days=63),
             note="Kompenzátory pro tepelný roztah parovodního potrubí.",
         )
@@ -172,7 +168,7 @@ async def seed_manufacturing() -> None:
             id=uuid4(),
             number="ZAK-2025-005",
             customer_id=cez.id,
-            status=OrderStatus.IN_PROGRESS,
+            status=OrderStatus.VYROBA,
             priority=OrderPriority.HIGH,
             due_date=today + timedelta(days=90),
             note="Potrubní most pro nadzemní vedení parovodu. Kompletní dodávka vč. montáže.",
@@ -187,8 +183,8 @@ async def seed_manufacturing() -> None:
             id=uuid4(),
             number="ZAK-2025-006",
             customer_id=skoda.id,
-            status=OrderStatus.QUOTED,
-            priority=OrderPriority.CRITICAL,
+            status=OrderStatus.NABIDKA,
+            priority=OrderPriority.URGENT,
             due_date=today + timedelta(days=120),
             note="Plášť výměníku tepla dle výkresové dokumentace. NDT 100%.",
         )
@@ -200,7 +196,7 @@ async def seed_manufacturing() -> None:
             id=uuid4(),
             number="ZAK-2025-007",
             customer_id=vitkovice.id,
-            status=OrderStatus.COMPLETED,
+            status=OrderStatus.DOKONCENO,
             priority=OrderPriority.LOW,
             due_date=today - timedelta(days=7),
             note="Standardní kolena ze skladu. Dodáno.",
@@ -213,8 +209,8 @@ async def seed_manufacturing() -> None:
             id=uuid4(),
             number="ZAK-2025-008",
             customer_id=unipetrol.id,
-            status=OrderStatus.IN_PROGRESS,
-            priority=OrderPriority.MEDIUM,
+            status=OrderStatus.OBJEDNAVKA,
+            priority=OrderPriority.NORMAL,
             due_date=today + timedelta(days=35),
             note="Příruby pro výměnu na jednotce krakování.",
         )
