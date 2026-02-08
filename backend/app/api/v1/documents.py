@@ -7,10 +7,20 @@ from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_role
+from app.core.config import get_settings
+from app.integrations.ocr.drawing_analyzer import DrawingAnalyzer
+from app.integrations.ocr.processor import OCRProcessor
 from app.models import DocumentCategory
 from app.models.user import User, UserRole
 from app.schemas import DocumentResponse, DocumentUpdate, DocumentUpload
 from app.schemas.document_generator import GenerateOfferRequest, GenerateProductionSheetRequest
+from app.schemas.drawing import (
+    DrawingAnalysisResponse,
+    DrawingDimensionSchema,
+    DrawingMaterialSchema,
+    DrawingToleranceSchema,
+    WeldingRequirementsSchema,
+)
 from app.services import DocumentGeneratorService, DocumentService
 
 router = APIRouter(prefix="/dokumenty", tags=["Dokumenty"])
@@ -246,3 +256,104 @@ async def generate_production_sheet(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         ) from e
+
+
+@router.post("/{document_id}/analyze-drawing", response_model=DrawingAnalysisResponse)
+async def analyze_drawing(
+    document_id: UUID,
+    _user: User = Depends(require_role(UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> DrawingAnalysisResponse:
+    """Analyze technical drawing and extract structured data.
+
+    Runs OCR on the document file and then uses AI to extract dimensions,
+    materials, tolerances, surface treatments, and welding requirements.
+
+    Requires TECHNOLOG or VEDENI role.
+    """
+    settings = get_settings()
+
+    if not settings.ANTHROPIC_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Anthropic API key not configured",
+        )
+
+    # Get document and file content
+    service = DocumentService(db)
+    result = await service.get_file_content(document_id)
+
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document {document_id} not found or file missing",
+        )
+
+    document, file_content = result
+
+    # Save to temporary file for OCR
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.NamedTemporaryFile(
+        suffix=Path(document.file_name).suffix,
+        delete=False,
+    ) as tmp_file:
+        tmp_file.write(file_content)
+        tmp_path = tmp_file.name
+
+    try:
+        # Run OCR
+        ocr_processor = OCRProcessor(language="ces+eng")
+        ocr_result = await ocr_processor.extract_text(tmp_path)
+
+        if not ocr_result.text or not ocr_result.text.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No text could be extracted from document via OCR",
+            )
+
+        # Run drawing analysis
+        analyzer = DrawingAnalyzer(api_key=settings.ANTHROPIC_API_KEY)
+        analysis = await analyzer.analyze(ocr_result.text)
+
+        # Convert to response schema
+        return DrawingAnalysisResponse(
+            dimensions=[
+                DrawingDimensionSchema(
+                    type=dim.type,
+                    value=dim.value,
+                    unit=dim.unit,
+                    tolerance=dim.tolerance,
+                )
+                for dim in analysis.dimensions
+            ],
+            materials=[
+                DrawingMaterialSchema(
+                    grade=mat.grade,
+                    standard=mat.standard,
+                    type=mat.type,
+                )
+                for mat in analysis.materials
+            ],
+            tolerances=[
+                DrawingToleranceSchema(
+                    type=tol.type,
+                    value=tol.value,
+                    standard=tol.standard,
+                )
+                for tol in analysis.tolerances
+            ],
+            surface_treatments=analysis.surface_treatments,
+            welding_requirements=WeldingRequirementsSchema(
+                wps=analysis.welding_requirements.wps,
+                wpqr=analysis.welding_requirements.wpqr,
+                ndt_methods=analysis.welding_requirements.ndt_methods,
+                acceptance_criteria=analysis.welding_requirements.acceptance_criteria,
+            ),
+            notes=analysis.notes,
+        )
+
+    finally:
+        # Clean up temporary file
+        Path(tmp_path).unlink(missing_ok=True)

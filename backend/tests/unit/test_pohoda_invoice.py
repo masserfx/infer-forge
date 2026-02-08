@@ -9,6 +9,7 @@ import pytest
 from lxml import etree
 
 from app.integrations.pohoda.xml_builder import NAMESPACES, PohodaXMLBuilder
+from app.models.calculation import CalculationStatus, CostType
 
 # --- Fixtures ---
 
@@ -76,6 +77,49 @@ def mock_order_with_items(mock_customer: MagicMock) -> MagicMock:
 
     order.items = [item1, item2, item3]
     return order
+
+
+@pytest.fixture
+def mock_approved_calculation() -> MagicMock:
+    """Create mock approved calculation with items for pricing tests."""
+    calculation = MagicMock()
+    calculation.id = uuid4()
+    calculation.status = CalculationStatus.APPROVED
+    calculation.total_price = Decimal("150000.00")  # Total price
+    calculation.material_total = Decimal("90000.00")
+    calculation.labor_total = Decimal("40000.00")
+    calculation.cooperation_total = Decimal("10000.00")
+    calculation.overhead_total = Decimal("5000.00")
+    calculation.margin_percent = Decimal("15.00")
+    calculation.margin_amount = Decimal("5000.00")
+
+    # Calculation items
+    calc_item1 = MagicMock()
+    calc_item1.cost_type = CostType.MATERIAL
+    calc_item1.name = "Ocel P265GH"
+    calc_item1.quantity = Decimal("500.00")
+    calc_item1.unit = "kg"
+    calc_item1.unit_price = Decimal("120.00")
+    calc_item1.total_price = Decimal("60000.00")
+
+    calc_item2 = MagicMock()
+    calc_item2.cost_type = CostType.MATERIAL
+    calc_item2.name = "Ocel S235JR"
+    calc_item2.quantity = Decimal("300.00")
+    calc_item2.unit = "kg"
+    calc_item2.unit_price = Decimal("100.00")
+    calc_item2.total_price = Decimal("30000.00")
+
+    calc_item3 = MagicMock()
+    calc_item3.cost_type = CostType.LABOR
+    calc_item3.name = "Svařování"
+    calc_item3.quantity = Decimal("100.00")
+    calc_item3.unit = "hod"
+    calc_item3.unit_price = Decimal("400.00")
+    calc_item3.total_price = Decimal("40000.00")
+
+    calculation.items = [calc_item1, calc_item2, calc_item3]
+    return calculation
 
 
 # --- Invoice XML Builder Tests ---
@@ -424,3 +468,116 @@ class TestPohodaInvoiceXMLBuilder:
         nsmap = root.nsmap
         assert "inv" in nsmap.values() or NAMESPACES["inv"] in nsmap.values()
         assert "typ" in nsmap.values() or NAMESPACES["typ"] in nsmap.values()
+
+    def test_build_invoice_xml_with_calculation(
+        self,
+        builder: PohodaXMLBuilder,
+        mock_order_with_items: MagicMock,
+        mock_customer: MagicMock,
+        mock_approved_calculation: MagicMock,
+    ) -> None:
+        """Invoice with calculation should use real prices from calculation."""
+        xml_bytes = builder.build_invoice_xml(
+            order=mock_order_with_items,
+            customer=mock_customer,
+            invoice_number="FV-2025-042",
+            calculation=mock_approved_calculation,
+        )
+        root = etree.fromstring(xml_bytes)
+
+        # Extract unit prices
+        unit_prices = root.findall(f".//{{{NAMESPACES['typ']}}}unitPrice")
+        assert len(unit_prices) == 3  # One per order item
+
+        # Calculation has material_total = 90000
+        # 3 order items -> 90000 / 3 = 30000 per item share
+        # Item 1: 10 ks -> 30000 / 10 = 3000 CZK/ks
+        # Item 2: 20 ks -> 30000 / 20 = 1500 CZK/ks
+        # Item 3: 5 ks -> 30000 / 5 = 6000 CZK/ks
+
+        assert unit_prices[0].text == "3000.00"
+        assert unit_prices[1].text == "1500.00"
+        assert unit_prices[2].text == "6000.00"
+
+    def test_build_invoice_xml_without_calculation_uses_placeholder(
+        self,
+        builder: PohodaXMLBuilder,
+        mock_order_with_items: MagicMock,
+        mock_customer: MagicMock,
+    ) -> None:
+        """Invoice without calculation should use placeholder 1000.00."""
+        xml_bytes = builder.build_invoice_xml(
+            order=mock_order_with_items,
+            customer=mock_customer,
+            invoice_number="FV-2025-042",
+            calculation=None,
+        )
+        root = etree.fromstring(xml_bytes)
+
+        # All unit prices should be placeholder
+        unit_prices = root.findall(f".//{{{NAMESPACES['typ']}}}unitPrice")
+        assert len(unit_prices) == 3
+        for unit_price in unit_prices:
+            assert unit_price.text == "1000.00"
+
+    def test_build_invoice_xml_calculation_no_items_fallback(
+        self,
+        builder: PohodaXMLBuilder,
+        mock_order_with_items: MagicMock,
+        mock_customer: MagicMock,
+        mock_approved_calculation: MagicMock,
+    ) -> None:
+        """Calculation without items should distribute total_price evenly."""
+        # Remove items from calculation
+        mock_approved_calculation.items = []
+
+        xml_bytes = builder.build_invoice_xml(
+            order=mock_order_with_items,
+            customer=mock_customer,
+            invoice_number="FV-2025-042",
+            calculation=mock_approved_calculation,
+        )
+        root = etree.fromstring(xml_bytes)
+
+        # Extract unit prices
+        unit_prices = root.findall(f".//{{{NAMESPACES['typ']}}}unitPrice")
+        assert len(unit_prices) == 3
+
+        # Total price = 150000, 3 items -> 150000 / 3 = 50000 per item
+        # Item 1: 10 ks -> 50000 / 10 = 5000
+        # Item 2: 20 ks -> 50000 / 20 = 2500
+        # Item 3: 5 ks -> 50000 / 5 = 10000
+
+        assert unit_prices[0].text == "5000.00"
+        assert unit_prices[1].text == "2500.00"
+        assert unit_prices[2].text == "10000.00"
+
+    def test_build_invoice_xml_calculation_no_material_items(
+        self,
+        builder: PohodaXMLBuilder,
+        mock_order_with_items: MagicMock,
+        mock_customer: MagicMock,
+        mock_approved_calculation: MagicMock,
+    ) -> None:
+        """Calculation with only labor items should use total_price."""
+        # Change all items to LABOR (no MATERIAL items)
+        for item in mock_approved_calculation.items:
+            item.cost_type = CostType.LABOR
+
+        xml_bytes = builder.build_invoice_xml(
+            order=mock_order_with_items,
+            customer=mock_customer,
+            invoice_number="FV-2025-042",
+            calculation=mock_approved_calculation,
+        )
+        root = etree.fromstring(xml_bytes)
+
+        # Extract unit prices
+        unit_prices = root.findall(f".//{{{NAMESPACES['typ']}}}unitPrice")
+        assert len(unit_prices) == 3
+
+        # No material items -> use total_price = 150000
+        # 3 items -> 150000 / 3 = 50000 per item
+        assert unit_prices[0].text == "5000.00"  # 50000 / 10
+        assert unit_prices[1].text == "2500.00"  # 50000 / 20
+        assert unit_prices[2].text == "10000.00"  # 50000 / 5

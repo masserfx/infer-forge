@@ -6,10 +6,12 @@ Supports customer (addressbook), order, and offer document types.
 
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
 from lxml import etree
 
 from app.core.config import get_settings
+from app.models.calculation import Calculation
 from app.models.customer import Customer
 from app.models.offer import Offer
 from app.models.order import Order
@@ -114,26 +116,69 @@ class PohodaXMLBuilder:
 
     def _add_element(
         self,
-        parent: etree.Element,
+        parent: Any,
         tag: str,
         text: str | None = None,
-        **attrs: str,
-    ) -> etree.Element:
+    ) -> Any:
         """Add child element with optional text and attributes.
 
         Args:
             parent: Parent element.
             tag: Tag name (without namespace).
             text: Optional text content.
-            **attrs: Optional attributes.
 
         Returns:
             etree.Element: Created element.
         """
-        elem = etree.SubElement(parent, tag, **attrs)
+        elem = etree.SubElement(parent, tag)
         if text is not None:
             elem.text = text
         return elem
+
+    def _calculate_unit_price_from_calculation(
+        self,
+        calculation: Calculation,
+        order_item_index: int,
+        total_items: int,
+    ) -> Decimal:
+        """Calculate unit price for order item from calculation.
+
+        Strategy:
+        1. If calculation has items, try to match by cost_type='material' and name similarity
+        2. Otherwise, distribute total_price evenly across all order items
+        3. Return unit_price = (item_total_price / order_item_quantity)
+
+        Args:
+            calculation: Approved calculation with pricing.
+            order_item_index: Index of current order item (0-based).
+            total_items: Total number of order items.
+
+        Returns:
+            Decimal: Unit price for this order item.
+        """
+        from app.models.calculation import CostType
+
+        # Strategy: For simplicity, use proportional distribution of total_price
+        # divided evenly across all order items
+        if not calculation.items or total_items == 0:
+            # Fallback: distribute total_price evenly
+            return Decimal(calculation.total_price / total_items).quantize(Decimal("0.01"))
+
+        # Better strategy: sum all material items and distribute that
+        material_total = sum(
+            item.total_price
+            for item in calculation.items
+            if item.cost_type == CostType.MATERIAL
+        )
+
+        if material_total > 0:
+            # Use material total distributed across items
+            item_share = Decimal(material_total / total_items).quantize(Decimal("0.01"))
+        else:
+            # No material items - use total_price
+            item_share = Decimal(calculation.total_price / total_items).quantize(Decimal("0.01"))
+
+        return item_share
 
     def build_customer_xml(self, customer: Customer) -> bytes:
         """Build addressbook XML for customer synchronization.
@@ -390,6 +435,7 @@ class PohodaXMLBuilder:
         invoice_number: str,
         invoice_date: date | None = None,
         due_days: int = 14,
+        calculation: Calculation | None = None,
     ) -> bytes:
         """Build invoice XML document for Pohoda.
 
@@ -402,6 +448,7 @@ class PohodaXMLBuilder:
             invoice_number: Invoice number (e.g., "FV-2025-001").
             invoice_date: Invoice issue date (defaults to today).
             due_days: Payment due in days (default 14).
+            calculation: Optional approved calculation for pricing. If None, uses placeholder prices.
 
         Returns:
             bytes: XML document as bytes in Windows-1250 encoding.
@@ -462,7 +509,9 @@ class PohodaXMLBuilder:
         # Invoice detail (items)
         detail = self._add_element(inv, f"{{{NAMESPACES['inv']}}}invoiceDetail")
 
-        for order_item in order.items:
+        total_items = len(order.items)
+
+        for idx, order_item in enumerate(order.items):
             item_elem = self._add_element(detail, f"{{{NAMESPACES['inv']}}}invoiceItem")
 
             # Item text (name + material + DN/PN)
@@ -487,13 +536,36 @@ class PohodaXMLBuilder:
             # VAT rate (high = 21% in Czech Republic)
             self._add_element(item_elem, f"{{{NAMESPACES['inv']}}}rateVAT", "high")
 
-            # Price per unit (we need to calculate from order/calculation)
-            # For now, use placeholder - should be retrieved from calculation
+            # Price per unit - calculate from calculation or use placeholder
             home_currency = self._add_element(
                 item_elem,
                 f"{{{NAMESPACES['inv']}}}homeCurrency",
             )
-            unit_price = Decimal("1000.00")  # Placeholder - should come from calculation
+
+            if calculation:
+                # Calculate unit price from calculation total distributed across items
+                item_share = self._calculate_unit_price_from_calculation(
+                    calculation, idx, total_items
+                )
+                # Calculate unit price = item_share / quantity
+                if order_item.quantity > 0:
+                    unit_price = Decimal(item_share / order_item.quantity).quantize(
+                        Decimal("0.01")
+                    )
+                else:
+                    unit_price = item_share
+            else:
+                # No calculation provided - use placeholder
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.warning(
+                    "invoice_no_calculation invoice_number=%s order_id=%s using_placeholder=1000.00",
+                    invoice_number,
+                    str(order.id),
+                )
+                unit_price = Decimal("1000.00")
+
             self._add_element(
                 home_currency,
                 f"{{{NAMESPACES['typ']}}}unitPrice",

@@ -1,6 +1,7 @@
 """OCR text extraction module using Tesseract.
 
 Extracts text from images (PNG, JPG, JPEG, TIFF, BMP) and PDF files.
+Also extracts metadata from CAD files (DXF, DWG, STEP).
 Supports Czech and English languages with confidence scoring.
 """
 
@@ -12,6 +13,8 @@ from pathlib import Path
 import pytesseract
 import structlog
 from PIL import Image
+
+from app.integrations.ocr.cad_metadata import CADMetadata, CADMetadataExtractor
 
 logger = structlog.get_logger(__name__)
 
@@ -57,11 +60,14 @@ class OCRProcessor:
             ".bmp",
         }
         self._supported_pdf_types = {".pdf"}
+        self._supported_cad_types = {".dxf", ".dwg", ".stp", ".step"}
+        self._cad_extractor = CADMetadataExtractor()
 
     async def extract_text(self, file_path: str) -> OCRResult:
         """Extract text from file on disk.
 
         Supports: PNG, JPG, JPEG, TIFF, BMP, PDF.
+        Note: CAD files (DXF, DWG, STEP) use extract_cad_metadata() instead.
 
         Args:
             file_path: Absolute path to the file to process.
@@ -113,6 +119,10 @@ class OCRProcessor:
             "image/tiff": ".tiff",
             "image/bmp": ".bmp",
             "application/pdf": ".pdf",
+            "application/acad": ".dwg",
+            "application/dxf": ".dxf",
+            "application/step": ".stp",
+            "application/sla": ".step",
         }
 
         suffix = content_type_map.get(content_type.lower())
@@ -371,3 +381,97 @@ class OCRProcessor:
                 language=self.language,
                 page_count=0,
             )
+
+    async def extract_cad_metadata(self, file_path: str) -> CADMetadata:
+        """Extract metadata from CAD file (DXF, DWG, STEP).
+
+        Args:
+            file_path: Absolute path to the CAD file to process.
+
+        Returns:
+            CADMetadata with extracted metadata.
+
+        Raises:
+            ValueError: If file type is not supported.
+            FileNotFoundError: If file does not exist.
+        """
+        path = Path(file_path)
+
+        if not path.exists():
+            logger.error("cad_file_not_found", file_path=file_path)
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        suffix = path.suffix.lower()
+
+        if suffix not in self._supported_cad_types:
+            logger.error("cad_unsupported_type", file_path=file_path, suffix=suffix)
+            raise ValueError(
+                f"Unsupported CAD file type: {suffix}. "
+                f"Supported: {self._supported_cad_types}"
+            )
+
+        # Run CAD extraction in thread executor (synchronous operations)
+        loop = asyncio.get_running_loop()
+        try:
+            metadata = await loop.run_in_executor(
+                None, self._cad_extractor.extract_metadata, file_path
+            )
+
+            logger.info(
+                "cad_extraction_success",
+                file_path=file_path,
+                format=metadata.file_format,
+                layers=len(metadata.layers),
+                blocks=len(metadata.blocks),
+            )
+
+            return metadata
+
+        except Exception as e:
+            logger.error("cad_extraction_failed", file_path=file_path, error=str(e), exc_info=True)
+            # Return empty metadata on failure (don't propagate exception)
+            return CADMetadata(
+                file_format=suffix.upper().lstrip("."),
+                raw_metadata={"error": str(e)},
+            )
+
+    async def extract_cad_metadata_from_bytes(
+        self, data: bytes, content_type: str
+    ) -> CADMetadata:
+        """Extract CAD metadata from raw bytes with known content type.
+
+        Args:
+            data: Raw file bytes.
+            content_type: MIME type (e.g., 'application/dxf', 'application/step').
+
+        Returns:
+            CADMetadata with extracted metadata.
+
+        Raises:
+            ValueError: If content type is not supported.
+        """
+        # Map content type to file extension
+        content_type_map = {
+            "application/dxf": ".dxf",
+            "application/acad": ".dwg",
+            "application/step": ".stp",
+            "application/sla": ".step",
+        }
+
+        suffix = content_type_map.get(content_type.lower())
+        if not suffix or suffix not in self._supported_cad_types:
+            logger.error("cad_unsupported_content_type", content_type=content_type)
+            raise ValueError(f"Unsupported CAD content type: {content_type}")
+
+        # Write to temporary file and process
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp_file:
+            tmp_file.write(data)
+            tmp_path = tmp_file.name
+
+        try:
+            metadata = await self.extract_cad_metadata(tmp_path)
+        finally:
+            # Clean up temporary file
+            Path(tmp_path).unlink(missing_ok=True)
+
+        return metadata

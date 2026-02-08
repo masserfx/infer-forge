@@ -24,6 +24,13 @@ from .customer import (
     CustomerUpdate,
 )
 from .document import DocumentResponse, DocumentUpdate, DocumentUpload
+from .drawing import (
+    DrawingAnalysisResponse,
+    DrawingDimensionSchema,
+    DrawingMaterialSchema,
+    DrawingToleranceSchema,
+    WeldingRequirementsSchema,
+)
 from .embedding import SimilarOrderResult, SimilarOrdersResponse, SimilarSearchRequest
 from .inbox import InboxAssign, InboxMessageResponse, InboxReclassify
 from .material_price import (
@@ -69,6 +76,12 @@ __all__ = [
     "DocumentUpload",
     "DocumentUpdate",
     "DocumentResponse",
+    # Drawing Analysis
+    "DrawingAnalysisResponse",
+    "DrawingDimensionSchema",
+    "DrawingMaterialSchema",
+    "DrawingToleranceSchema",
+    "WeldingRequirementsSchema",
     # Customer
     "CustomerCreate",
     "CustomerUpdate",

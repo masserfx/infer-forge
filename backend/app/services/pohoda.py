@@ -14,6 +14,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.config import get_settings
 from app.models import AuditAction, AuditLog, Customer, Offer, Order
+from app.models.calculation import Calculation, CalculationStatus
 from app.models.pohoda_sync import PohodaSyncLog, SyncDirection, SyncStatus
 
 logger = logging.getLogger(__name__)
@@ -458,6 +459,32 @@ class PohodaService:
         await self.db.flush()
 
         try:
+            # Lookup latest approved calculation for pricing (with items loaded)
+            calc_result = await self.db.execute(
+                select(Calculation)
+                .where(Calculation.order_id == order.id)
+                .where(Calculation.status == CalculationStatus.APPROVED)
+                .options(selectinload(Calculation.items))
+                .order_by(Calculation.updated_at.desc())
+                .limit(1)
+            )
+            calculation = calc_result.scalar_one_or_none()
+
+            if calculation:
+                logger.info(
+                    "invoice_using_calculation invoice_number=%s order_id=%s calculation_id=%s total_price=%s",
+                    invoice_number,
+                    str(order_id),
+                    str(calculation.id),
+                    str(calculation.total_price),
+                )
+            else:
+                logger.warning(
+                    "invoice_no_approved_calculation invoice_number=%s order_id=%s",
+                    invoice_number,
+                    str(order_id),
+                )
+
             from app.integrations.pohoda.xml_builder import PohodaXMLBuilder
 
             builder = PohodaXMLBuilder()
@@ -467,6 +494,7 @@ class PohodaService:
                 invoice_number=invoice_number,
                 invoice_date=invoice_date,
                 due_days=due_days,
+                calculation=calculation,
             )
             sync_log.xml_request = xml_data.decode("Windows-1250", errors="replace")
 
@@ -530,7 +558,7 @@ class PohodaService:
         action: AuditAction,
         entity_type: str,
         entity_id: UUID,
-        changes: dict | None = None,
+        changes: dict[str, object] | None = None,
     ) -> None:
         """Create audit log entry for sync operation."""
         audit = AuditLog(
