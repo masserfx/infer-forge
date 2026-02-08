@@ -1,0 +1,2522 @@
+{
+  "nodes": [
+    {
+      "id": "api_architecture",
+      "label": "API: architecture",
+      "category": "api",
+      "description": "Architecture graph API — returns codebase analysis as JSON for interactive visualization.",
+      "detail": "Endpointy: 1, Funkce: 1",
+      "parent": null,
+      "file_path": "backend/app/api/v1/architecture.py",
+      "line_count": 35,
+      "function_count": 1,
+      "class_count": 0,
+      "endpoints": [
+        "GET "
+      ],
+      "methods": [
+        "get_architecture_graph"
+      ]
+    },
+    {
+      "id": "api_auth",
+      "label": "API: auth",
+      "category": "api",
+      "description": "Autentizace — přihlášení, JWT tokeny, správa uživatelů, změna hesla",
+      "detail": "Endpointy: 6, Funkce: 6",
+      "parent": null,
+      "file_path": "backend/app/api/v1/auth.py",
+      "line_count": 123,
+      "function_count": 6,
+      "class_count": 0,
+      "endpoints": [
+        "POST /login",
+        "GET /me",
+        "PUT /me/password",
+        "POST /users",
+        "GET /users",
+        "PUT /users/{user_id}"
+      ],
+      "methods": [
+        "login",
+        "get_me",
+        "change_my_password",
+        "create_user",
+        "list_users",
+        "update_user"
+      ]
+    },
+    {
+      "id": "api_calculations",
+      "label": "API: calculations",
+      "category": "api",
+      "description": "Kalkulace zakázek — náklady, materiál, práce, marže",
+      "detail": "Endpointy: 13, Funkce: 13",
+      "parent": null,
+      "file_path": "backend/app/api/v1/calculations.py",
+      "line_count": 356,
+      "function_count": 13,
+      "class_count": 0,
+      "endpoints": [
+        "POST ",
+        "POST /ai-estimate/{order_id}",
+        "GET ",
+        "GET /{calculation_id}",
+        "GET /zakazka/{order_id}",
+        "PUT /{calculation_id}",
+        "DELETE /{calculation_id}",
+        "POST /{calculation_id}/polozky",
+        "PUT /{calculation_id}/polozky/{item_id}",
+        "DELETE /{calculation_id}/polozky/{item_id}",
+        "POST /{calculation_id}/nabidka",
+        "POST /{calculation_id}/feedback",
+        "GET /{calculation_id}/anomalies"
+      ],
+      "methods": [
+        "create_calculation",
+        "ai_estimate",
+        "list_calculations",
+        "get_calculation",
+        "get_order_calculations",
+        "update_calculation",
+        "delete_calculation",
+        "add_calculation_item",
+        "update_calculation_item",
+        "remove_calculation_item",
+        "generate_offer",
+        "submit_calculation_feedback",
+        "get_calculation_anomalies"
+      ]
+    },
+    {
+      "id": "api_customers",
+      "label": "API: customers",
+      "category": "api",
+      "description": "Správa zákazníků — CRUD operace, kategorie, slevy",
+      "detail": "Endpointy: 6, Funkce: 6",
+      "parent": null,
+      "file_path": "backend/app/api/v1/customers.py",
+      "line_count": 162,
+      "function_count": 6,
+      "class_count": 0,
+      "endpoints": [
+        "GET ",
+        "POST ",
+        "GET /{customer_id}",
+        "PUT /{customer_id}",
+        "PATCH /{customer_id}/category",
+        "POST /{customer_id}/gdpr-delete"
+      ],
+      "methods": [
+        "get_customers",
+        "create_customer",
+        "get_customer",
+        "update_customer",
+        "update_customer_category",
+        "gdpr_delete_customer"
+      ]
+    },
+    {
+      "id": "api_dashboard",
+      "label": "API: dashboard",
+      "category": "api",
+      "description": "Dashboard API endpoints.",
+      "detail": "Endpointy: 1, Funkce: 1",
+      "parent": null,
+      "file_path": "backend/app/api/v1/dashboard.py",
+      "line_count": 21,
+      "function_count": 1,
+      "class_count": 0,
+      "endpoints": [
+        "GET /recommendations"
+      ],
+      "methods": [
+        "get_recommendations"
+      ]
+    },
+    {
+      "id": "api_documents",
+      "label": "API: documents",
+      "category": "api",
+      "description": "Dokumenty — nahrávání, generování PDF, verzování",
+      "detail": "Endpointy: 16, Funkce: 16",
+      "parent": null,
+      "file_path": "backend/app/api/v1/documents.py",
+      "line_count": 567,
+      "function_count": 16,
+      "class_count": 0,
+      "endpoints": [
+        "POST /upload",
+        "GET ",
+        "GET /entity/{entity_type}/{entity_id}",
+        "GET /{document_id}/analysis",
+        "GET /{document_id}",
+        "GET /{document_id}/download",
+        "PUT /{document_id}",
+        "DELETE /{document_id}",
+        "POST /generate/offer/{order_id}",
+        "POST /generate/production-sheet/{order_id}",
+        "POST /{document_id}/analyze-drawing",
+        "POST /generate/dimensional-protocol/{order_id}",
+        "POST /generate/material-certificate/{order_id}",
+        "POST /generate/invoice/{order_id}",
+        "POST /generate/delivery-note/{order_id}",
+        "POST /generate/order-confirmation/{order_id}"
+      ],
+      "methods": [
+        "upload_document",
+        "list_documents",
+        "get_entity_documents",
+        "get_drawing_analysis",
+        "get_document",
+        "download_document",
+        "update_document",
+        "delete_document",
+        "generate_offer",
+        "generate_production_sheet",
+        "analyze_drawing",
+        "generate_dimensional_protocol",
+        "generate_material_certificate",
+        "generate_invoice_pdf",
+        "generate_delivery_note",
+        "generate_order_confirmation"
+      ]
+    },
+    {
+      "id": "api_gamification",
+      "label": "API: gamification",
+      "category": "api",
+      "description": "Gamifikace — body za aktivitu, žebříček, odznaky",
+      "detail": "Endpointy: 2, Funkce: 2",
+      "parent": null,
+      "file_path": "backend/app/api/v1/gamification.py",
+      "line_count": 54,
+      "function_count": 2,
+      "class_count": 0,
+      "endpoints": [
+        "GET /leaderboard",
+        "GET /me"
+      ],
+      "methods": [
+        "get_leaderboard",
+        "get_my_stats"
+      ]
+    },
+    {
+      "id": "api_inbox",
+      "label": "API: inbox",
+      "category": "api",
+      "description": "E-mailová schránka — příjem, klasifikace, přiřazení k zakázkám",
+      "detail": "Endpointy: 4, Funkce: 4",
+      "parent": null,
+      "file_path": "backend/app/api/v1/inbox.py",
+      "line_count": 98,
+      "function_count": 4,
+      "class_count": 0,
+      "endpoints": [
+        "GET ",
+        "GET /{message_id}",
+        "PATCH /{message_id}/assign",
+        "PATCH /{message_id}/reclassify"
+      ],
+      "methods": [
+        "get_inbox_messages",
+        "get_inbox_message",
+        "assign_inbox_message",
+        "reclassify_inbox_message"
+      ]
+    },
+    {
+      "id": "api_material_prices",
+      "label": "API: material_prices",
+      "category": "api",
+      "description": "Material price management API endpoints.",
+      "detail": "Endpointy: 7, Funkce: 7",
+      "parent": null,
+      "file_path": "backend/app/api/v1/material_prices.py",
+      "line_count": 279,
+      "function_count": 7,
+      "class_count": 0,
+      "endpoints": [
+        "GET ",
+        "GET /search/best-price",
+        "GET /{price_id}",
+        "POST ",
+        "PUT /{price_id}",
+        "DELETE /{price_id}",
+        "POST /import"
+      ],
+      "methods": [
+        "list_material_prices",
+        "search_best_price",
+        "get_material_price",
+        "create_material_price",
+        "update_material_price",
+        "delete_material_price",
+        "import_material_prices"
+      ]
+    },
+    {
+      "id": "api_notifications",
+      "label": "API: notifications",
+      "category": "api",
+      "description": "Notifikace — WebSocket real-time, zvonečkové upozornění",
+      "detail": "Endpointy: 4, Funkce: 4",
+      "parent": null,
+      "file_path": "backend/app/api/v1/notifications.py",
+      "line_count": 78,
+      "function_count": 4,
+      "class_count": 0,
+      "endpoints": [
+        "GET ",
+        "GET /count",
+        "PATCH /{notification_id}/read",
+        "PATCH /read-all"
+      ],
+      "methods": [
+        "get_notifications",
+        "get_unread_count",
+        "mark_notification_read",
+        "mark_all_notifications_read"
+      ]
+    },
+    {
+      "id": "api_operations",
+      "label": "API: operations",
+      "category": "api",
+      "description": "API endpoints for operations (výrobní operace).",
+      "detail": "Endpointy: 5, Funkce: 6",
+      "parent": null,
+      "file_path": "backend/app/api/v1/operations.py",
+      "line_count": 195,
+      "function_count": 6,
+      "class_count": 0,
+      "endpoints": [
+        "GET /zakazky/{order_id}/operace",
+        "POST /zakazky/{order_id}/operace",
+        "PUT /zakazky/{order_id}/operace/{operation_id}",
+        "DELETE /zakazky/{order_id}/operace/{operation_id}",
+        "POST /zakazky/{order_id}/operace/reorder"
+      ],
+      "methods": [
+        "get_operation_service",
+        "list_operations",
+        "create_operation",
+        "update_operation",
+        "delete_operation",
+        "reorder_operations"
+      ]
+    },
+    {
+      "id": "api_orchestration",
+      "label": "API: orchestration",
+      "category": "api",
+      "description": "Orchestrace — automatický pipeline zpracování e-mailů a dokumentů",
+      "detail": "Endpointy: 8, Funkce: 8",
+      "parent": null,
+      "file_path": "backend/app/api/v1/orchestration.py",
+      "line_count": 700,
+      "function_count": 8,
+      "class_count": 0,
+      "endpoints": [
+        "GET /dlq",
+        "GET /dlq/{entry_id}",
+        "POST /dlq/{entry_id}/resolve",
+        "POST /dlq/{entry_id}/retry",
+        "GET /tasks",
+        "GET /stats",
+        "POST /test-email",
+        "POST /batch-upload"
+      ],
+      "methods": [
+        "list_dlq_entries",
+        "get_dlq_entry",
+        "resolve_dlq_entry",
+        "retry_dlq_entry",
+        "list_processing_tasks",
+        "get_pipeline_stats",
+        "test_email_pipeline",
+        "batch_upload_eml"
+      ]
+    },
+    {
+      "id": "api_orders",
+      "label": "API: orders",
+      "category": "api",
+      "description": "Správa zakázek — vytvoření, stavy, workflow, konverze z nabídky",
+      "detail": "Endpointy: 14, Funkce: 14",
+      "parent": null,
+      "file_path": "backend/app/api/v1/orders.py",
+      "line_count": 303,
+      "function_count": 14,
+      "class_count": 0,
+      "endpoints": [
+        "GET ",
+        "POST ",
+        "POST /bulk/status",
+        "POST /bulk/assign",
+        "GET /next-number",
+        "GET /{order_id}",
+        "PUT /{order_id}",
+        "PATCH /{order_id}/status",
+        "PATCH /{order_id}/assign",
+        "GET /{order_id}/similar",
+        "POST /search/similar",
+        "GET /{order_id}/predict-due-date",
+        "GET /{order_id}/suggest-assignee",
+        "POST /from-offer/{offer_id}"
+      ],
+      "methods": [
+        "get_orders",
+        "create_order",
+        "bulk_update_status",
+        "bulk_assign_orders",
+        "get_next_order_number",
+        "get_order",
+        "update_order",
+        "update_order_status",
+        "assign_order",
+        "get_similar_orders",
+        "search_similar_orders",
+        "predict_due_date",
+        "suggest_assignee",
+        "create_order_from_offer"
+      ]
+    },
+    {
+      "id": "api_pohoda",
+      "label": "API: pohoda",
+      "category": "api",
+      "description": "Pohoda XML sync — export/import zákazníků, objednávek, faktur",
+      "detail": "Endpointy: 6, Funkce: 6",
+      "parent": null,
+      "file_path": "backend/app/api/v1/pohoda.py",
+      "line_count": 190,
+      "function_count": 6,
+      "class_count": 0,
+      "endpoints": [
+        "POST /sync",
+        "POST /sync/{entity_type}/{entity_id}",
+        "GET /status/{entity_type}/{entity_id}",
+        "GET /logs",
+        "POST /invoice/{order_id}",
+        "POST /sync-inventory"
+      ],
+      "methods": [
+        "sync_entity",
+        "sync_entity_by_path",
+        "get_sync_status",
+        "get_sync_logs",
+        "generate_invoice",
+        "sync_inventory"
+      ]
+    },
+    {
+      "id": "api_reporting",
+      "label": "API: reporting",
+      "category": "api",
+      "description": "Reporting — statistiky, grafy, trendy, export",
+      "detail": "Endpointy: 7, Funkce: 7",
+      "parent": null,
+      "file_path": "backend/app/api/v1/reporting.py",
+      "line_count": 169,
+      "function_count": 7,
+      "class_count": 0,
+      "endpoints": [
+        "GET /dashboard",
+        "GET /pipeline",
+        "GET /revenue",
+        "GET /production",
+        "GET /customers",
+        "GET /insights",
+        "GET /material-requirements"
+      ],
+      "methods": [
+        "get_dashboard_stats",
+        "get_pipeline_report",
+        "get_revenue_report",
+        "get_production_report",
+        "get_customer_report",
+        "get_insights",
+        "get_material_requirements"
+      ]
+    },
+    {
+      "id": "api_settings",
+      "label": "API: settings",
+      "category": "api",
+      "description": "Settings API endpoints for feature flags management.",
+      "detail": "Endpointy: 4, Funkce: 4",
+      "parent": null,
+      "file_path": "backend/app/api/v1/settings.py",
+      "line_count": 253,
+      "function_count": 4,
+      "class_count": 0,
+      "endpoints": [
+        "GET /flags",
+        "PATCH /flags",
+        "GET /integrations",
+        "GET /ai-token-usage"
+      ],
+      "methods": [
+        "get_feature_flags",
+        "update_feature_flags",
+        "get_integration_status",
+        "get_ai_token_usage"
+      ]
+    },
+    {
+      "id": "api_subcontractors",
+      "label": "API: subcontractors",
+      "category": "api",
+      "description": "Subcontractor and Subcontract API endpoints.",
+      "detail": "Endpointy: 9, Funkce: 9",
+      "parent": null,
+      "file_path": "backend/app/api/v1/subcontractors.py",
+      "line_count": 228,
+      "function_count": 9,
+      "class_count": 0,
+      "endpoints": [
+        "GET ",
+        "POST ",
+        "GET /{subcontractor_id}",
+        "PUT /{subcontractor_id}",
+        "DELETE /{subcontractor_id}",
+        "GET /zakazky/{order_id}/kooperace",
+        "POST /zakazky/{order_id}/kooperace",
+        "PUT /zakazky/{order_id}/kooperace/{subcontract_id}",
+        "DELETE /zakazky/{order_id}/kooperace/{subcontract_id}"
+      ],
+      "methods": [
+        "get_subcontractors",
+        "create_subcontractor",
+        "get_subcontractor",
+        "update_subcontractor",
+        "delete_subcontractor",
+        "get_order_subcontracts",
+        "create_order_subcontract",
+        "update_order_subcontract",
+        "delete_order_subcontract"
+      ]
+    },
+    {
+      "id": "api_websocket",
+      "label": "API: websocket",
+      "category": "api",
+      "description": "WebSocket endpoint for real-time notifications.",
+      "detail": "Endpointy: 0, Funkce: 1",
+      "parent": null,
+      "file_path": "backend/app/api/v1/websocket.py",
+      "line_count": 58,
+      "function_count": 1,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": [
+        "websocket_endpoint"
+      ]
+    },
+    {
+      "id": "svc_anomaly",
+      "label": "Service: anomaly",
+      "category": "service",
+      "description": "Anomaly detection for calculations.",
+      "detail": "Třídy: 1, Metody: 2",
+      "parent": null,
+      "file_path": "backend/app/services/anomaly.py",
+      "line_count": 84,
+      "function_count": 2,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "check_calculation"
+      ]
+    },
+    {
+      "id": "svc_assignment",
+      "label": "Service: assignment",
+      "category": "service",
+      "description": "Smart order assignment service.",
+      "detail": "Třídy: 1, Metody: 2",
+      "parent": null,
+      "file_path": "backend/app/services/assignment.py",
+      "line_count": 79,
+      "function_count": 2,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "suggest_assignee"
+      ]
+    },
+    {
+      "id": "svc_auth",
+      "label": "Service: auth",
+      "category": "service",
+      "description": "Autentizace — přihlášení, JWT tokeny, správa uživatelů, změna hesla",
+      "detail": "Třídy: 1, Metody: 9",
+      "parent": null,
+      "file_path": "backend/app/services/auth.py",
+      "line_count": 96,
+      "function_count": 9,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "authenticate",
+        "create_token",
+        "get_by_email",
+        "get_by_id",
+        "create_user",
+        "update_user",
+        "change_password",
+        "get_all"
+      ]
+    },
+    {
+      "id": "svc_calculation",
+      "label": "Service: calculation",
+      "category": "service",
+      "description": "Výpočet kalkulací, BOM, marže, schvalování",
+      "detail": "Třídy: 1, Metody: 11",
+      "parent": null,
+      "file_path": "backend/app/services/calculation.py",
+      "line_count": 450,
+      "function_count": 11,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "create",
+        "get_by_id",
+        "get_by_order",
+        "get_all",
+        "update",
+        "add_item",
+        "update_item",
+        "remove_item",
+        "generate_offer",
+        "delete"
+      ]
+    },
+    {
+      "id": "svc_customer",
+      "label": "Service: customer",
+      "category": "service",
+      "description": "Správa zákaznických dat, kategorizace A/B/C, slevy",
+      "detail": "Třídy: 1, Metody: 8",
+      "parent": null,
+      "file_path": "backend/app/services/customer.py",
+      "line_count": 287,
+      "function_count": 8,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "create",
+        "get_by_id",
+        "get_all",
+        "update",
+        "update_category",
+        "delete",
+        "gdpr_anonymize"
+      ]
+    },
+    {
+      "id": "svc_document",
+      "label": "Service: document",
+      "category": "service",
+      "description": "Ukládání a verzování dokumentů",
+      "detail": "Třídy: 1, Metody: 9",
+      "parent": null,
+      "file_path": "backend/app/services/document.py",
+      "line_count": 344,
+      "function_count": 9,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "upload",
+        "get_by_id",
+        "get_file_content",
+        "get_by_entity",
+        "get_all",
+        "update",
+        "delete",
+        "delete_by_entity"
+      ]
+    },
+    {
+      "id": "svc_document_embedding",
+      "label": "Service: document_embedding",
+      "category": "service",
+      "description": "Document embedding service for RAG semantic search.",
+      "detail": "Třídy: 1, Metody: 4",
+      "parent": null,
+      "file_path": "backend/app/services/document_embedding.py",
+      "line_count": 292,
+      "function_count": 4,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "create_embedding",
+        "search",
+        "delete_by_document"
+      ]
+    },
+    {
+      "id": "svc_document_generator",
+      "label": "Service: document_generator",
+      "category": "service",
+      "description": "Generátor dokumentů — PDF nabídky, průvodky (Jinja2 + WeasyPrint)",
+      "detail": "Třídy: 1, Metody: 8",
+      "parent": null,
+      "file_path": "backend/app/services/document_generator.py",
+      "line_count": 560,
+      "function_count": 8,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "generate_offer_pdf",
+        "generate_production_sheet_pdf",
+        "generate_dimensional_protocol",
+        "generate_material_certificate",
+        "generate_invoice_pdf",
+        "generate_delivery_note_pdf",
+        "generate_order_confirmation_pdf"
+      ]
+    },
+    {
+      "id": "svc_embedding",
+      "label": "Service: embedding",
+      "category": "service",
+      "description": "Embedding service for order similarity search using pgvector.",
+      "detail": "Třídy: 1, Metody: 6",
+      "parent": null,
+      "file_path": "backend/app/services/embedding.py",
+      "line_count": 256,
+      "function_count": 6,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "extract_order_text",
+        "compute_content_hash",
+        "__init__",
+        "generate_embedding",
+        "find_similar",
+        "search_by_text"
+      ]
+    },
+    {
+      "id": "svc_embedding_tasks",
+      "label": "Service: embedding_tasks",
+      "category": "service",
+      "description": "Celery tasks for embedding generation.",
+      "detail": "Třídy: 0, Metody: 1",
+      "parent": null,
+      "file_path": "backend/app/services/embedding_tasks.py",
+      "line_count": 51,
+      "function_count": 1,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": [
+        "generate_order_embedding"
+      ]
+    },
+    {
+      "id": "svc_gamification",
+      "label": "Service: gamification",
+      "category": "service",
+      "description": "Výpočet bodů, žebříček, herní mechaniky",
+      "detail": "Třídy: 1, Metody: 5",
+      "parent": null,
+      "file_path": "backend/app/services/gamification.py",
+      "line_count": 279,
+      "function_count": 5,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "award_points",
+        "get_leaderboard",
+        "get_user_stats",
+        "calculate_order_points"
+      ]
+    },
+    {
+      "id": "svc_inbox",
+      "label": "Service: inbox",
+      "category": "service",
+      "description": "Zpracování příchozích e-mailů, auto-přiřazení",
+      "detail": "Třídy: 1, Metody: 6",
+      "parent": null,
+      "file_path": "backend/app/services/inbox.py",
+      "line_count": 267,
+      "function_count": 6,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "match_email_to_order",
+        "__init__",
+        "get_all",
+        "get_by_id",
+        "assign_to",
+        "reclassify"
+      ]
+    },
+    {
+      "id": "svc_material_price",
+      "label": "Service: material_price",
+      "category": "service",
+      "description": "Material price business logic service.",
+      "detail": "Třídy: 1, Metody: 8",
+      "parent": null,
+      "file_path": "backend/app/services/material_price.py",
+      "line_count": 371,
+      "function_count": 8,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "get_all",
+        "get_by_id",
+        "create",
+        "update",
+        "delete",
+        "find_best_price",
+        "import_from_excel"
+      ]
+    },
+    {
+      "id": "svc_notification",
+      "label": "Service: notification",
+      "category": "service",
+      "description": "Notification service for CRUD operations and WebSocket broadcasting.",
+      "detail": "Třídy: 1, Metody: 7",
+      "parent": null,
+      "file_path": "backend/app/services/notification.py",
+      "line_count": 198,
+      "function_count": 7,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "create",
+        "create_for_all",
+        "get_user_notifications",
+        "get_unread_count",
+        "mark_read",
+        "mark_all_read"
+      ]
+    },
+    {
+      "id": "svc_operation",
+      "label": "Service: operation",
+      "category": "service",
+      "description": "Service layer for operations (výrobní operace).",
+      "detail": "Třídy: 1, Metody: 7",
+      "parent": null,
+      "file_path": "backend/app/services/operation.py",
+      "line_count": 257,
+      "function_count": 7,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "get_by_order",
+        "get_by_id",
+        "create",
+        "update",
+        "delete",
+        "reorder"
+      ]
+    },
+    {
+      "id": "svc_order",
+      "label": "Service: order",
+      "category": "service",
+      "description": "Workflow zakázek, stavový automat, audit trail",
+      "detail": "Třídy: 1, Metody: 9",
+      "parent": null,
+      "file_path": "backend/app/services/order.py",
+      "line_count": 504,
+      "function_count": 9,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "create",
+        "get_by_id",
+        "get_all",
+        "update",
+        "change_status",
+        "assign_order",
+        "delete",
+        "convert_offer_to_order"
+      ]
+    },
+    {
+      "id": "svc_pohoda",
+      "label": "Service: pohoda",
+      "category": "service",
+      "description": "Synchronizace s účetním systémem Pohoda",
+      "detail": "Třídy: 1, Metody: 8",
+      "parent": null,
+      "file_path": "backend/app/services/pohoda.py",
+      "line_count": 643,
+      "function_count": 8,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "sync_customer",
+        "sync_order",
+        "sync_offer",
+        "get_sync_status",
+        "get_sync_logs",
+        "generate_invoice",
+        "sync_inventory"
+      ]
+    },
+    {
+      "id": "svc_prediction",
+      "label": "Service: prediction",
+      "category": "service",
+      "description": "Predictive due date estimation based on historical data.",
+      "detail": "Třídy: 1, Metody: 2",
+      "parent": null,
+      "file_path": "backend/app/services/prediction.py",
+      "line_count": 91,
+      "function_count": 2,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "predict_due_date"
+      ]
+    },
+    {
+      "id": "svc_recommendation",
+      "label": "Service: recommendation",
+      "category": "service",
+      "description": "Dashboard recommendation service.",
+      "detail": "Třídy: 1, Metody: 2",
+      "parent": null,
+      "file_path": "backend/app/services/recommendation.py",
+      "line_count": 185,
+      "function_count": 2,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "get_recommendations"
+      ]
+    },
+    {
+      "id": "svc_reporting",
+      "label": "Service: reporting",
+      "category": "service",
+      "description": "Agregace dat pro reporty a dashboardy",
+      "detail": "Třídy: 1, Metody: 7",
+      "parent": null,
+      "file_path": "backend/app/services/reporting.py",
+      "line_count": 562,
+      "function_count": 7,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "get_dashboard_stats",
+        "get_pipeline_report",
+        "get_revenue_report",
+        "get_production_report",
+        "get_customer_report",
+        "get_material_requirements"
+      ]
+    },
+    {
+      "id": "svc_subcontractor",
+      "label": "Service: subcontractor",
+      "category": "service",
+      "description": "Subcontractor and Subcontract business logic service.",
+      "detail": "Třídy: 1, Metody: 11",
+      "parent": null,
+      "file_path": "backend/app/services/subcontractor.py",
+      "line_count": 343,
+      "function_count": 11,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "create_subcontractor",
+        "get_subcontractor_by_id",
+        "get_all_subcontractors",
+        "update_subcontractor",
+        "delete_subcontractor",
+        "create_subcontract",
+        "get_subcontract_by_id",
+        "get_subcontracts_by_order",
+        "update_subcontract",
+        "delete_subcontract"
+      ]
+    },
+    {
+      "id": "model_audit",
+      "label": "Model: audit",
+      "category": "model",
+      "description": "AuditLog model.",
+      "detail": "Modely: AuditLog",
+      "parent": null,
+      "file_path": "backend/app/models/audit.py",
+      "line_count": 48,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "AuditLog (tabulka: audit_logs; sloupce: user_id, action, entity_type, entity_id, changes, timestamp)"
+      ]
+    },
+    {
+      "id": "model_calculation",
+      "label": "Model: calculation",
+      "category": "model",
+      "description": "Calculation models for cost estimation.",
+      "detail": "Modely: Calculation, CalculationItem",
+      "parent": null,
+      "file_path": "backend/app/models/calculation.py",
+      "line_count": 128,
+      "function_count": 0,
+      "class_count": 2,
+      "endpoints": [],
+      "methods": [
+        "Calculation (tabulka: calculations; sloupce: order_id, name, status, note, created_by, material_total, labor_total, cooperation_total)",
+        "CalculationItem (tabulka: calculation_items; sloupce: calculation_id, cost_type, name, description, quantity, unit, unit_price, total_price)"
+      ]
+    },
+    {
+      "id": "model_calculation_feedback",
+      "label": "Model: calculation_feedback",
+      "category": "model",
+      "description": "Calculation feedback model for AI learning loop.",
+      "detail": "Modely: CalculationFeedback",
+      "parent": null,
+      "file_path": "backend/app/models/calculation_feedback.py",
+      "line_count": 41,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "CalculationFeedback (tabulka: calculation_feedback; sloupce: id, calculation_id, original_items, corrected_items, correction_type, user_id, created_at)"
+      ]
+    },
+    {
+      "id": "model_classification_feedback",
+      "label": "Model: classification_feedback",
+      "category": "model",
+      "description": "Classification feedback model for email classifier learning.",
+      "detail": "Modely: ClassificationFeedback",
+      "parent": null,
+      "file_path": "backend/app/models/classification_feedback.py",
+      "line_count": 42,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "ClassificationFeedback (tabulka: classification_feedback; sloupce: id, inbox_message_id, original_category, corrected_category, subject_preview, reason, user_id, created_at)"
+      ]
+    },
+    {
+      "id": "model_customer",
+      "label": "Model: customer",
+      "category": "model",
+      "description": "Customer model.",
+      "detail": "Modely: Customer",
+      "parent": null,
+      "file_path": "backend/app/models/customer.py",
+      "line_count": 77,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "Customer (tabulka: customers; sloupce: company_name, ico, dic, contact_name, email, phone, address, pohoda_id)"
+      ]
+    },
+    {
+      "id": "model_dead_letter",
+      "label": "Model: dead_letter",
+      "category": "model",
+      "description": "DeadLetterQueue model for failed task handling.",
+      "detail": "Modely: DeadLetterEntry",
+      "parent": null,
+      "file_path": "backend/app/models/dead_letter.py",
+      "line_count": 32,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "DeadLetterEntry (tabulka: dead_letter_queue; sloupce: original_task, stage, payload, error_message, error_traceback, retry_count, resolved, resolved_at)"
+      ]
+    },
+    {
+      "id": "model_document",
+      "label": "Model: document",
+      "category": "model",
+      "description": "Document model for file management.",
+      "detail": "Modely: Document",
+      "parent": null,
+      "file_path": "backend/app/models/document.py",
+      "line_count": 73,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "Document (tabulka: documents; sloupce: entity_type, entity_id, file_name, file_path, mime_type, file_size, version, category)"
+      ]
+    },
+    {
+      "id": "model_document_embedding",
+      "label": "Model: document_embedding",
+      "category": "model",
+      "description": "Document embedding model for RAG semantic search.",
+      "detail": "Modely: DocumentEmbedding",
+      "parent": null,
+      "file_path": "backend/app/models/document_embedding.py",
+      "line_count": 47,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "DocumentEmbedding (tabulka: document_embeddings; sloupce: id, document_id, chunk_index, content_chunk, metadata_json, created_at)"
+      ]
+    },
+    {
+      "id": "model_drawing_analysis",
+      "label": "Model: drawing_analysis",
+      "category": "model",
+      "description": "DrawingAnalysis model for persisting drawing analysis results.",
+      "detail": "Modely: DrawingAnalysis",
+      "parent": null,
+      "file_path": "backend/app/models/drawing_analysis.py",
+      "line_count": 32,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "DrawingAnalysis (tabulka: drawing_analyses; sloupce: document_id, dimensions, materials, tolerances, surface_treatments, welding_requirements, notes, analysis_model)"
+      ]
+    },
+    {
+      "id": "model_email_attachment",
+      "label": "Model: email_attachment",
+      "category": "model",
+      "description": "EmailAttachment model for storing email attachment metadata.",
+      "detail": "Modely: EmailAttachment",
+      "parent": null,
+      "file_path": "backend/app/models/email_attachment.py",
+      "line_count": 46,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "EmailAttachment (tabulka: email_attachments; sloupce: inbox_message_id, filename, content_type, file_size, file_path, document_id, ocr_status, ocr_confidence)"
+      ]
+    },
+    {
+      "id": "model_inbox",
+      "label": "Model: inbox",
+      "category": "model",
+      "description": "E-mailová schránka — příjem, klasifikace, přiřazení k zakázkám",
+      "detail": "Modely: InboxMessage",
+      "parent": null,
+      "file_path": "backend/app/models/inbox.py",
+      "line_count": 106,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "InboxMessage (tabulka: inbox_messages; sloupce: message_id, from_email, subject, body_text, received_at, classification, confidence, status)"
+      ]
+    },
+    {
+      "id": "model_material_price",
+      "label": "Model: material_price",
+      "category": "model",
+      "description": "Material price model for cost database.",
+      "detail": "Modely: MaterialPrice",
+      "parent": null,
+      "file_path": "backend/app/models/material_price.py",
+      "line_count": 60,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "MaterialPrice (tabulka: material_prices; sloupce: name, specification, material_grade, form, dimension, unit, unit_price, supplier)"
+      ]
+    },
+    {
+      "id": "model_notification",
+      "label": "Model: notification",
+      "category": "model",
+      "description": "Notification model for real-time alerts.",
+      "detail": "Modely: Notification",
+      "parent": null,
+      "file_path": "backend/app/models/notification.py",
+      "line_count": 47,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "Notification (tabulka: notifications; sloupce: user_id, type, title, message, link, read)"
+      ]
+    },
+    {
+      "id": "model_offer",
+      "label": "Model: offer",
+      "category": "model",
+      "description": "Offer model.",
+      "detail": "Modely: Offer",
+      "parent": null,
+      "file_path": "backend/app/models/offer.py",
+      "line_count": 75,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "Offer (tabulka: offers; sloupce: order_id, number, total_price, valid_until, status, pohoda_id, converted_to_order_id, order)"
+      ]
+    },
+    {
+      "id": "model_operation",
+      "label": "Model: operation",
+      "category": "model",
+      "description": "Operation model for production planning.",
+      "detail": "Modely: Operation",
+      "parent": null,
+      "file_path": "backend/app/models/operation.py",
+      "line_count": 93,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "Operation (tabulka: operations; sloupce: order_id, name, description, sequence, duration_hours, responsible, planned_start, planned_end)"
+      ]
+    },
+    {
+      "id": "model_order",
+      "label": "Model: order",
+      "category": "model",
+      "description": "Order and OrderItem models.",
+      "detail": "Modely: Order, OrderItem",
+      "parent": null,
+      "file_path": "backend/app/models/order.py",
+      "line_count": 177,
+      "function_count": 0,
+      "class_count": 2,
+      "endpoints": [],
+      "methods": [
+        "Order (tabulka: orders; sloupce: customer_id, number, status, priority, due_date, note, created_by, assigned_to)",
+        "OrderItem (tabulka: order_items; sloupce: order_id, name, material, quantity, unit, dn, pn, note)"
+      ]
+    },
+    {
+      "id": "model_order_embedding",
+      "label": "Model: order_embedding",
+      "category": "model",
+      "description": "OrderEmbedding model for vector similarity search.",
+      "detail": "Modely: OrderEmbedding",
+      "parent": null,
+      "file_path": "backend/app/models/order_embedding.py",
+      "line_count": 34,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "OrderEmbedding (tabulka: order_embeddings; sloupce: order_id, embedding, content_hash, text_content, order)"
+      ]
+    },
+    {
+      "id": "model_pohoda_sync",
+      "label": "Model: pohoda_sync",
+      "category": "model",
+      "description": "PohodaSyncLog model for tracking Pohoda XML synchronization.",
+      "detail": "Modely: PohodaSyncLog",
+      "parent": null,
+      "file_path": "backend/app/models/pohoda_sync.py",
+      "line_count": 70,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "PohodaSyncLog (tabulka: pohoda_sync_logs; sloupce: entity_type, entity_id, direction, pohoda_doc_number, xml_request, xml_response, status, error_message)"
+      ]
+    },
+    {
+      "id": "model_processing_task",
+      "label": "Model: processing_task",
+      "category": "model",
+      "description": "ProcessingTask model for orchestration audit trail.",
+      "detail": "Modely: ProcessingTask",
+      "parent": null,
+      "file_path": "backend/app/models/processing_task.py",
+      "line_count": 59,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "ProcessingTask (tabulka: processing_tasks; sloupce: inbox_message_id, celery_task_id, stage, status, input_data, output_data, error_message, tokens_used)"
+      ]
+    },
+    {
+      "id": "model_subcontract",
+      "label": "Model: subcontract",
+      "category": "model",
+      "description": "Subcontract model.",
+      "detail": "Modely: Subcontract",
+      "parent": null,
+      "file_path": "backend/app/models/subcontract.py",
+      "line_count": 70,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "Subcontract (tabulka: subcontracts; sloupce: order_id, subcontractor_id, description, price, status, planned_start, planned_end, actual_end)"
+      ]
+    },
+    {
+      "id": "model_subcontractor",
+      "label": "Model: subcontractor",
+      "category": "model",
+      "description": "Subcontractor model.",
+      "detail": "Modely: Subcontractor",
+      "parent": null,
+      "file_path": "backend/app/models/subcontractor.py",
+      "line_count": 38,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "Subcontractor (tabulka: subcontractors; sloupce: name, ico, contact_email, contact_phone, specialization, rating, is_active, notes)"
+      ]
+    },
+    {
+      "id": "model_user",
+      "label": "Model: user",
+      "category": "model",
+      "description": "User model for authentication and RBAC.",
+      "detail": "Modely: User",
+      "parent": null,
+      "file_path": "backend/app/models/user.py",
+      "line_count": 43,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "User (tabulka: users; sloupce: email, hashed_password, full_name, role, is_active, phone)"
+      ]
+    },
+    {
+      "id": "model_user_points",
+      "label": "Model: user_points",
+      "category": "model",
+      "description": "User points / gamification model.",
+      "detail": "Modely: UserPoints",
+      "parent": null,
+      "file_path": "backend/app/models/user_points.py",
+      "line_count": 52,
+      "function_count": 0,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "UserPoints (tabulka: user_points; sloupce: user_id, action, points, description, entity_type, entity_id, earned_at)"
+      ]
+    },
+    {
+      "id": "agent_calculation_agent",
+      "label": "Agent: calculation_agent",
+      "category": "agent",
+      "description": "AI kalkulace zakázek — analýza materiálu, práce, ceny",
+      "detail": "Třídy: 3, Funkce: 2, Celery tasks: 0",
+      "parent": null,
+      "file_path": "backend/app/agents/calculation_agent.py",
+      "line_count": 528,
+      "function_count": 2,
+      "class_count": 3,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "estimate"
+      ]
+    },
+    {
+      "id": "agent_email_classifier",
+      "label": "Agent: email_classifier",
+      "category": "agent",
+      "description": "Klasifikace e-mailů do kategorií (poptávka, reklamace, info...)",
+      "detail": "Třídy: 2, Funkce: 2, Celery tasks: 0",
+      "parent": null,
+      "file_path": "backend/app/agents/email_classifier.py",
+      "line_count": 333,
+      "function_count": 2,
+      "class_count": 2,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "classify"
+      ]
+    },
+    {
+      "id": "agent_email_parser",
+      "label": "Agent: email_parser",
+      "category": "agent",
+      "description": "Extrakce strukturovaných dat z e-mailů pomocí AI",
+      "detail": "Třídy: 3, Funkce: 2, Celery tasks: 0",
+      "parent": null,
+      "file_path": "backend/app/agents/email_parser.py",
+      "line_count": 423,
+      "function_count": 2,
+      "class_count": 3,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "parse"
+      ]
+    },
+    {
+      "id": "agent_process_advisor",
+      "label": "Agent: process_advisor",
+      "category": "agent",
+      "description": "Process advisor agent for analyzing workflow inefficiencies.",
+      "detail": "Třídy: 1, Funkce: 2, Celery tasks: 0",
+      "parent": null,
+      "file_path": "backend/app/agents/process_advisor.py",
+      "line_count": 431,
+      "function_count": 2,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "generate_weekly_insights"
+      ]
+    },
+    {
+      "id": "agent_tasks",
+      "label": "Agent: tasks",
+      "category": "agent",
+      "description": "Celery tasks for AI agents (classification, parsing, calculation).",
+      "detail": "Třídy: 0, Funkce: 2, Celery tasks: 2",
+      "parent": null,
+      "file_path": "backend/app/agents/tasks.py",
+      "line_count": 195,
+      "function_count": 2,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": [
+        "run_email_classification",
+        "run_calculation_estimate"
+      ]
+    },
+    {
+      "id": "int_email",
+      "label": "Integrace: email",
+      "category": "integration",
+      "description": "IMAP polling, SMTP auto-reply, Celery úlohy",
+      "detail": "Soubory: 4, Funkce: 11, Celery tasks: 3",
+      "parent": null,
+      "file_path": "backend/app/integrations/email",
+      "line_count": 1404,
+      "function_count": 11,
+      "class_count": 4,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "connect",
+        "disconnect",
+        "fetch_new_messages",
+        "__init__",
+        "send_email",
+        "test_connection",
+        "poll_inbox",
+        "cleanup_processed_emails",
+        "send_auto_reply",
+        "send_auto_reply_task"
+      ]
+    },
+    {
+      "id": "int_excel",
+      "label": "Integrace: excel",
+      "category": "integration",
+      "description": "Import dat z Excelu (openpyxl)",
+      "detail": "Soubory: 3, Funkce: 9, Celery tasks: 0",
+      "parent": null,
+      "file_path": "backend/app/integrations/excel",
+      "line_count": 712,
+      "function_count": 9,
+      "class_count": 4,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "export_orders",
+        "export_calculations",
+        "export_generic",
+        "export_material_requirements",
+        "__init__",
+        "parse_bom",
+        "parse_price_list",
+        "parse_generic"
+      ]
+    },
+    {
+      "id": "int_ocr",
+      "label": "Integrace: ocr",
+      "category": "integration",
+      "description": "OCR zpracování dokumentů (Tesseract)",
+      "detail": "Soubory: 4, Funkce: 12, Celery tasks: 0",
+      "parent": null,
+      "file_path": "backend/app/integrations/ocr",
+      "line_count": 1421,
+      "function_count": 12,
+      "class_count": 10,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "extract_dwg_metadata",
+        "extract_dxf_metadata",
+        "extract_step_metadata",
+        "extract_metadata",
+        "__init__",
+        "analyze",
+        "__init__",
+        "extract_text",
+        "extract_text_from_bytes",
+        "extract_cad_metadata",
+        "extract_cad_metadata_from_bytes"
+      ]
+    },
+    {
+      "id": "int_pohoda",
+      "label": "Integrace: pohoda",
+      "category": "integration",
+      "description": "Pohoda XML API — Windows-1250, dataPack, XSD validace",
+      "detail": "Soubory: 8, Funkce: 19, Celery tasks: 3",
+      "parent": null,
+      "file_path": "backend/app/integrations/pohoda",
+      "line_count": 1585,
+      "function_count": 19,
+      "class_count": 12,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "send_xml",
+        "close",
+        "__init__",
+        "parse_stock_list",
+        "sync_entity_task",
+        "sync_daily_exports",
+        "sync_inventory_from_pohoda",
+        "__init__",
+        "build_customer_xml",
+        "build_order_xml",
+        "build_offer_xml",
+        "build_invoice_xml",
+        "build_stock_list_request",
+        "is_success",
+        "parse_response",
+        "__init__",
+        "validate",
+        "validate_string"
+      ]
+    },
+    {
+      "id": "core_celery_app",
+      "label": "Core: celery_app",
+      "category": "core",
+      "description": "Celery konfigurace (Redis broker, 4 fronty)",
+      "detail": "Třídy: 0, Funkce: 1",
+      "parent": null,
+      "file_path": "backend/app/core/celery_app.py",
+      "line_count": 70,
+      "function_count": 1,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": [
+        "debug_task"
+      ]
+    },
+    {
+      "id": "core_circuit_breaker",
+      "label": "Core: circuit_breaker",
+      "category": "core",
+      "description": "Circuit breaker pattern for external API calls.",
+      "detail": "Třídy: 2, Funkce: 6",
+      "parent": null,
+      "file_path": "backend/app/core/circuit_breaker.py",
+      "line_count": 90,
+      "function_count": 6,
+      "class_count": 2,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "state",
+        "can_execute",
+        "record_success",
+        "record_failure",
+        "get_status"
+      ]
+    },
+    {
+      "id": "core_config",
+      "label": "Core: config",
+      "category": "core",
+      "description": "Konfigurace aplikace (Pydantic Settings, env proměnné)",
+      "detail": "Třídy: 1, Funkce: 1",
+      "parent": null,
+      "file_path": "backend/app/core/config.py",
+      "line_count": 183,
+      "function_count": 1,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "get_settings"
+      ]
+    },
+    {
+      "id": "core_database",
+      "label": "Core: database",
+      "category": "core",
+      "description": "Databázové připojení (async SQLAlchemy, PostgreSQL)",
+      "detail": "Třídy: 1, Funkce: 3",
+      "parent": null,
+      "file_path": "backend/app/core/database.py",
+      "line_count": 100,
+      "function_count": 3,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "get_db",
+        "init_db",
+        "close_db"
+      ]
+    },
+    {
+      "id": "core_encryption",
+      "label": "Core: encryption",
+      "category": "core",
+      "description": "AES-256-GCM encryption for document storage at rest.",
+      "detail": "Třídy: 0, Funkce: 5",
+      "parent": null,
+      "file_path": "backend/app/core/encryption.py",
+      "line_count": 118,
+      "function_count": 5,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": [
+        "get_encryption_key",
+        "generate_encryption_key",
+        "encrypt_data",
+        "decrypt_data",
+        "is_encrypted"
+      ]
+    },
+    {
+      "id": "core_health",
+      "label": "Core: health",
+      "category": "core",
+      "description": "Healthcheck endpointy (/health, /ready)",
+      "detail": "Třídy: 0, Funkce: 4",
+      "parent": null,
+      "file_path": "backend/app/core/health.py",
+      "line_count": 91,
+      "function_count": 4,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": [
+        "check_database",
+        "check_redis",
+        "get_version",
+        "get_aggregated_health"
+      ]
+    },
+    {
+      "id": "core_logging",
+      "label": "Core: logging",
+      "category": "core",
+      "description": "Strukturované logování",
+      "detail": "Třídy: 0, Funkce: 3",
+      "parent": null,
+      "file_path": "backend/app/core/logging.py",
+      "line_count": 102,
+      "function_count": 3,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": [
+        "add_app_context",
+        "configure_logging",
+        "get_logger"
+      ]
+    },
+    {
+      "id": "core_metrics",
+      "label": "Core: metrics",
+      "category": "core",
+      "description": "Prometheus metriky (požadavky, latence, DB pool)",
+      "detail": "Třídy: 0, Funkce: 0",
+      "parent": null,
+      "file_path": "backend/app/core/metrics.py",
+      "line_count": 58,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "core_middleware",
+      "label": "Core: middleware",
+      "category": "core",
+      "description": "Request logging and correlation ID middleware.",
+      "detail": "Třídy: 2, Funkce: 2",
+      "parent": null,
+      "file_path": "backend/app/core/middleware.py",
+      "line_count": 44,
+      "function_count": 2,
+      "class_count": 2,
+      "endpoints": [],
+      "methods": [
+        "dispatch",
+        "dispatch"
+      ]
+    },
+    {
+      "id": "core_prometheus_middleware",
+      "label": "Core: prometheus_middleware",
+      "category": "core",
+      "description": "Core modul: prometheus_middleware",
+      "detail": "Třídy: 1, Funkce: 1",
+      "parent": null,
+      "file_path": "backend/app/core/prometheus_middleware.py",
+      "line_count": 38,
+      "function_count": 1,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "dispatch"
+      ]
+    },
+    {
+      "id": "core_rate_limiter",
+      "label": "Core: rate_limiter",
+      "category": "core",
+      "description": "Redis-based rate limiter for Claude API calls.",
+      "detail": "Třídy: 2, Funkce: 7",
+      "parent": null,
+      "file_path": "backend/app/core/rate_limiter.py",
+      "line_count": 162,
+      "function_count": 7,
+      "class_count": 2,
+      "endpoints": [],
+      "methods": [
+        "get_rate_limiter",
+        "__init__",
+        "__init__",
+        "acquire",
+        "release",
+        "record_usage",
+        "get_usage"
+      ]
+    },
+    {
+      "id": "core_security",
+      "label": "Core: security",
+      "category": "core",
+      "description": "Autentizace a autorizace (JWT, bcrypt, RBAC)",
+      "detail": "Třídy: 0, Funkce: 6",
+      "parent": null,
+      "file_path": "backend/app/core/security.py",
+      "line_count": 129,
+      "function_count": 6,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": [
+        "verify_password",
+        "get_password_hash",
+        "create_access_token",
+        "verify_token",
+        "create_password_reset_token",
+        "verify_password_reset_token"
+      ]
+    },
+    {
+      "id": "core_sentry",
+      "label": "Core: sentry",
+      "category": "core",
+      "description": "Sentry error tracking initialization.",
+      "detail": "Třídy: 0, Funkce: 1",
+      "parent": null,
+      "file_path": "backend/app/core/sentry.py",
+      "line_count": 23,
+      "function_count": 1,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": [
+        "init_sentry"
+      ]
+    },
+    {
+      "id": "core_websocket",
+      "label": "Core: websocket",
+      "category": "core",
+      "description": "WebSocket connection manager with Redis pub/sub for multi-worker broadcast.",
+      "detail": "Třídy: 1, Funkce: 9",
+      "parent": null,
+      "file_path": "backend/app/core/websocket.py",
+      "line_count": 171,
+      "function_count": 9,
+      "class_count": 1,
+      "endpoints": [],
+      "methods": [
+        "__init__",
+        "initialize",
+        "close",
+        "connect",
+        "disconnect",
+        "send_to_user",
+        "broadcast",
+        "publish_notification",
+        "start_redis_listener"
+      ]
+    },
+    {
+      "id": "page_home",
+      "label": "Stránka: /",
+      "category": "frontend",
+      "description": "",
+      "detail": "Komponenta: Home, Řádky: 5",
+      "parent": null,
+      "file_path": "frontend/src/app/page.tsx",
+      "line_count": 5,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_vitejte",
+      "label": "Stránka: /vitejte",
+      "category": "frontend",
+      "description": "\n            Připraveni začít?\n          ",
+      "detail": "Komponenta: useHydrated, Řádky: 668",
+      "parent": null,
+      "file_path": "frontend/src/app/vitejte/page.tsx",
+      "line_count": 668,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_login",
+      "label": "Stránka: /login",
+      "category": "frontend",
+      "description": "",
+      "detail": "Komponenta: LoginPage, Řádky: 111",
+      "parent": null,
+      "file_path": "frontend/src/app/login/page.tsx",
+      "line_count": 111,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_subdodavatele",
+      "label": "Stránka: /subdodavatele",
+      "category": "frontend",
+      "description": "\n              Subdodavatelé\n            ",
+      "detail": "Komponenta: SubdodavatelePage, Řádky: 567",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/subdodavatele/page.tsx",
+      "line_count": 567,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_reporting",
+      "label": "Stránka: /reporting",
+      "category": "frontend",
+      "description": "Reporty a analýzy — grafy trendů, exporty",
+      "detail": "Komponenta: StatCard, Řádky: 523",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/reporting/page.tsx",
+      "line_count": 523,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_kalkulace",
+      "label": "Stránka: /kalkulace",
+      "category": "frontend",
+      "description": "Seznam kalkulací — přehled nákladů, stavy schválení",
+      "detail": "Komponenta: KalkulacePage, Řádky: 298",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/kalkulace/page.tsx",
+      "line_count": 298,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_inbox",
+      "label": "Stránka: /inbox",
+      "category": "frontend",
+      "description": "E-mailová schránka — příchozí zprávy, klasifikace, odpovědi",
+      "detail": "Komponenta: InboxPage, Řádky: 130",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/inbox/page.tsx",
+      "line_count": 130,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_diagram",
+      "label": "Stránka: /diagram",
+      "category": "frontend",
+      "description": "\n          Architektura\n        ",
+      "detail": "Komponenta: DiagramPage, Řádky: 541",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/diagram/page.tsx",
+      "line_count": 541,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_zakazky",
+      "label": "Stránka: /zakazky",
+      "category": "frontend",
+      "description": "Seznam zakázek — filtrování, řazení, hromadné operace",
+      "detail": "Komponenta: ZakazkyPage, Řádky: 119",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/zakazky/page.tsx",
+      "line_count": 119,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_prezentace",
+      "label": "Stránka: /prezentace",
+      "category": "frontend",
+      "description": "",
+      "detail": "Komponenta: PrezentacePage, Řádky: 331",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/prezentace/page.tsx",
+      "line_count": 331,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_dokumenty",
+      "label": "Stránka: /dokumenty",
+      "category": "frontend",
+      "description": "Správa dokumentů — nahrávání, vyhledávání, generování PDF",
+      "detail": "Komponenta: DocumentsPage, Řádky: 232",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/dokumenty/page.tsx",
+      "line_count": 232,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_dashboard",
+      "label": "Stránka: /dashboard",
+      "category": "frontend",
+      "description": "Hlavní přehled — statistiky zakázek, grafy, rychlé akce",
+      "detail": "Komponenta: DashboardPage, Řádky: 78",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/dashboard/page.tsx",
+      "line_count": 78,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_nastaveni",
+      "label": "Stránka: /nastaveni",
+      "category": "frontend",
+      "description": "Nastavení aplikace — uživatel, systém, integrace",
+      "detail": "Komponenta: NastaveniPage, Řádky: 297",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/nastaveni/page.tsx",
+      "line_count": 297,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_pohoda",
+      "label": "Stránka: /pohoda",
+      "category": "frontend",
+      "description": "Pohoda synchronizace — stav sync, manuální akce",
+      "detail": "Komponenta: PohodaPage, Řádky: 373",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/pohoda/page.tsx",
+      "line_count": 373,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_materialy",
+      "label": "Stránka: /materialy",
+      "category": "frontend",
+      "description": "\n              Ceník materiálů\n            ",
+      "detail": "Komponenta: MaterialyPage, Řádky: 709",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/materialy/page.tsx",
+      "line_count": 709,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_kanban",
+      "label": "Stránka: /kanban",
+      "category": "frontend",
+      "description": "Kanban board — drag & drop správa zakázek ve sloupcích",
+      "detail": "Komponenta: KanbanPage, Řádky: 31",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/kanban/page.tsx",
+      "line_count": 31,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_trziste-ukolu",
+      "label": "Stránka: /trziste-ukolu",
+      "category": "frontend",
+      "description": "Trziste ukolu",
+      "detail": "Komponenta: RankBadge, Řádky: 479",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/trziste-ukolu/page.tsx",
+      "line_count": 479,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_automatizace",
+      "label": "Stránka: /automatizace",
+      "category": "frontend",
+      "description": "Automatizace — orchestrační pipeline, DLQ, statistiky",
+      "detail": "Komponenta: fetchApi, Řádky: 720",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/automatizace/page.tsx",
+      "line_count": 720,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_kalkulace_id",
+      "label": "Stránka: /kalkulace/[id]",
+      "category": "frontend",
+      "description": "Detail kalkulace — položky BOM, náklady, marže",
+      "detail": "Komponenta: CalculationDetailPage, Řádky: 1007",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/kalkulace/[id]/page.tsx",
+      "line_count": 1007,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    },
+    {
+      "id": "page_zakazky_id",
+      "label": "Stránka: /zakazky/[id]",
+      "category": "frontend",
+      "description": "Detail zakázky — workflow, dokumenty, kalkulace, historie",
+      "detail": "Komponenta: OrderDetailPage, Řádky: 204",
+      "parent": null,
+      "file_path": "frontend/src/app/(dashboard)/zakazky/[id]/page.tsx",
+      "line_count": 204,
+      "function_count": 0,
+      "class_count": 0,
+      "endpoints": [],
+      "methods": []
+    }
+  ],
+  "edges": [
+    {
+      "source": "api_auth",
+      "target": "model_user",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_auth",
+      "target": "svc_auth",
+      "label": "volá",
+      "edge_type": "dependency"
+    },
+    {
+      "source": "api_calculations",
+      "target": "model_user",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_calculations",
+      "target": "model_calculation_feedback",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_calculations",
+      "target": "svc_anomaly",
+      "label": "volá",
+      "edge_type": "dependency"
+    },
+    {
+      "source": "api_customers",
+      "target": "model_user",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_dashboard",
+      "target": "model_user",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_dashboard",
+      "target": "svc_recommendation",
+      "label": "volá",
+      "edge_type": "dependency"
+    },
+    {
+      "source": "api_documents",
+      "target": "model_order",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_documents",
+      "target": "model_user",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_documents",
+      "target": "model_drawing_analysis",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_gamification",
+      "target": "svc_gamification",
+      "label": "volá",
+      "edge_type": "dependency"
+    },
+    {
+      "source": "api_inbox",
+      "target": "model_user",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_material_prices",
+      "target": "model_user",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_material_prices",
+      "target": "svc_material_price",
+      "label": "volá",
+      "edge_type": "dependency"
+    },
+    {
+      "source": "api_notifications",
+      "target": "svc_notification",
+      "label": "volá",
+      "edge_type": "dependency"
+    },
+    {
+      "source": "api_notifications",
+      "target": "model_user",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_operations",
+      "target": "model_user",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_operations",
+      "target": "svc_operation",
+      "label": "volá",
+      "edge_type": "dependency"
+    },
+    {
+      "source": "api_orchestration",
+      "target": "model_dead_letter",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_orchestration",
+      "target": "model_inbox",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_orchestration",
+      "target": "model_processing_task",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_orchestration",
+      "target": "model_email_attachment",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_orders",
+      "target": "svc_assignment",
+      "label": "volá",
+      "edge_type": "dependency"
+    },
+    {
+      "source": "api_orders",
+      "target": "model_user",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_orders",
+      "target": "svc_prediction",
+      "label": "volá",
+      "edge_type": "dependency"
+    },
+    {
+      "source": "api_pohoda",
+      "target": "svc_pohoda",
+      "label": "volá",
+      "edge_type": "dependency"
+    },
+    {
+      "source": "api_pohoda",
+      "target": "model_user",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_pohoda",
+      "target": "model_pohoda_sync",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_reporting",
+      "target": "model_user",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_settings",
+      "target": "model_user",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_subcontractors",
+      "target": "svc_subcontractor",
+      "label": "volá",
+      "edge_type": "dependency"
+    },
+    {
+      "source": "api_subcontractors",
+      "target": "model_user",
+      "label": "používá",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "api_websocket",
+      "target": "svc_auth",
+      "label": "volá",
+      "edge_type": "dependency"
+    },
+    {
+      "source": "svc_assignment",
+      "target": "model_user",
+      "label": "čte/zapisuje",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "svc_auth",
+      "target": "model_user",
+      "label": "čte/zapisuje",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "svc_document_embedding",
+      "target": "model_document_embedding",
+      "label": "čte/zapisuje",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "svc_document_embedding",
+      "target": "model_document",
+      "label": "čte/zapisuje",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "svc_document_generator",
+      "target": "model_calculation",
+      "label": "čte/zapisuje",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "svc_document_generator",
+      "target": "model_order",
+      "label": "čte/zapisuje",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "svc_embedding",
+      "target": "model_order_embedding",
+      "label": "čte/zapisuje",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "svc_embedding",
+      "target": "model_order",
+      "label": "čte/zapisuje",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "svc_material_price",
+      "target": "int_excel",
+      "label": "volá",
+      "edge_type": "dependency"
+    },
+    {
+      "source": "svc_notification",
+      "target": "model_notification",
+      "label": "čte/zapisuje",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "svc_pohoda",
+      "target": "int_pohoda",
+      "label": "volá",
+      "edge_type": "dependency"
+    },
+    {
+      "source": "svc_pohoda",
+      "target": "model_calculation",
+      "label": "čte/zapisuje",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "svc_pohoda",
+      "target": "model_pohoda_sync",
+      "label": "čte/zapisuje",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "svc_pohoda",
+      "target": "model_material_price",
+      "label": "čte/zapisuje",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "agent_calculation_agent",
+      "target": "svc_material_price",
+      "label": "volá",
+      "edge_type": "dependency"
+    },
+    {
+      "source": "agent_process_advisor",
+      "target": "model_dead_letter",
+      "label": "čte/zapisuje",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "agent_process_advisor",
+      "target": "model_calculation",
+      "label": "čte/zapisuje",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "agent_process_advisor",
+      "target": "model_inbox",
+      "label": "čte/zapisuje",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "agent_process_advisor",
+      "target": "model_order",
+      "label": "čte/zapisuje",
+      "edge_type": "data_flow"
+    },
+    {
+      "source": "page_reporting",
+      "target": "api_reporting",
+      "label": "fetch",
+      "edge_type": "api_call"
+    },
+    {
+      "source": "page_kalkulace",
+      "target": "api_calculations",
+      "label": "fetch",
+      "edge_type": "api_call"
+    },
+    {
+      "source": "page_inbox",
+      "target": "api_inbox",
+      "label": "fetch",
+      "edge_type": "api_call"
+    },
+    {
+      "source": "page_zakazky",
+      "target": "api_orders",
+      "label": "fetch",
+      "edge_type": "api_call"
+    },
+    {
+      "source": "page_dokumenty",
+      "target": "api_documents",
+      "label": "fetch",
+      "edge_type": "api_call"
+    },
+    {
+      "source": "page_dashboard",
+      "target": "api_reporting",
+      "label": "fetch",
+      "edge_type": "api_call"
+    },
+    {
+      "source": "page_pohoda",
+      "target": "api_pohoda",
+      "label": "fetch",
+      "edge_type": "api_call"
+    },
+    {
+      "source": "page_kanban",
+      "target": "api_orders",
+      "label": "fetch",
+      "edge_type": "api_call"
+    },
+    {
+      "source": "page_automatizace",
+      "target": "api_orchestration",
+      "label": "fetch",
+      "edge_type": "api_call"
+    },
+    {
+      "source": "page_kalkulace_id",
+      "target": "api_calculations",
+      "label": "fetch",
+      "edge_type": "api_call"
+    },
+    {
+      "source": "page_zakazky_id",
+      "target": "api_orders",
+      "label": "fetch",
+      "edge_type": "api_call"
+    }
+  ],
+  "category_labels": {
+    "api": "REST API",
+    "service": "Služby",
+    "model": "Modely",
+    "agent": "AI Agenti",
+    "integration": "Integrace",
+    "core": "Jádro",
+    "frontend": "Frontend",
+    "celery": "Celery Tasks",
+    "orchestration": "Orchestrace"
+  },
+  "category_descriptions": {
+    "api": "REST API endpointy",
+    "service": "Business logika a služby",
+    "model": "Databázové modely (SQLAlchemy)",
+    "agent": "AI agenti (Anthropic Claude)",
+    "integration": "Externí integrace",
+    "core": "Jádro aplikace",
+    "frontend": "Frontendové stránky (Next.js)",
+    "celery": "Asynchronní úlohy (Celery)",
+    "orchestration": "Orchestrace dokumentů"
+  },
+  "stats": {
+    "total_nodes": 105,
+    "total_edges": 64,
+    "categories": {
+      "api": {
+        "count": 18,
+        "total_lines": 3869,
+        "total_functions": 115
+      },
+      "service": {
+        "count": 21,
+        "total_lines": 6199,
+        "total_functions": 132
+      },
+      "model": {
+        "count": 23,
+        "total_lines": 1490,
+        "total_functions": 0
+      },
+      "agent": {
+        "count": 5,
+        "total_lines": 1910,
+        "total_functions": 10
+      },
+      "integration": {
+        "count": 4,
+        "total_lines": 5122,
+        "total_functions": 51
+      },
+      "core": {
+        "count": 14,
+        "total_lines": 1379,
+        "total_functions": 49
+      },
+      "frontend": {
+        "count": 20,
+        "total_lines": 7423,
+        "total_functions": 0
+      }
+    },
+    "total_lines": 27392,
+    "total_functions": 357,
+    "total_classes": 94
+  }
+}

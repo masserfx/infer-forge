@@ -209,6 +209,7 @@ async def metrics() -> StarletteResponse:
 
 # API v1 routes
 from app.api.v1 import (
+    architecture,
     auth,
     calculations,
     customers,
@@ -228,6 +229,7 @@ from app.api.v1 import (
     websocket,
 )
 
+app.include_router(architecture.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(customers.router, prefix="/api/v1")
 app.include_router(orders.router, prefix="/api/v1")

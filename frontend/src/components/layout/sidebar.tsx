@@ -17,6 +17,7 @@ import {
   Package,
   Handshake,
   Presentation,
+  Network,
   Cpu,
   LogOut,
   User,
@@ -93,6 +94,11 @@ const navItems: NavItem[] = [
     href: "/pohoda",
     label: "Pohoda",
     icon: RefreshCw,
+  },
+  {
+    href: "/diagram",
+    label: "Architektura",
+    icon: Network,
   },
   {
     href: "/prezentace",

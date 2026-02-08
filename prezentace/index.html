@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INFER FORGE — Architektura aplikace</title>
+    <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+    <script src="https://unpkg.com/layout-base@2.0.1/layout-base.js"></script>
+    <script src="https://unpkg.com/cose-base@2.2.0/cose-base.js"></script>
+    <script src="https://unpkg.com/cytoscape-cose-bilkent@4.1.0/cytoscape-cose-bilkent.js"></script>
+    <style>
+        :root {
+            --bg: #0a0e17;
+            --bg-card: #111827;
+            --bg-hover: #1f2937;
+            --border: #1e293b;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.3);
+
+            --c-api: #f59e0b;
+            --c-service: #3b82f6;
+            --c-model: #8b5cf6;
+            --c-agent: #ef4444;
+            --c-integration: #10b981;
+            --c-core: #6b7280;
+            --c-frontend: #06b6d4;
+            --c-celery: #f97316;
+            --c-orchestration: #ec4899;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* ── Header ── */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 56px;
+            background: rgba(10, 14, 23, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 1000;
+            gap: 16px;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            white-space: nowrap;
+        }
+
+        .header .stats {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .header .stats span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .header .stats .num {
+            color: var(--accent);
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .header-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .btn .icon {
+            font-size: 16px;
+        }
+
+        .btn.loading .icon {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            position: fixed;
+            top: 56px;
+            left: 0;
+            bottom: 0;
+            width: 260px;
+            background: rgba(17, 24, 39, 0.95);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid var(--border);
+            z-index: 900;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .sidebar h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            padding: 4px 8px;
+        }
+
+        .filter-group {
+            margin-bottom: 16px;
+        }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s;
+            font-size: 13px;
+        }
+
+        .filter-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .filter-item input[type="checkbox"] {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .filter-item input[type="checkbox"]:checked {
+            border-color: var(--accent);
+            background: var(--accent);
+        }
+
+        .filter-item input[type="checkbox"]:checked::after {
+            content: '\\2713';
+            position: absolute;
+            top: -1px;
+            left: 2px;
+            font-size: 11px;
+            color: white;
+        }
+
+        .color-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .filter-count {
+            margin-left: auto;
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--bg);
+            padding: 1px 6px;
+            border-radius: 10px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 13px;
+            margin-bottom: 12px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .search-box::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* ── Layout selector ── */
+        .layout-selector {
+            margin-bottom: 16px;
+        }
+
+        .layout-btn {
+            display: block;
+            width: 100%;
+            padding: 6px 12px;
+            margin-bottom: 4px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 12px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.15s;
+        }
+
+        .layout-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text);
+        }
+
+        .layout-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        /* ── Graph container ── */
+        #cy {
+            position: fixed;
+            top: 56px;
+            left: 260px;
+            right: 0;
+            bottom: 0;
+            background: var(--bg);
+        }
+
+        /* Background grid */
+        #cy::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                radial-gradient(circle at 1px 1px, rgba(59, 130, 246, 0.06) 1px, transparent 0);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+
+        /* ── Tooltip ── */
+        .tooltip {
+            position: fixed;
+            z-index: 2000;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0;
+            min-width: 320px;
+            max-width: 440px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 30px var(--accent-glow);
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(8px) scale(0.95);
+            transition: opacity 0.2s, transform 0.2s;
+            overflow: hidden;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .tooltip-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tooltip-header .badge {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .tooltip-header h4 {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .tooltip-body {
+            padding: 12px 16px;
+        }
+
+        .tooltip-body p {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .tooltip-body .detail {
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 8px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .tooltip-body .detail span {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .tooltip-body .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .tooltip-body .tag {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--bg);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            font-family: 'SF Mono', 'JetBrains Mono', monospace;
+        }
+
+        .tooltip-footer {
+            padding: 8px 16px;
+            border-top: 1px solid var(--border);
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tooltip-footer .filepath {
+            font-family: 'SF Mono', 'JetBrains Mono', monospace;
+            font-size: 10px;
+        }
+
+        /* ── Minimap ── */
+        .minimap-container {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            width: 200px;
+            height: 150px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(17, 24, 39, 0.9);
+            overflow: hidden;
+            z-index: 800;
+        }
+
+        /* ── Loading overlay ── */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+            transition: opacity 0.4s;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        .loading-text {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* ── Legend ── */
+        .edge-legend {
+            display: flex;
+            gap: 16px;
+            padding: 8px 0;
+            border-top: 1px solid var(--border);
+            margin-top: 8px;
+        }
+
+        .edge-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .edge-legend-line {
+            width: 20px;
+            height: 2px;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            #cy { left: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Analyzuji architekturu...</div>
+</div>
+
+<!-- Header -->
+<div class="header">
+    <h1>INFER FORGE</h1>
+    <div class="stats" id="stats">
+        <span>Uzly: <span class="num" id="stat-nodes">—</span></span>
+        <span>Hrany: <span class="num" id="stat-edges">—</span></span>
+        <span>Soubory: <span class="num" id="stat-lines">—</span> LOC</span>
+        <span>Funkce: <span class="num" id="stat-funcs">—</span></span>
+    </div>
+    <div class="header-actions">
+        <button class="btn" id="btn-fit" title="Vejít do okna">
+            <span class="icon">&#x2922;</span> Vejít
+        </button>
+        <button class="btn" id="btn-export" title="Exportovat PNG">
+            <span class="icon">&#x1F4F7;</span> PNG
+        </button>
+        <button class="btn btn-primary" id="btn-refresh" title="Obnovit data z codebase">
+            <span class="icon">&#x21BB;</span> Obnovit
+        </button>
+    </div>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <input type="text" class="search-box" id="search" placeholder="Hledat uzel...">
+
+    <div class="filter-group">
+        <h3>Kategorie</h3>
+        <div id="category-filters"></div>
+    </div>
+
+    <div class="filter-group">
+        <h3>Rozložení</h3>
+        <div class="layout-selector" id="layout-selector">
+            <button class="layout-btn active" data-layout="cose-bilkent">Organické (CoSE)</button>
+            <button class="layout-btn" data-layout="circle">Kruhové</button>
+            <button class="layout-btn" data-layout="concentric">Soustředné</button>
+            <button class="layout-btn" data-layout="breadthfirst">Hierarchické</button>
+            <button class="layout-btn" data-layout="grid">Mřížka</button>
+        </div>
+    </div>
+
+    <div class="filter-group">
+        <h3>Hrany</h3>
+        <div class="edge-legend">
+            <div class="edge-legend-item">
+                <div class="edge-legend-line" style="background: #64748b;"></div>
+                závisí na
+            </div>
+            <div class="edge-legend-item">
+                <div class="edge-legend-line" style="background: #3b82f6;"></div>
+                API volání
+            </div>
+        </div>
+        <div class="edge-legend">
+            <div class="edge-legend-item">
+                <div class="edge-legend-line" style="background: #8b5cf6;"></div>
+                data flow
+            </div>
+            <div class="edge-legend-item">
+                <div class="edge-legend-line" style="background: #ef4444;"></div>
+                spouští
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Graph -->
+<div id="cy"></div>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip">
+    <div class="tooltip-header">
+        <span class="badge" id="tip-badge"></span>
+        <h4 id="tip-title"></h4>
+    </div>
+    <div class="tooltip-body">
+        <p id="tip-desc"></p>
+        <div class="detail" id="tip-detail"></div>
+        <div class="tag-list" id="tip-tags"></div>
+    </div>
+    <div class="tooltip-footer">
+        <span id="tip-filepath" class="filepath"></span>
+    </div>
+</div>
+
+<script>
+// ── Category config ──
+const CATEGORY_COLORS = {
+    api:           { bg: '#f59e0b', border: '#d97706', text: '#000' },
+    service:       { bg: '#3b82f6', border: '#2563eb', text: '#fff' },
+    model:         { bg: '#8b5cf6', border: '#7c3aed', text: '#fff' },
+    agent:         { bg: '#ef4444', border: '#dc2626', text: '#fff' },
+    integration:   { bg: '#10b981', border: '#059669', text: '#fff' },
+    core:          { bg: '#6b7280', border: '#4b5563', text: '#fff' },
+    frontend:      { bg: '#06b6d4', border: '#0891b2', text: '#000' },
+    celery:        { bg: '#f97316', border: '#ea580c', text: '#000' },
+    orchestration: { bg: '#ec4899', border: '#db2777', text: '#fff' },
+};
+
+const CATEGORY_SHAPES = {
+    api:           'round-rectangle',
+    service:       'ellipse',
+    model:         'diamond',
+    agent:         'star',
+    integration:   'hexagon',
+    core:          'octagon',
+    frontend:      'round-rectangle',
+    celery:        'pentagon',
+    orchestration: 'vee',
+};
+
+const EDGE_COLORS = {
+    dependency: '#64748b',
+    api_call:   '#3b82f6',
+    data_flow:  '#8b5cf6',
+    triggers:   '#ef4444',
+};
+
+let cy;
+let graphData = null;
+let activeCategories = new Set();
+let currentLayout = 'cose-bilkent';
+
+// ── Load data ──
+async function loadData() {
+    try {
+        const resp = await fetch('graph_data.json?t=' + Date.now());
+        graphData = await resp.json();
+        return graphData;
+    } catch (err) {
+        console.error('Failed to load graph data:', err);
+        return null;
+    }
+}
+
+// ── Build Cytoscape elements ──
+function buildElements(data) {
+    const elements = [];
+
+    for (const node of data.nodes) {
+        if (!activeCategories.has(node.category)) continue;
+
+        const colors = CATEGORY_COLORS[node.category] || CATEGORY_COLORS.core;
+        const shape = CATEGORY_SHAPES[node.category] || 'ellipse';
+        // Size based on line count + function count
+        const sizeFactor = Math.max(25, Math.min(65, 25 + Math.sqrt(node.line_count + node.function_count * 10) * 2));
+
+        elements.push({
+            group: 'nodes',
+            data: {
+                id: node.id,
+                label: node.label.replace(/^(API|Service|Model|Agent|Integrace|Core|Stránka): ?/, ''),
+                fullLabel: node.label,
+                category: node.category,
+                description: node.description,
+                detail: node.detail,
+                file_path: node.file_path,
+                line_count: node.line_count,
+                function_count: node.function_count,
+                endpoints: node.endpoints || [],
+                methods: node.methods || [],
+                bgColor: colors.bg,
+                borderColor: colors.border,
+                textColor: colors.text,
+                shape: shape,
+                size: sizeFactor,
+            },
+        });
+    }
+
+    const nodeIds = new Set(elements.map(e => e.data.id));
+
+    for (const edge of data.edges) {
+        if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) continue;
+        elements.push({
+            group: 'edges',
+            data: {
+                source: edge.source,
+                target: edge.target,
+                label: edge.label,
+                edgeType: edge.edge_type,
+                lineColor: EDGE_COLORS[edge.edge_type] || '#64748b',
+            },
+        });
+    }
+
+    return elements;
+}
+
+// ── Layout configs ──
+function getLayoutConfig(name) {
+    const layouts = {
+        'cose-bilkent': {
+            name: 'cose-bilkent',
+            animate: 'end',
+            animationDuration: 600,
+            nodeRepulsion: 8000,
+            idealEdgeLength: 120,
+            edgeElasticity: 0.45,
+            nestingFactor: 0.1,
+            gravity: 0.2,
+            numIter: 2500,
+            tile: true,
+            tilingPaddingVertical: 20,
+            tilingPaddingHorizontal: 20,
+        },
+        'circle': {
+            name: 'circle',
+            animate: true,
+            animationDuration: 500,
+            padding: 50,
+        },
+        'concentric': {
+            name: 'concentric',
+            animate: true,
+            animationDuration: 500,
+            concentric: node => {
+                const priority = { core: 5, model: 4, service: 3, api: 2, agent: 2, integration: 1, frontend: 0 };
+                return priority[node.data('category')] || 0;
+            },
+            levelWidth: () => 2,
+            padding: 50,
+        },
+        'breadthfirst': {
+            name: 'breadthfirst',
+            animate: true,
+            animationDuration: 500,
+            directed: true,
+            padding: 40,
+            spacingFactor: 1.2,
+        },
+        'grid': {
+            name: 'grid',
+            animate: true,
+            animationDuration: 500,
+            padding: 30,
+            rows: undefined,
+            cols: undefined,
+            sort: (a, b) => {
+                const catOrder = ['core', 'model', 'service', 'api', 'agent', 'integration', 'frontend'];
+                return catOrder.indexOf(a.data('category')) - catOrder.indexOf(b.data('category'));
+            },
+        },
+    };
+    return layouts[name] || layouts['cose-bilkent'];
+}
+
+// ── Initialize Cytoscape ──
+function initCytoscape(elements) {
+    if (cy) cy.destroy();
+
+    cy = cytoscape({
+        container: document.getElementById('cy'),
+        elements: elements,
+        style: [
+            // Default node style
+            {
+                selector: 'node',
+                style: {
+                    'width': 'data(size)',
+                    'height': 'data(size)',
+                    'background-color': 'data(bgColor)',
+                    'background-opacity': 0.85,
+                    'border-width': 2.5,
+                    'border-color': 'data(borderColor)',
+                    'border-opacity': 0.9,
+                    'label': 'data(label)',
+                    'text-valign': 'bottom',
+                    'text-halign': 'center',
+                    'font-size': 11,
+                    'font-weight': 'bold',
+                    'color': '#cbd5e1',
+                    'text-margin-y': 8,
+                    'text-outline-color': '#0a0e17',
+                    'text-outline-width': 2,
+                    'text-outline-opacity': 0.8,
+                    'shape': 'data(shape)',
+                    'text-wrap': 'ellipsis',
+                    'text-max-width': '110px',
+                    'opacity': 1,
+                    'overlay-padding': 6,
+                    'transition-property': 'opacity, width, height, border-width, border-color, background-opacity',
+                    'transition-duration': '0.25s',
+                    'z-index': 10,
+                },
+            },
+            // AI Agent nodes — special glow
+            {
+                selector: 'node[category = "agent"]',
+                style: {
+                    'border-width': 3,
+                    'background-opacity': 0.95,
+                    'overlay-color': '#ef4444',
+                    'overlay-opacity': 0.08,
+                },
+            },
+            // Integration nodes — distinctive
+            {
+                selector: 'node[category = "integration"]',
+                style: {
+                    'border-width': 3,
+                    'border-style': 'dashed',
+                },
+            },
+            // Core nodes — subtle
+            {
+                selector: 'node[category = "core"]',
+                style: {
+                    'background-opacity': 0.6,
+                    'border-style': 'dotted',
+                },
+            },
+            // Node hover
+            {
+                selector: 'node:active, node.hover',
+                style: {
+                    'border-width': 5,
+                    'border-color': '#60a5fa',
+                    'background-opacity': 1,
+                    'width': ele => ele.data('size') * 1.25,
+                    'height': ele => ele.data('size') * 1.25,
+                    'font-size': 13,
+                    'color': '#f1f5f9',
+                    'z-index': 100,
+                    'overlay-color': '#3b82f6',
+                    'overlay-opacity': 0.12,
+                },
+            },
+            // Highlighted node (neighbor of hovered)
+            {
+                selector: 'node.neighbor',
+                style: {
+                    'border-width': 3.5,
+                    'border-color': '#60a5fa',
+                    'background-opacity': 0.95,
+                    'z-index': 80,
+                },
+            },
+            // Faded
+            {
+                selector: 'node.faded',
+                style: {
+                    'opacity': 0.12,
+                },
+            },
+            // Search match
+            {
+                selector: 'node.search-match',
+                style: {
+                    'border-width': 5,
+                    'border-color': '#22c55e',
+                    'background-opacity': 1,
+                    'z-index': 150,
+                    'overlay-color': '#22c55e',
+                    'overlay-opacity': 0.15,
+                },
+            },
+            // Edges
+            {
+                selector: 'edge',
+                style: {
+                    'width': 1.5,
+                    'line-color': 'data(lineColor)',
+                    'target-arrow-color': 'data(lineColor)',
+                    'target-arrow-shape': 'triangle',
+                    'arrow-scale': 0.8,
+                    'curve-style': 'bezier',
+                    'opacity': 0.3,
+                    'line-style': 'solid',
+                    'transition-property': 'opacity, width, line-color',
+                    'transition-duration': '0.2s',
+                },
+            },
+            // Trigger edges — dashed
+            {
+                selector: 'edge[edgeType = "triggers"]',
+                style: {
+                    'line-style': 'dashed',
+                    'line-dash-pattern': [8, 4],
+                    'width': 2,
+                    'opacity': 0.5,
+                },
+            },
+            // Data flow edges
+            {
+                selector: 'edge[edgeType = "data_flow"]',
+                style: {
+                    'curve-style': 'unbundled-bezier',
+                    'opacity': 0.25,
+                },
+            },
+            // Edge on hover of connected node
+            {
+                selector: 'edge.highlighted',
+                style: {
+                    'opacity': 1,
+                    'width': 3.5,
+                    'z-index': 50,
+                },
+            },
+            {
+                selector: 'edge.faded',
+                style: {
+                    'opacity': 0.03,
+                },
+            },
+        ],
+        layout: getLayoutConfig(currentLayout),
+        minZoom: 0.15,
+        maxZoom: 3,
+        wheelSensitivity: 0.3,
+    });
+
+    setupInteractions();
+    startAgentPulse();
+}
+
+// ── Agent Pulse Animation ──
+let pulseInterval;
+function startAgentPulse() {
+    if (pulseInterval) clearInterval(pulseInterval);
+    let phase = 0;
+    pulseInterval = setInterval(() => {
+        if (!cy) return;
+        const agents = cy.nodes('[category = "agent"]');
+        if (agents.empty()) return;
+        phase = (phase + 1) % 2;
+        agents.forEach(node => {
+            if (node.hasClass('faded') || node.hasClass('hover')) return;
+            const baseSize = node.data('size');
+            const targetSize = phase === 0 ? baseSize * 1.08 : baseSize;
+            node.animate({
+                style: { 'width': targetSize, 'height': targetSize },
+            }, { duration: 800, easing: 'ease-in-out-sine' });
+        });
+    }, 1600);
+}
+
+// ── Tooltip ──
+const tooltip = document.getElementById('tooltip');
+const tipBadge = document.getElementById('tip-badge');
+const tipTitle = document.getElementById('tip-title');
+const tipDesc = document.getElementById('tip-desc');
+const tipDetail = document.getElementById('tip-detail');
+const tipTags = document.getElementById('tip-tags');
+const tipFilepath = document.getElementById('tip-filepath');
+
+let tooltipTimeout;
+
+function showTooltip(node, position) {
+    const d = node.data();
+    const catLabel = graphData?.category_labels?.[d.category] || d.category;
+    const colors = CATEGORY_COLORS[d.category] || CATEGORY_COLORS.core;
+
+    tipBadge.textContent = catLabel;
+    tipBadge.style.background = colors.bg;
+    tipBadge.style.color = colors.text;
+    tipTitle.textContent = d.fullLabel;
+    tipDesc.textContent = d.description || 'Bez popisu';
+
+    let detailHTML = '';
+    if (d.line_count > 0) detailHTML += `<span>${d.line_count}</span> LOC &nbsp;|&nbsp; `;
+    if (d.function_count > 0) detailHTML += `<span>${d.function_count}</span> funkcí &nbsp;|&nbsp; `;
+    if (d.detail) detailHTML += d.detail;
+    tipDetail.innerHTML = detailHTML || '';
+
+    // Tags: endpoints or methods
+    let tagsHTML = '';
+    const items = d.endpoints.length > 0 ? d.endpoints : d.methods;
+    items.slice(0, 8).forEach(item => {
+        tagsHTML += `<span class="tag">${escapeHtml(item)}</span>`;
+    });
+    if (items.length > 8) {
+        tagsHTML += `<span class="tag">+${items.length - 8} dalších</span>`;
+    }
+    tipTags.innerHTML = tagsHTML;
+
+    // Show connection count
+    const edges = node.connectedEdges();
+    const incomingCount = edges.filter(e => e.data('target') === d.id).length;
+    const outgoingCount = edges.filter(e => e.data('source') === d.id).length;
+    const connInfo = [];
+    if (incomingCount > 0) connInfo.push(`${incomingCount} příchozích`);
+    if (outgoingCount > 0) connInfo.push(`${outgoingCount} odchozích`);
+    const connText = connInfo.length > 0 ? ` | ${connInfo.join(', ')}` : '';
+
+    tipFilepath.textContent = (d.file_path || '') + connText;
+
+    // Position tooltip
+    const rect = document.getElementById('cy').getBoundingClientRect();
+    let x = position.x + rect.left + 20;
+    let y = position.y + rect.top - 20;
+
+    // Keep on screen
+    const tw = 380;
+    const th = 280;
+    if (x + tw > window.innerWidth) x = position.x + rect.left - tw - 20;
+    if (y + th > window.innerHeight) y = window.innerHeight - th - 20;
+    if (y < 60) y = 60;
+
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+    tooltip.classList.add('visible');
+}
+
+function hideTooltip() {
+    tooltip.classList.remove('visible');
+}
+
+function escapeHtml(text) {
+    const el = document.createElement('span');
+    el.textContent = text;
+    return el.innerHTML;
+}
+
+// ── Interactions ──
+function setupInteractions() {
+    // Hover effects
+    cy.on('mouseover', 'node', evt => {
+        const node = evt.target;
+        clearTimeout(tooltipTimeout);
+
+        // Highlight connected nodes and edges
+        const connectedEdges = node.connectedEdges();
+        const neighbors = connectedEdges.connectedNodes().difference(node);
+        cy.elements().addClass('faded');
+        node.removeClass('faded').addClass('hover');
+        neighbors.removeClass('faded').addClass('neighbor');
+        connectedEdges.removeClass('faded').addClass('highlighted');
+
+        tooltipTimeout = setTimeout(() => {
+            const pos = evt.renderedPosition || evt.position;
+            showTooltip(node, pos);
+        }, 150);
+    });
+
+    cy.on('mouseout', 'node', () => {
+        clearTimeout(tooltipTimeout);
+        cy.elements().removeClass('faded hover highlighted neighbor');
+        hideTooltip();
+    });
+
+    cy.on('mousemove', 'node', evt => {
+        if (tooltip.classList.contains('visible')) {
+            const pos = evt.renderedPosition || evt.position;
+            const rect = document.getElementById('cy').getBoundingClientRect();
+            let x = pos.x + rect.left + 20;
+            let y = pos.y + rect.top - 20;
+            const tw = 380;
+            if (x + tw > window.innerWidth) x = pos.x + rect.left - tw - 20;
+            tooltip.style.left = x + 'px';
+            tooltip.style.top = y + 'px';
+        }
+    });
+
+    // Click to focus
+    cy.on('tap', 'node', evt => {
+        const node = evt.target;
+        cy.animate({
+            center: { eles: node },
+            zoom: 1.5,
+        }, { duration: 400 });
+    });
+
+    // Click background to reset
+    cy.on('tap', evt => {
+        if (evt.target === cy) {
+            cy.elements().removeClass('highlighted faded hover search-match');
+        }
+    });
+}
+
+// ── Sidebar filters ──
+function buildFilters() {
+    const container = document.getElementById('category-filters');
+    container.innerHTML = '';
+
+    if (!graphData) return;
+
+    const counts = {};
+    for (const node of graphData.nodes) {
+        counts[node.category] = (counts[node.category] || 0) + 1;
+    }
+
+    for (const [cat, info] of Object.entries(CATEGORY_COLORS)) {
+        if (!counts[cat]) continue;
+
+        const label = graphData.category_labels?.[cat] || cat;
+        const div = document.createElement('label');
+        div.className = 'filter-item';
+        div.innerHTML = `
+            <input type="checkbox" data-category="${cat}" ${activeCategories.has(cat) ? 'checked' : ''}>
+            <div class="color-dot" style="background: ${info.bg}"></div>
+            ${label}
+            <span class="filter-count">${counts[cat]}</span>
+        `;
+        container.appendChild(div);
+
+        div.querySelector('input').addEventListener('change', evt => {
+            if (evt.target.checked) {
+                activeCategories.add(cat);
+            } else {
+                activeCategories.delete(cat);
+            }
+            rebuildGraph();
+        });
+    }
+}
+
+// ── Search ──
+document.getElementById('search').addEventListener('input', evt => {
+    const query = evt.target.value.toLowerCase().trim();
+    cy.elements().removeClass('search-match faded');
+
+    if (!query) return;
+
+    const matched = cy.nodes().filter(node => {
+        const d = node.data();
+        return (
+            d.label.toLowerCase().includes(query) ||
+            d.fullLabel.toLowerCase().includes(query) ||
+            d.description.toLowerCase().includes(query) ||
+            d.file_path.toLowerCase().includes(query) ||
+            (d.endpoints || []).some(e => e.toLowerCase().includes(query)) ||
+            (d.methods || []).some(m => m.toLowerCase().includes(query))
+        );
+    });
+
+    if (matched.length > 0) {
+        cy.elements().addClass('faded');
+        matched.removeClass('faded').addClass('search-match');
+        matched.connectedEdges().removeClass('faded');
+        matched.connectedEdges().connectedNodes().removeClass('faded');
+
+        if (matched.length <= 5) {
+            cy.animate({ fit: { eles: matched, padding: 80 } }, { duration: 400 });
+        }
+    }
+});
+
+// ── Layout buttons ──
+document.querySelectorAll('.layout-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentLayout = btn.dataset.layout;
+        cy.layout(getLayoutConfig(currentLayout)).run();
+    });
+});
+
+// ── Fit button ──
+document.getElementById('btn-fit').addEventListener('click', () => {
+    cy.animate({ fit: { padding: 50 } }, { duration: 400 });
+});
+
+// ── Export PNG ──
+document.getElementById('btn-export').addEventListener('click', () => {
+    const png = cy.png({ scale: 2, bg: '#0a0e17', full: true });
+    const link = document.createElement('a');
+    link.download = 'infer-forge-architecture.png';
+    link.href = png;
+    link.click();
+});
+
+// ── Refresh button ──
+document.getElementById('btn-refresh').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-refresh');
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    try {
+        // Try to call the Python server API to re-analyze codebase
+        try {
+            const resp = await fetch('/api/refresh');
+            if (resp.ok) {
+                graphData = await resp.json();
+            } else {
+                // Fallback: just reload the static JSON
+                await loadData();
+            }
+        } catch {
+            // Server not running, just reload static JSON
+            await loadData();
+        }
+
+        if (graphData) {
+            // Preserve current categories, add new ones
+            for (const node of graphData.nodes) {
+                activeCategories.add(node.category);
+            }
+            buildFilters();
+            rebuildGraph();
+        }
+    } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+    }
+});
+
+// ── Rebuild graph ──
+function rebuildGraph() {
+    if (!graphData) return;
+
+    const elements = buildElements(graphData);
+    try {
+        initCytoscape(elements);
+    } catch (err) {
+        console.error('Cytoscape init failed with layout', currentLayout, err);
+        // Fallback to simple layout
+        currentLayout = 'circle';
+        try {
+            initCytoscape(elements);
+        } catch (err2) {
+            console.error('Fallback layout also failed:', err2);
+            document.getElementById('loading').innerHTML = `<p style="color: #ef4444;">Graf nelze vykreslit: ${err2.message}</p>`;
+        }
+    }
+    updateStats();
+}
+
+// ── Update stats ──
+function updateStats() {
+    if (!graphData) return;
+    const visible = graphData.nodes.filter(n => activeCategories.has(n.category));
+    document.getElementById('stat-nodes').textContent = visible.length;
+    document.getElementById('stat-edges').textContent = graphData.edges.length;
+    document.getElementById('stat-lines').textContent = graphData.stats.total_lines.toLocaleString('cs');
+    document.getElementById('stat-funcs').textContent = graphData.stats.total_functions;
+}
+
+// ── Register cose-bilkent plugin ──
+try {
+    if (typeof cytoscapeCoseBilkent !== 'undefined') {
+        cytoscape.use(cytoscapeCoseBilkent);
+    }
+} catch (e) {
+    console.warn('cose-bilkent plugin not available, using fallback layout');
+    currentLayout = 'circle';
+}
+
+// ── Init ──
+async function init() {
+    try {
+        const data = await loadData();
+        if (!data) {
+            document.getElementById('loading').innerHTML = '<p style="color: #ef4444;">Chyba: nelze na\u010d\u00edst graph_data.json. Server b\u011b\u017e\u00ed?</p>';
+            return;
+        }
+
+        // Enable all categories by default
+        for (const node of data.nodes) {
+            activeCategories.add(node.category);
+        }
+
+        buildFilters();
+        rebuildGraph();
+        updateStats();
+
+        // Hide loading
+        setTimeout(() => {
+            document.getElementById('loading').classList.add('hidden');
+        }, 800);
+    } catch (err) {
+        console.error('Init error:', err);
+        document.getElementById('loading').innerHTML = `<p style="color: #ef4444;">Chyba: ${err.message}</p>`;
+    }
+}
+
+init();
+</script>
+</body>
+</html>
