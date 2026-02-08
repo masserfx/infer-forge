@@ -5,13 +5,15 @@ export const TitleSlide: React.FC = () => {
 
   const logoScale = interpolate(frame, [0, 30], [0.3, 1], { extrapolateRight: "clamp" });
   const logoOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: "clamp" });
-  const titleY = interpolate(frame, [20, 50], [60, 0], { extrapolateRight: "clamp" });
-  const titleOpacity = interpolate(frame, [20, 45], [0, 1], { extrapolateRight: "clamp" });
-  const subtitleOpacity = interpolate(frame, [40, 65], [0, 1], { extrapolateRight: "clamp" });
-  const lineWidth = interpolate(frame, [50, 90], [0, 400], { extrapolateRight: "clamp" });
-  const badgeOpacity = interpolate(frame, [70, 95], [0, 1], { extrapolateRight: "clamp" });
+  const titleY = interpolate(frame, [15, 45], [60, 0], { extrapolateRight: "clamp" });
+  const titleOpacity = interpolate(frame, [15, 40], [0, 1], { extrapolateRight: "clamp" });
+  const taglineOpacity = interpolate(frame, [40, 60], [0, 1], { extrapolateRight: "clamp" });
+  const taglineY = interpolate(frame, [40, 60], [20, 0], { extrapolateRight: "clamp" });
+  const lineWidth = interpolate(frame, [55, 90], [0, 500], { extrapolateRight: "clamp" });
+  const descOpacity = interpolate(frame, [70, 90], [0, 1], { extrapolateRight: "clamp" });
+  const badgeOpacity = interpolate(frame, [90, 115], [0, 1], { extrapolateRight: "clamp" });
+  const badgeY = interpolate(frame, [90, 115], [15, 0], { extrapolateRight: "clamp" });
 
-  // Subtle background gradient animation
   const gradAngle = interpolate(frame, [0, 150], [135, 145]);
 
   return (
@@ -41,12 +43,12 @@ export const TitleSlide: React.FC = () => {
       <div style={{
         opacity: logoOpacity,
         transform: `scale(${logoScale})`,
-        fontSize: 28,
+        fontSize: 32,
         fontWeight: 800,
-        letterSpacing: 12,
+        letterSpacing: 14,
         color: "#ef4444",
         textTransform: "uppercase",
-        marginBottom: 20,
+        marginBottom: 24,
       }}>
         INFER FORGE
       </div>
@@ -55,16 +57,29 @@ export const TitleSlide: React.FC = () => {
       <div style={{
         opacity: titleOpacity,
         transform: `translateY(${titleY}px)`,
-        fontSize: 72,
+        fontSize: 76,
         fontWeight: 800,
         color: "#ffffff",
         textAlign: "center",
         lineHeight: 1.1,
         maxWidth: 1200,
       }}>
-        Automatizacni platforma
+        Od poptavky po fakturaci
         <br />
-        <span style={{ color: "#ef4444" }}>pro strojirenstvi</span>
+        <span style={{ color: "#ef4444" }}>— automaticky</span>
+      </div>
+
+      {/* Animated tagline */}
+      <div style={{
+        opacity: taglineOpacity,
+        transform: `translateY(${taglineY}px)`,
+        fontSize: 30,
+        color: "#cbd5e1",
+        textAlign: "center",
+        marginTop: 20,
+        fontWeight: 500,
+      }}>
+        Automatizacni platforma pro strojirenstvi
       </div>
 
       {/* Divider line */}
@@ -76,40 +91,48 @@ export const TitleSlide: React.FC = () => {
         borderRadius: 2,
       }} />
 
-      {/* Subtitle */}
+      {/* Company description */}
       <div style={{
-        opacity: subtitleOpacity,
-        fontSize: 28,
+        opacity: descOpacity,
+        fontSize: 24,
         color: "#94a3b8",
         textAlign: "center",
         lineHeight: 1.6,
         maxWidth: 900,
       }}>
-        Infer s.r.o. — potrubni dily, svarence, ocelove konstrukce
-        <br />
-        ISO 9001:2016 | ICO: 04856562
+        Infer s.r.o. — potrubni dily, svarence, ocelove konstrukce, montaze
       </div>
 
-      {/* Tech badges */}
+      {/* ISO badge + tech */}
       <div style={{
         opacity: badgeOpacity,
+        transform: `translateY(${badgeY}px)`,
         display: "flex",
         gap: 16,
-        marginTop: 40,
+        marginTop: 35,
       }}>
-        {["Python + FastAPI", "Next.js 16", "PostgreSQL + pgvector", "Claude AI"].map((tech) => (
-          <div key={tech} style={{
-            padding: "8px 20px",
-            borderRadius: 20,
-            border: "1px solid rgba(255,255,255,0.15)",
-            color: "#cbd5e1",
-            fontSize: 16,
-            fontWeight: 500,
-            background: "rgba(255,255,255,0.05)",
-          }}>
-            {tech}
-          </div>
-        ))}
+        <div style={{
+          padding: "10px 24px",
+          borderRadius: 20,
+          background: "rgba(239,68,68,0.12)",
+          border: "1px solid rgba(239,68,68,0.3)",
+          color: "#ef4444",
+          fontSize: 16,
+          fontWeight: 600,
+        }}>
+          ISO 9001:2016
+        </div>
+        <div style={{
+          padding: "10px 24px",
+          borderRadius: 20,
+          border: "1px solid rgba(255,255,255,0.15)",
+          color: "#cbd5e1",
+          fontSize: 16,
+          fontWeight: 500,
+          background: "rgba(255,255,255,0.05)",
+        }}>
+          ICO: 04856562
+        </div>
       </div>
     </AbsoluteFill>
   );

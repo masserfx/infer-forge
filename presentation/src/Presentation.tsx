@@ -1,31 +1,57 @@
-import { AbsoluteFill, Sequence, staticFile } from "remotion";
+import { AbsoluteFill, Sequence } from "remotion";
 import { TitleSlide } from "./slides/TitleSlide";
-import { ScreenshotSlide } from "./slides/ScreenshotSlide";
+import { ProblemSlide } from "./slides/ProblemSlide";
+import { SolutionSlide } from "./slides/SolutionSlide";
+import { EmailSlide } from "./slides/EmailSlide";
+import { OrderSlide } from "./slides/OrderSlide";
+import { CalculationSlide } from "./slides/CalculationSlide";
+import { RagSlide } from "./slides/RagSlide";
+import { OfferSlide } from "./slides/OfferSlide";
+import { KanbanSlide } from "./slides/KanbanSlide";
+import { OperationsSlide } from "./slides/OperationsSlide";
+import { PohodaSlide } from "./slides/PohodaSlide";
+import { AiAgentSlide } from "./slides/AiAgentSlide";
+import { DashboardSlide } from "./slides/DashboardSlide";
+import { ReportingSlide } from "./slides/ReportingSlide";
+import { MaterialsSlide } from "./slides/MaterialsSlide";
+import { DocumentsSlide } from "./slides/DocumentsSlide";
+import { GamificationSlide } from "./slides/GamificationSlide";
+import { SecuritySlide } from "./slides/SecuritySlide";
 import { StatsSlide } from "./slides/StatsSlide";
-import { ArchitectureSlide } from "./slides/ArchitectureSlide";
-import { FeaturesSlide } from "./slides/FeaturesSlide";
-import { TechStackSlide } from "./slides/TechStackSlide";
 import { EndSlide } from "./slides/EndSlide";
 
 const FPS = 30;
-const SLIDE_DURATION = 4 * FPS; // 4 seconds per slide
 const TRANSITION = 15; // 0.5s transition overlap
 
-const screenshots = [
-  { file: "02-dashboard.png", title: "Dashboard", subtitle: "Celkovy prehled zakazek, pipeline a aktivit" },
-  { file: "03-zakazky.png", title: "Zakazky", subtitle: "Sprava 8 zakazek s prioritami a terminy" },
-  { file: "14-zakazka-detail-top.png", title: "Detail zakazky", subtitle: "Kompletni informace, polozky, kalkulace, operace" },
-  { file: "04-kanban.png", title: "Kanban Pipeline", subtitle: "Drag & drop sprava vyrobnich fazi" },
-  { file: "05-kalkulace.png", title: "Kalkulace", subtitle: "Material, prace, kooperace, rezie, marze" },
-  { file: "17-kalkulace-detail.png", title: "Detail kalkulace", subtitle: "Rozpocet s rozpady nakladu a marzi" },
-  { file: "09-materialy.png", title: "Cenik materialu", subtitle: "17 polozek - ocel, trubky, priruby, svar. material" },
-  { file: "10-subdodavatele.png", title: "Subdodavatele", subtitle: "NDT, povrchove upravy, CNC, doprava" },
-  { file: "08-inbox.png", title: "AI Email Agent", subtitle: "Automaticka klasifikace a prirazeni zprav" },
-  { file: "07-reporting.png", title: "Reporting", subtitle: "Trzby, pipeline, vytizenost, PDF export" },
-  { file: "06-dokumenty.png", title: "Dokumenty", subtitle: "Verzovani, sifrovani AES-256, kategorie" },
-  { file: "11-pohoda.png", title: "Pohoda Integrace", subtitle: "XML synchronizace - nabidky, faktury, sklad" },
-  { file: "12-zebricek.png", title: "Gamifikace", subtitle: "Body, zebricek, motivace tymu" },
-  { file: "13-nastaveni.png", title: "Nastaveni", subtitle: "Sprava uzivatelu a systemu" },
+// Slide definitions with durations in seconds
+const slideConfig: { element: React.ReactNode; durationSec: number }[] = [
+  // ACT 1: Uvod (15s)
+  { element: <TitleSlide />, durationSec: 5 },
+  { element: <ProblemSlide />, durationSec: 5 },
+  { element: <SolutionSlide />, durationSec: 5 },
+
+  // ACT 2: Pribeh zakazky (60s)
+  { element: <EmailSlide />, durationSec: 8 },
+  { element: <OrderSlide />, durationSec: 8 },
+  { element: <CalculationSlide />, durationSec: 8 },
+  { element: <RagSlide />, durationSec: 6 },
+  { element: <OfferSlide />, durationSec: 6 },
+  { element: <KanbanSlide />, durationSec: 8 },
+  { element: <OperationsSlide />, durationSec: 8 },
+  { element: <PohodaSlide />, durationSec: 8 },
+
+  // ACT 3: Inteligentni funkce (35s)
+  { element: <AiAgentSlide />, durationSec: 7 },
+  { element: <DashboardSlide />, durationSec: 7 },
+  { element: <ReportingSlide />, durationSec: 7 },
+  { element: <MaterialsSlide />, durationSec: 7 },
+  { element: <DocumentsSlide />, durationSec: 7 },
+
+  // ACT 4: Tym a vysledky (20s)
+  { element: <GamificationSlide />, durationSec: 5 },
+  { element: <SecuritySlide />, durationSec: 5 },
+  { element: <StatsSlide />, durationSec: 5 },
+  { element: <EndSlide />, durationSec: 5 },
 ];
 
 export const InferForgePresentation: React.FC = () => {
@@ -33,47 +59,13 @@ export const InferForgePresentation: React.FC = () => {
 
   const slides: { from: number; duration: number; element: React.ReactNode }[] = [];
 
-  // Title slide (5s)
-  const titleDuration = 5 * FPS;
-  slides.push({ from: frame, duration: titleDuration, element: <TitleSlide /> });
-  frame += titleDuration - TRANSITION;
-
-  // Architecture (4s)
-  slides.push({ from: frame, duration: SLIDE_DURATION, element: <ArchitectureSlide /> });
-  frame += SLIDE_DURATION - TRANSITION;
-
-  // Tech stack (4s)
-  slides.push({ from: frame, duration: SLIDE_DURATION, element: <TechStackSlide /> });
-  frame += SLIDE_DURATION - TRANSITION;
-
-  // Features overview (5s)
-  const featuresDuration = 5 * FPS;
-  slides.push({ from: frame, duration: featuresDuration, element: <FeaturesSlide /> });
-  frame += featuresDuration - TRANSITION;
-
-  // Screenshots
-  for (const ss of screenshots) {
-    slides.push({
-      from: frame,
-      duration: SLIDE_DURATION,
-      element: (
-        <ScreenshotSlide
-          imageSrc={staticFile(`pages/${ss.file}`)}
-          title={ss.title}
-          subtitle={ss.subtitle}
-        />
-      ),
-    });
-    frame += SLIDE_DURATION - TRANSITION;
+  for (let i = 0; i < slideConfig.length; i++) {
+    const { element, durationSec } = slideConfig[i];
+    const duration = durationSec * FPS;
+    slides.push({ from: frame, duration, element });
+    // Overlap transition except for the last slide
+    frame += duration - (i < slideConfig.length - 1 ? TRANSITION : 0);
   }
-
-  // Stats (5s)
-  const statsDuration = 5 * FPS;
-  slides.push({ from: frame, duration: statsDuration, element: <StatsSlide /> });
-  frame += statsDuration - TRANSITION;
-
-  // End (4s)
-  slides.push({ from: frame, duration: SLIDE_DURATION, element: <EndSlide /> });
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
