@@ -266,12 +266,17 @@ class OrderOrchestrator:
         Returns:
             Created Order
         """
-        # Generate order number (simple counter for now)
+        # Generate order number from MAX existing number to avoid collisions
         result = await session.execute(
-            select(func.count()).select_from(Order)
+            select(func.max(Order.number)).where(Order.number.like("ORD-%"))
         )
-        order_count = result.scalar_one()
-        order_number = f"ORD-{order_count + 1:06d}"
+        max_number = result.scalar_one()
+        if max_number:
+            # Extract numeric part from "ORD-000015" → 15
+            last_num = int(max_number.split("-")[1])
+        else:
+            last_num = 0
+        order_number = f"ORD-{last_num + 1:06d}"
 
         # Determine initial status from classification
         classification = parsed_data.get("classification", "").lower()
