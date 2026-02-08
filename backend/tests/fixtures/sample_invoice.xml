@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='Windows-1250'?>
+<dataPack xmlns="http://www.stormware.cz/schema/version_2/data.xsd" xmlns:adb="http://www.stormware.cz/schema/version_2/addressbook.xsd" xmlns:ftr="http://www.stormware.cz/schema/version_2/filter.xsd" xmlns:inv="http://www.stormware.cz/schema/version_2/invoice.xsd" xmlns:lAdb="http://www.stormware.cz/schema/version_2/list_addBook.xsd" xmlns:ofr="http://www.stormware.cz/schema/version_2/offer.xsd" xmlns:ord="http://www.stormware.cz/schema/version_2/order.xsd" xmlns:prn="http://www.stormware.cz/schema/version_2/print.xsd" xmlns:typ="http://www.stormware.cz/schema/version_2/type.xsd" version="2.0" ico="04856562" application="INFER_FORGE" id="IF001">
+  <dataPackItem version="2.0" id="INVFV-2025-042">
+    <inv:invoice version="2.0">
+      <inv:invoiceHeader>
+        <inv:invoiceType>issuedInvoice</inv:invoiceType>
+        <inv:number>
+          <typ:numberRequested>FV-2025-042</typ:numberRequested>
+        </inv:number>
+        <inv:date>2025-07-20</inv:date>
+        <inv:dateDue>2025-08-03</inv:dateDue>
+        <inv:text>Faktura za zakázku ZAK-2025-042 - Potrubní díly dle výkresu X42</inv:text>
+        <typ:partnerIdentity>
+          <typ:address>
+            <typ:company>ACME Steel s.r.o.</typ:company>
+            <typ:street>Průmyslová 15</typ:street>
+            <typ:city>Ostrava</typ:city>
+            <typ:ico>87654321</typ:ico>
+            <typ:dic>CZ87654321</typ:dic>
+          </typ:address>
+        </typ:partnerIdentity>
+      </inv:invoiceHeader>
+      <inv:invoiceDetail>
+        <inv:invoiceItem>
+          <inv:text>Koleno 90° DN100 | Mat: P265GH | DN100 | PN16</inv:text>
+          <inv:quantity>10.00</inv:quantity>
+          <inv:unit>ks</inv:unit>
+          <inv:rateVAT>high</inv:rateVAT>
+          <inv:homeCurrency>
+            <typ:unitPrice>1500.00</typ:unitPrice>
+          </inv:homeCurrency>
+          <inv:note>Dle výkresu X42-01</inv:note>
+        </inv:invoiceItem>
+        <inv:invoiceItem>
+          <inv:text>Příruba DN200 | Mat: S235JR | DN200 | PN10</inv:text>
+          <inv:quantity>20.00</inv:quantity>
+          <inv:unit>ks</inv:unit>
+          <inv:rateVAT>high</inv:rateVAT>
+          <inv:homeCurrency>
+            <typ:unitPrice>800.00</typ:unitPrice>
+          </inv:homeCurrency>
+        </inv:invoiceItem>
+        <inv:invoiceItem>
+          <inv:text>Redukce</inv:text>
+          <inv:quantity>5.00</inv:quantity>
+          <inv:unit>ks</inv:unit>
+          <inv:rateVAT>high</inv:rateVAT>
+          <inv:homeCurrency>
+            <typ:unitPrice>500.00</typ:unitPrice>
+          </inv:homeCurrency>
+        </inv:invoiceItem>
+      </inv:invoiceDetail>
+      <inv:invoiceSummary>
+        <inv:roundingDocument>math2one</inv:roundingDocument>
+      </inv:invoiceSummary>
+    </inv:invoice>
+  </dataPackItem>
+</dataPack>

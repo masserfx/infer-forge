@@ -6,6 +6,7 @@ from .calculation import Calculation, CalculationItem, CalculationStatus, CostTy
 from .customer import Customer
 from .document import Document, DocumentCategory
 from .inbox import InboxClassification, InboxMessage, InboxStatus
+from .material_price import MaterialPrice
 from .notification import Notification, NotificationType
 from .offer import Offer, OfferStatus
 from .order import Order, OrderItem, OrderPriority, OrderStatus
@@ -41,6 +42,8 @@ __all__ = [
     "InboxMessage",
     "InboxClassification",
     "InboxStatus",
+    # MaterialPrice
+    "MaterialPrice",
     # Notification
     "Notification",
     "NotificationType",

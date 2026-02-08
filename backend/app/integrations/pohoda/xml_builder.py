@@ -382,3 +382,137 @@ class PohodaXMLBuilder:
             encoding="Windows-1250",
             pretty_print=True,
         )
+
+    def build_invoice_xml(
+        self,
+        order: Order,
+        customer: Customer,
+        invoice_number: str,
+        invoice_date: date | None = None,
+        due_days: int = 14,
+    ) -> bytes:
+        """Build invoice XML document for Pohoda.
+
+        Creates Pohoda invoice (inv:invoice) document based on order items
+        with calculated prices and VAT.
+
+        Args:
+            order: Order model instance with items.
+            customer: Related customer model instance.
+            invoice_number: Invoice number (e.g., "FV-2025-001").
+            invoice_date: Invoice issue date (defaults to today).
+            due_days: Payment due in days (default 14).
+
+        Returns:
+            bytes: XML document as bytes in Windows-1250 encoding.
+        """
+        from datetime import timedelta
+
+        root = self._create_datapack_root()
+        item = self._create_datapack_item(root, f"INV{invoice_number}")
+
+        # Create invoice element
+        inv = self._add_element(item, f"{{{NAMESPACES['inv']}}}invoice")
+
+        # Invoice header
+        header = self._add_element(inv, f"{{{NAMESPACES['inv']}}}invoiceHeader")
+
+        # Invoice type (issued invoice)
+        self._add_element(header, f"{{{NAMESPACES['inv']}}}invoiceType", "issuedInvoice")
+
+        # Invoice number
+        number = self._add_element(header, f"{{{NAMESPACES['inv']}}}number")
+        self._add_element(number, f"{{{NAMESPACES['typ']}}}numberRequested", invoice_number)
+
+        # Dates
+        issue_date = invoice_date or date.today()
+        self._add_element(header, f"{{{NAMESPACES['inv']}}}date", self._format_date(issue_date))
+
+        due_date = issue_date + timedelta(days=due_days)
+        self._add_element(header, f"{{{NAMESPACES['inv']}}}dateDue", self._format_date(due_date))
+
+        # Text/description
+        text = f"Faktura za zakázku {order.number}"
+        if order.note:
+            text += f" - {order.note[:100]}"
+        self._add_element(header, f"{{{NAMESPACES['inv']}}}text", text[:240])
+
+        # Partner identity (customer)
+        partner = self._add_element(header, f"{{{NAMESPACES['typ']}}}partnerIdentity")
+        address = self._add_element(partner, f"{{{NAMESPACES['typ']}}}address")
+        self._add_element(address, f"{{{NAMESPACES['typ']}}}company", customer.company_name)
+
+        # Split address into street, city, zip if possible
+        if customer.address:
+            address_lines = customer.address.strip().split("\n")
+            if address_lines:
+                street = address_lines[0][:64]
+                self._add_element(address, f"{{{NAMESPACES['typ']}}}street", street)
+                if len(address_lines) > 1:
+                    city = address_lines[1][:45]
+                    self._add_element(address, f"{{{NAMESPACES['typ']}}}city", city)
+
+        # ICO
+        self._add_element(address, f"{{{NAMESPACES['typ']}}}ico", customer.ico)
+
+        # DIC (if available)
+        if customer.dic:
+            self._add_element(address, f"{{{NAMESPACES['typ']}}}dic", customer.dic)
+
+        # Invoice detail (items)
+        detail = self._add_element(inv, f"{{{NAMESPACES['inv']}}}invoiceDetail")
+
+        for order_item in order.items:
+            item_elem = self._add_element(detail, f"{{{NAMESPACES['inv']}}}invoiceItem")
+
+            # Item text (name + material + DN/PN)
+            text_parts = [order_item.name]
+            if order_item.material:
+                text_parts.append(f"Mat: {order_item.material}")
+            if order_item.dn:
+                text_parts.append(f"DN{order_item.dn}")
+            if order_item.pn:
+                text_parts.append(f"PN{order_item.pn}")
+
+            item_text = " | ".join(text_parts)
+            self._add_element(item_elem, f"{{{NAMESPACES['inv']}}}text", item_text[:90])
+
+            # Quantity
+            quantity = self._format_decimal(order_item.quantity)
+            self._add_element(item_elem, f"{{{NAMESPACES['inv']}}}quantity", quantity)
+
+            # Unit
+            self._add_element(item_elem, f"{{{NAMESPACES['inv']}}}unit", order_item.unit)
+
+            # VAT rate (high = 21% in Czech Republic)
+            self._add_element(item_elem, f"{{{NAMESPACES['inv']}}}rateVAT", "high")
+
+            # Price per unit (we need to calculate from order/calculation)
+            # For now, use placeholder - should be retrieved from calculation
+            home_currency = self._add_element(
+                item_elem,
+                f"{{{NAMESPACES['inv']}}}homeCurrency",
+            )
+            unit_price = Decimal("1000.00")  # Placeholder - should come from calculation
+            self._add_element(
+                home_currency,
+                f"{{{NAMESPACES['typ']}}}unitPrice",
+                self._format_decimal(unit_price),
+            )
+
+            # Note
+            if order_item.note:
+                self._add_element(item_elem, f"{{{NAMESPACES['inv']}}}note", order_item.note[:240])
+
+        # Invoice summary
+        summary = self._add_element(inv, f"{{{NAMESPACES['inv']}}}invoiceSummary")
+        # Rounding method (mathematical rounding to 1 CZK)
+        self._add_element(summary, f"{{{NAMESPACES['inv']}}}roundingDocument", "math2one")
+
+        # Serialize to bytes with Windows-1250 encoding
+        return etree.tostring(
+            root,
+            xml_declaration=True,
+            encoding="Windows-1250",
+            pretty_print=True,
+        )

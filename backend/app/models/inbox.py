@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, Index, String, Text
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base, TimestampMixin, UUIDPKMixin
@@ -64,6 +64,12 @@ class InboxMessage(Base, UUIDPKMixin, TimestampMixin):
         ForeignKey("orders.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
+    )
+    auto_reply_sent: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
     )
 
     __table_args__ = (

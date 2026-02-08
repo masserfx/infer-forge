@@ -9,7 +9,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.metrics import orders_created_total
-from app.models import AuditAction, AuditLog, Order, OrderItem, OrderStatus, PointsAction
+from app.models import (
+    AuditAction,
+    AuditLog,
+    Offer,
+    OfferStatus,
+    Order,
+    OrderItem,
+    OrderStatus,
+    PointsAction,
+)
 from app.schemas import OrderCreate, OrderUpdate
 
 logger = logging.getLogger(__name__)
@@ -317,3 +326,119 @@ class OrderService:
         await self.db.flush()
 
         return True
+
+    async def convert_offer_to_order(self, offer_id: UUID) -> Order:
+        """Convert accepted offer to a new order.
+
+        Args:
+            offer_id: Offer UUID to convert
+
+        Returns:
+            Newly created order instance
+
+        Raises:
+            ValueError: If offer not found, already converted, or not in valid status
+        """
+        # 1. Load offer with related order and items
+        result = await self.db.execute(
+            select(Offer)
+            .where(Offer.id == offer_id)
+            .options(
+                selectinload(Offer.order).selectinload(Order.items),
+                selectinload(Offer.order).selectinload(Order.customer),
+            )
+        )
+        offer = result.scalar_one_or_none()
+
+        if not offer:
+            raise ValueError(f"Offer {offer_id} not found")
+
+        # 2. Validate offer status
+        if offer.status not in (OfferStatus.ACCEPTED, OfferStatus.SENT):
+            raise ValueError(
+                f"Cannot convert offer with status {offer.status.value}. "
+                "Only 'accepted' or 'sent' offers can be converted."
+            )
+
+        # 3. Check if already converted
+        if offer.converted_to_order_id is not None:
+            raise ValueError(
+                f"Offer {offer.number} already converted to order {offer.converted_to_order_id}"
+            )
+
+        # 4. Get source order details
+        source_order = offer.order
+        if not source_order:
+            raise ValueError(f"Offer {offer_id} has no associated source order")
+
+        # 5. Generate new order number (increment from offer number or use timestamp)
+        new_order_number = f"{source_order.number}-OBJ-{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}"
+
+        # 6. Create new order
+        new_order = Order(
+            customer_id=source_order.customer_id,
+            number=new_order_number,
+            status=OrderStatus.OBJEDNAVKA,
+            priority=source_order.priority,
+            due_date=source_order.due_date,
+            note=f"Vytvořeno z nabídky {offer.number} (zakázka {source_order.number})",
+            created_by=self.user_id,
+            source_offer_id=offer.id,
+        )
+        self.db.add(new_order)
+        await self.db.flush()
+
+        # 7. Copy items from source order to new order
+        for source_item in source_order.items:
+            new_item = OrderItem(
+                order_id=new_order.id,
+                name=source_item.name,
+                material=source_item.material,
+                quantity=source_item.quantity,
+                unit=source_item.unit,
+                dn=source_item.dn,
+                pn=source_item.pn,
+                note=source_item.note,
+                drawing_url=source_item.drawing_url,
+            )
+            self.db.add(new_item)
+
+        await self.db.flush()
+
+        # 8. Update offer status and link to new order
+        offer.status = OfferStatus.ACCEPTED
+        offer.converted_to_order_id = new_order.id
+
+        await self.db.flush()
+        await self.db.refresh(new_order, ["items", "customer"])
+
+        # 9. Create audit log
+        await self._create_audit_log(
+            action=AuditAction.CREATE,
+            entity_id=new_order.id,
+            changes={
+                "created_from_offer": str(offer.id),
+                "offer_number": offer.number,
+                "source_order": str(source_order.id),
+                "items_copied": len(source_order.items),
+            },
+        )
+
+        # 10. Prometheus metric
+        orders_created_total.inc()
+
+        # 11. Trigger embedding generation
+        try:
+            from app.services.embedding_tasks import generate_order_embedding
+
+            generate_order_embedding.delay(str(new_order.id))
+        except Exception:
+            logger.warning("Failed to queue embedding generation for order %s", new_order.id)
+
+        logger.info(
+            "Converted offer %s to order %s",
+            offer.number,
+            new_order.number,
+        )
+
+        return new_order

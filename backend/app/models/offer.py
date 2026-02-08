@@ -47,9 +47,24 @@ class Offer(Base, UUIDPKMixin, TimestampMixin):
         default=OfferStatus.DRAFT,
     )
     pohoda_id: Mapped[int | None] = mapped_column(nullable=True)
+    converted_to_order_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("orders.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     # Relationships
-    order: Mapped["Order"] = relationship("Order", back_populates="offers")
+    order: Mapped["Order"] = relationship(
+        "Order",
+        foreign_keys=[order_id],
+        back_populates="offers",
+    )
+    converted_order: Mapped["Order | None"] = relationship(
+        "Order",
+        foreign_keys=[converted_to_order_id],
+        uselist=False,
+        viewonly=True,
+    )
 
     __table_args__ = (
         Index("ix_offers_valid_until", "valid_until"),

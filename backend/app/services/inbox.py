@@ -1,12 +1,22 @@
 """Inbox business logic service."""
 
+import re
 from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import AuditAction, AuditLog, InboxClassification, InboxMessage, InboxStatus
+from app.models import (
+    AuditAction,
+    AuditLog,
+    Customer,
+    InboxClassification,
+    InboxMessage,
+    InboxStatus,
+    Order,
+    OrderStatus,
+)
 
 
 class InboxService:
@@ -187,3 +197,71 @@ class InboxService:
         )
 
         return message
+
+
+async def match_email_to_order(
+    db: AsyncSession,
+    inbox_message: InboxMessage,
+) -> UUID | None:
+    """Match inbox message to an order based on order number or sender email.
+
+    Matching strategy:
+    1. Search for order number in subject and body using regex patterns
+    2. If not found, search by sender email → Customer → active orders
+    3. Return first matching order_id or None
+
+    Args:
+        db: Async database session
+        inbox_message: InboxMessage instance to match
+
+    Returns:
+        UUID of matched order, or None if no match found
+    """
+    # Pattern 1: Standard format ZAK-2024-001, ZAK-2025-123
+    # Pattern 2: Custom prefix NAB-2024-005, OBJ-2024-100, etc.
+    order_patterns = [
+        r"ZAK-\d{4}-\d{3,}",  # ZAK-2024-001
+        r"[A-Z]{2,3}-\d{4}-\d{3,}",  # NAB-2024-005, OBJ-2025-100
+    ]
+
+    # Search in subject first
+    text_to_search = f"{inbox_message.subject} {inbox_message.body_text}"
+
+    for pattern in order_patterns:
+        match = re.search(pattern, text_to_search)
+        if match:
+            order_number = match.group(0)
+
+            # Look up order in database
+            result = await db.execute(
+                select(Order).where(Order.number == order_number)
+            )
+            order = result.scalar_one_or_none()
+
+            if order:
+                return order.id
+
+    # Strategy 2: Match by sender email → Customer → active orders
+    result = await db.execute(
+        select(Customer).where(Customer.email == inbox_message.from_email)
+    )
+    customer = result.scalar_one_or_none()
+
+    if customer:
+        # Get customer's most recent active order (not DOKONCENO)
+        result = await db.execute(
+            select(Order)
+            .where(
+                Order.customer_id == customer.id,
+                Order.status != OrderStatus.DOKONCENO,
+            )
+            .order_by(Order.created_at.desc())
+            .limit(1)
+        )
+        active_order = result.scalar_one_or_none()
+
+        if active_order:
+            return active_order.id
+
+    # No match found
+    return None

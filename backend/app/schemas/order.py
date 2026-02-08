@@ -81,6 +81,7 @@ class OrderResponse(OrderBase):
     created_by: UUID | None = None
     created_at: datetime
     updated_at: datetime
+    source_offer_id: UUID | None = Field(None, description="ID of source offer if converted")
     items: list[OrderItemResponse] = Field(default_factory=list)
     customer: Optional["CustomerResponse"] = None
 

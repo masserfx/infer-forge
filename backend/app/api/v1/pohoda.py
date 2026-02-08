@@ -9,6 +9,7 @@ from app.api.deps import get_db, require_role
 from app.models.pohoda_sync import SyncStatus
 from app.models.user import User, UserRole
 from app.schemas.pohoda import (
+    InvoiceGenerateRequest,
     PohodaSyncLogResponse,
     PohodaSyncRequest,
     PohodaSyncResult,
@@ -124,3 +125,49 @@ async def get_sync_logs(
         limit=limit,
     )
     return [PohodaSyncLogResponse.model_validate(log) for log in logs]
+
+
+@router.post(
+    "/invoice/{order_id}",
+    response_model=PohodaSyncResult,
+    status_code=status.HTTP_200_OK,
+)
+async def generate_invoice(
+    order_id: UUID,
+    request: InvoiceGenerateRequest,
+    _user: User = Depends(require_role(UserRole.UCETNI, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> PohodaSyncResult:
+    """Generate invoice XML for an order and sync to Pohoda."""
+    service = PohodaService(db)
+
+    try:
+        sync_log = await service.generate_invoice(
+            order_id=order_id,
+            invoice_number=request.invoice_number,
+            invoice_date=request.invoice_date,
+            due_days=request.due_days,
+        )
+
+        await db.commit()
+
+        pohoda_id = None
+        if sync_log.pohoda_doc_number:
+            try:
+                pohoda_id = int(sync_log.pohoda_doc_number)
+            except (ValueError, TypeError):
+                pass
+
+        return PohodaSyncResult(
+            success=sync_log.status == SyncStatus.SUCCESS,
+            sync_log_id=sync_log.id,
+            pohoda_id=pohoda_id,
+            pohoda_doc_number=sync_log.pohoda_doc_number,
+            error=sync_log.error_message,
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e

@@ -1,6 +1,6 @@
 """Pohoda integration Pydantic schemas."""
 
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -13,10 +13,31 @@ class PohodaSyncRequest(BaseModel):
 
     entity_type: str = Field(
         ...,
-        pattern="^(customer|order|offer)$",
-        description="Entity type to sync (customer, order, offer)",
+        pattern="^(customer|order|offer|invoice)$",
+        description="Entity type to sync (customer, order, offer, invoice)",
     )
     entity_id: UUID = Field(..., description="Entity UUID to sync")
+
+
+class InvoiceGenerateRequest(BaseModel):
+    """Request to generate invoice for an order."""
+
+    invoice_number: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Invoice number (e.g., FV-2025-001)",
+    )
+    invoice_date: date | None = Field(
+        None,
+        description="Invoice issue date (defaults to today)",
+    )
+    due_days: int = Field(
+        14,
+        ge=1,
+        le=365,
+        description="Payment due in days (default 14)",
+    )
 
 
 class PohodaSyncLogResponse(BaseModel):

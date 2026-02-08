@@ -7,9 +7,13 @@ material costs, labor hours, and margins for steel fabrication orders.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 import structlog
 from anthropic import AsyncAnthropic
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger(__name__)
 
@@ -215,12 +219,16 @@ class CalculationAgent:
     material costs, labor hours, overhead, and profit margins for steel
     fabrication orders.
 
+    Integrates with MaterialPriceService to fetch real prices from database
+    before falling back to LLM estimates.
+
     Args:
         api_key: Anthropic API key for authentication.
         hourly_rate_czk: Labor hourly rate in CZK (default: 850.0).
+        db_session: Optional database session for material price lookups.
 
     Example:
-        >>> agent = CalculationAgent(api_key="sk-ant-...")
+        >>> agent = CalculationAgent(api_key="sk-ant-...", db_session=db)
         >>> result = await agent.estimate(
         ...     description="Výroba ocelové konstrukce",
         ...     items=[
@@ -241,9 +249,11 @@ class CalculationAgent:
         self,
         api_key: str,
         hourly_rate_czk: float = _DEFAULT_HOURLY_RATE_CZK,
+        db_session: AsyncSession | None = None,
     ) -> None:
         self._client = AsyncAnthropic(api_key=api_key)
         self._hourly_rate = hourly_rate_czk
+        self._db_session = db_session
 
     async def estimate(
         self,
@@ -251,6 +261,9 @@ class CalculationAgent:
         items: list[dict[str, object]],
     ) -> CalculationEstimate:
         """Estimate costs for a set of fabrication items.
+
+        Attempts to find real material prices from database first.
+        Falls back to LLM estimation if database lookup fails.
 
         Args:
             description: Order description providing context (e.g., "Výroba kolena DN200").
@@ -267,7 +280,10 @@ class CalculationAgent:
         log = logger.bind(description=description[:100], item_count=len(items))
         log.info("calculation_estimate.started")
 
-        user_message = self._build_user_message(description, items)
+        # Try to fetch real prices from database
+        items_with_prices = await self._enrich_items_with_prices(items, log)
+
+        user_message = self._build_user_message(description, items_with_prices)
 
         try:
             response = await self._client.messages.create(
@@ -304,6 +320,62 @@ class CalculationAgent:
 
         return self._parse_response(response, log)
 
+    async def _enrich_items_with_prices(
+        self,
+        items: list[dict[str, object]],
+        log: structlog.stdlib.BoundLogger,
+    ) -> list[dict[str, object]]:
+        """Enrich items with real prices from database if available.
+
+        Args:
+            items: List of items to enrich.
+            log: Bound structlog logger.
+
+        Returns:
+            Items with added "real_price" and "real_price_source" keys if found.
+        """
+        if not self._db_session:
+            log.debug("price_enrichment_skipped", reason="no_db_session")
+            return items
+
+        from app.services.material_price import MaterialPriceService
+
+        service = MaterialPriceService(self._db_session)
+        enriched_items: list[dict[str, object]] = []
+
+        for item in items:
+            enriched = dict(item)
+            material = str(item.get("material", ""))
+            name = str(item.get("name", ""))
+
+            # Try to find best price
+            price_entry = await service.find_best_price(
+                material_name=name,
+                material_grade=material,
+                dimension=str(item.get("dimension", "")),
+            )
+
+            if price_entry:
+                enriched["real_price"] = float(price_entry.unit_price)
+                enriched["real_price_unit"] = price_entry.unit
+                enriched["real_price_source"] = (
+                    f"{price_entry.name} ({price_entry.supplier or 'bez dodavatele'})"
+                )
+                log.info(
+                    "price_found",
+                    item_name=name,
+                    material=material,
+                    price=price_entry.unit_price,
+                    unit=price_entry.unit,
+                    supplier=price_entry.supplier,
+                )
+            else:
+                log.debug("price_not_found", item_name=name, material=material)
+
+            enriched_items.append(enriched)
+
+        return enriched_items
+
     @staticmethod
     def _build_user_message(description: str, items: list[dict[str, object]]) -> str:
         """Build the user message from order description and items.
@@ -329,6 +401,17 @@ class CalculationAgent:
                 f"   - Rozměry: {dimension}\n"
                 f"   - Množství: {quantity} {unit}\n"
             )
+
+            # Add real price if found in database
+            if "real_price" in item:
+                real_price = item["real_price"]
+                real_unit = item.get("real_price_unit", "kg")
+                real_source = item.get("real_price_source", "databáze")
+                items_text += (
+                    f"   - **REÁLNÁ CENA Z DATABÁZE**: {real_price} Kč/{real_unit}\n"
+                    f"   - Zdroj: {real_source}\n"
+                    f"   - POUŽIJ TUTO CENU místo odhadu!\n"
+                )
 
         return (
             f"Proveď kalkulaci nákladů pro následující zakázku:\n\n"

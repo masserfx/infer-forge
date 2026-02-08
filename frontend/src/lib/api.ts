@@ -136,6 +136,12 @@ export async function updateOrderStatus(
   });
 }
 
+export async function convertOfferToOrder(offerId: string): Promise<Order> {
+  return fetchApi<Order>(`/zakazky/from-offer/${offerId}`, {
+    method: "POST",
+  });
+}
+
 // --- Customers ---
 
 export async function getCustomers(): Promise<Customer[]> {
@@ -144,6 +150,16 @@ export async function getCustomers(): Promise<Customer[]> {
 
 export async function getCustomer(id: string): Promise<Customer> {
   return fetchApi<Customer>(`/zakaznici/${id}`);
+}
+
+export async function updateCustomerCategory(
+  id: string,
+  category: "A" | "B" | "C",
+): Promise<Customer> {
+  return fetchApi<Customer>(`/zakaznici/${id}/category`, {
+    method: "PATCH",
+    body: JSON.stringify({ category }),
+  });
 }
 
 // --- Inbox ---

@@ -77,6 +77,11 @@ class Order(Base, UUIDPKMixin, TimestampMixin):
         DateTime(timezone=True),
         nullable=True,
     )
+    source_offer_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("offers.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     # Relationships
     customer: Mapped["Customer"] = relationship("Customer", back_populates="orders")
@@ -87,6 +92,7 @@ class Order(Base, UUIDPKMixin, TimestampMixin):
     )
     offers: Mapped[list["Offer"]] = relationship(
         "Offer",
+        foreign_keys="[Offer.order_id]",
         back_populates="order",
         cascade="all, delete-orphan",
     )
@@ -100,6 +106,12 @@ class Order(Base, UUIDPKMixin, TimestampMixin):
         back_populates="order",
         uselist=False,
         cascade="all, delete-orphan",
+    )
+    source_offer: Mapped["Offer | None"] = relationship(
+        "Offer",
+        foreign_keys=[source_offer_id],
+        uselist=False,
+        viewonly=True,
     )
 
     __table_args__ = (

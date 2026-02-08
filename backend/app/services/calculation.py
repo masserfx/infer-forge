@@ -53,7 +53,15 @@ class CalculationService:
         self.db.add(audit)
 
     def _recalculate_totals(self, calculation: Calculation) -> None:
-        """Recalculate all totals from items."""
+        """Recalculate all totals from items, including customer discount.
+
+        Calculation flow:
+        1. Sum items by cost_type
+        2. Calculate subtotal (material + labor + cooperation + overhead)
+        3. Apply margin percentage
+        4. Apply customer discount (if any)
+        5. Final total_price
+        """
         material = Decimal("0")
         labor = Decimal("0")
         cooperation = Decimal("0")
@@ -80,7 +88,20 @@ class CalculationService:
         calculation.margin_amount = (
             subtotal * calculation.margin_percent / Decimal("100")
         ).quantize(Decimal("0.01"))
-        calculation.total_price = subtotal + calculation.margin_amount
+
+        # Total before customer discount
+        price_before_discount = subtotal + calculation.margin_amount
+
+        # Apply customer discount if available
+        customer_discount = Decimal("0.00")
+        if calculation.order and calculation.order.customer:
+            customer = calculation.order.customer
+            if customer.discount_percent and customer.discount_percent > 0:
+                customer_discount = (
+                    price_before_discount * customer.discount_percent / Decimal("100")
+                ).quantize(Decimal("0.01"))
+
+        calculation.total_price = price_before_discount - customer_discount
 
     async def create(self, data: CalculationCreate) -> Calculation:
         """Create a new calculation with optional initial items."""
@@ -139,20 +160,30 @@ class CalculationService:
         return calculation
 
     async def get_by_id(self, calculation_id: UUID) -> Calculation | None:
-        """Get calculation by ID with items."""
+        """Get calculation by ID with items and customer (for discount calculation)."""
+        from app.models import Order
+
         result = await self.db.execute(
             select(Calculation)
             .where(Calculation.id == calculation_id)
-            .options(selectinload(Calculation.items))
+            .options(
+                selectinload(Calculation.items),
+                selectinload(Calculation.order).selectinload(Order.customer),
+            )
         )
         return result.scalar_one_or_none()
 
     async def get_by_order(self, order_id: UUID) -> list[Calculation]:
-        """Get all calculations for an order."""
+        """Get all calculations for an order with customer data."""
+        from app.models import Order
+
         result = await self.db.execute(
             select(Calculation)
             .where(Calculation.order_id == order_id)
-            .options(selectinload(Calculation.items))
+            .options(
+                selectinload(Calculation.items),
+                selectinload(Calculation.order).selectinload(Order.customer),
+            )
             .order_by(Calculation.created_at.desc())
         )
         return list(result.scalars().all())
@@ -163,8 +194,13 @@ class CalculationService:
         skip: int = 0,
         limit: int = 100,
     ) -> list[Calculation]:
-        """Get all calculations with optional status filter."""
-        query = select(Calculation).options(selectinload(Calculation.items))
+        """Get all calculations with optional status filter and customer data."""
+        from app.models import Order
+
+        query = select(Calculation).options(
+            selectinload(Calculation.items),
+            selectinload(Calculation.order).selectinload(Order.customer),
+        )
 
         if status:
             query = query.where(Calculation.status == status)

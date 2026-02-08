@@ -58,6 +58,8 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 
 // --- Customer ---
 
+export type CustomerCategory = "A" | "B" | "C";
+
 export interface Customer {
   id: string;
   company_name: string;
@@ -68,9 +70,29 @@ export interface Customer {
   phone: string | null;
   address: string | null;
   pohoda_id: number | null;
+  category: CustomerCategory | null;
+  discount_percent: number | null;
+  payment_terms_days: number | null;
+  credit_limit: number | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export const CUSTOMER_CATEGORY_LABELS: Record<CustomerCategory, string> = {
+  A: "Klíčový zákazník",
+  B: "Běžný zákazník",
+  C: "Nový/jednorázový",
+};
+
+export const CUSTOMER_CATEGORY_DEFAULTS: Record<
+  CustomerCategory,
+  { discount: number; paymentDays: number }
+> = {
+  A: { discount: 15, paymentDays: 30 },
+  B: { discount: 5, paymentDays: 14 },
+  C: { discount: 0, paymentDays: 7 },
+};
 
 // --- Order ---
 
@@ -96,6 +118,7 @@ export interface Order {
   note: string | null;
   created_by: string | null;
   pohoda_id: number | null;
+  source_offer_id: string | null;
   created_at: string;
   updated_at: string;
   items: OrderItem[];

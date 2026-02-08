@@ -5,10 +5,15 @@ classifying them with AI, and cleaning up old processed messages.
 """
 
 import asyncio
-from datetime import datetime, timedelta
+import smtplib
+from datetime import UTC, datetime, timedelta
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from pathlib import Path
 
 import structlog
 from celery.exceptions import MaxRetriesExceededError
+from jinja2 import Environment, FileSystemLoader
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 
@@ -23,6 +28,9 @@ logger = structlog.get_logger(__name__)
 
 # Cleanup retention period for processed messages (90 days)
 _CLEANUP_RETENTION_DAYS = 90
+
+# Template directory for emails
+_TEMPLATE_DIR = Path(__file__).parent.parent.parent / "templates"
 
 
 @celery_app.task(bind=True, max_retries=3)
@@ -190,6 +198,7 @@ async def _poll_inbox_async(settings: object) -> dict[str, object]:
                     classification=classification_enum,
                     confidence=classification_result.confidence,
                     status=status,
+                    auto_reply_sent=False,
                 )
 
                 # Save to database
@@ -224,12 +233,67 @@ async def _poll_inbox_async(settings: object) -> dict[str, object]:
                         except Exception:
                             pass
 
+                        # Match email to order
+                        order_number_for_reply = None
+                        try:
+                            from app.services.inbox import match_email_to_order
+
+                            matched_order_id = await match_email_to_order(session, inbox_message)
+                            if matched_order_id:
+                                inbox_message.order_id = matched_order_id
+                                await session.commit()
+
+                                # Fetch order number for auto-reply
+                                from app.models.order import Order
+
+                                order_result = await session.execute(
+                                    select(Order).where(Order.id == matched_order_id)
+                                )
+                                order = order_result.scalar_one_or_none()
+                                if order:
+                                    order_number_for_reply = order.number
+
+                                logger.info(
+                                    "poll_inbox.order_matched",
+                                    message_id=raw_email.message_id,
+                                    order_id=str(matched_order_id),
+                                    order_number=order_number_for_reply,
+                                )
+                        except Exception:
+                            logger.warning(
+                                "poll_inbox.order_matching_failed",
+                                message_id=raw_email.message_id,
+                            )
+
+                        # Send auto-reply (async task)
+                        try:
+                            reply_subject = f"Re: {raw_email.subject}"
+                            send_auto_reply_task.delay(
+                                to_email=raw_email.from_email,
+                                subject=reply_subject,
+                                order_number=order_number_for_reply,
+                                classification=classification_result.category,
+                                message_preview=raw_email.body_text[:200],
+                                original_message_id=raw_email.message_id,
+                            )
+
+                            # Mark as auto-reply sent
+                            inbox_message.auto_reply_sent = True
+                            await session.commit()
+
+                        except Exception:
+                            logger.warning(
+                                "poll_inbox.auto_reply_failed",
+                                message_id=raw_email.message_id,
+                            )
+
                         logger.info(
                             "poll_inbox.message_processed",
                             message_id=raw_email.message_id,
                             classification=classification_result.category,
                             confidence=classification_result.confidence,
                             status=status.value,
+                            auto_reply_sent=inbox_message.auto_reply_sent,
                         )
 
                     except IntegrityError:
@@ -357,3 +421,243 @@ async def _cleanup_processed_emails_async() -> dict[str, object]:
             "cutoff_date": cutoff_date.isoformat(),
             "timestamp": datetime.utcnow().isoformat(),
         }
+
+
+def send_auto_reply(
+    to_email: str,
+    subject: str,
+    order_number: str | None = None,
+    classification: str | None = None,
+    message_preview: str | None = None,
+    original_message_id: str | None = None,
+) -> dict[str, object]:
+    """Send auto-reply email to customer.
+
+    Args:
+        to_email: Recipient email address
+        subject: Reply subject (typically "Re: {original_subject}")
+        order_number: Optional order number for reference
+        classification: Email classification (poptavka, objednavka, etc.)
+        message_preview: Preview of original message (for context)
+        original_message_id: Original message-id for threading
+
+    Returns:
+        dict: Execution summary with success status
+
+    Raises:
+        Exception: On SMTP failures
+    """
+    settings = get_settings()
+
+    # Skip if SMTP is not configured
+    if not settings.SMTP_HOST:
+        logger.warning(
+            "send_auto_reply.skipped",
+            reason="SMTP_HOST not configured",
+            to_email=to_email,
+        )
+        return {"status": "skipped", "reason": "SMTP not configured"}
+
+    logger.info(
+        "send_auto_reply.started",
+        to_email=to_email,
+        subject=subject,
+        order_number=order_number,
+        classification=classification,
+    )
+
+    try:
+        # Render email template
+        env = Environment(loader=FileSystemLoader(_TEMPLATE_DIR))
+        template = env.get_template("email_response.html")
+
+        # Prepare template context
+        context = {
+            "subject": subject,
+            "body": _generate_auto_reply_body(classification, order_number),
+            "order_number": order_number,
+            "company": {
+                "name": "Infer s.r.o.",
+                "ico": settings.POHODA_ICO,
+                "dic": "CZ04856562",
+                "address": "Průmyslová 123, 500 03 Hradec Králové",
+                "phone": "+420 123 456 789",
+                "email": settings.SMTP_FROM_EMAIL,
+            },
+            "today": datetime.now(UTC).strftime("%d.%m.%Y"),
+            "sender_name": "INFER FORGE",
+            "sender_email": settings.SMTP_FROM_EMAIL,
+        }
+
+        html_body = template.render(**context)
+
+        # Create MIME message
+        msg = MIMEMultipart("alternative")
+        msg["From"] = settings.SMTP_FROM_EMAIL
+        msg["To"] = to_email
+        msg["Subject"] = subject
+
+        # Add threading headers for email clients
+        if original_message_id:
+            msg["In-Reply-To"] = original_message_id
+            msg["References"] = original_message_id
+
+        # Attach HTML body
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+        # Connect to SMTP server and send
+        smtp_class = smtplib.SMTP_SSL if settings.SMTP_PORT == 465 else smtplib.SMTP
+        with smtp_class(settings.SMTP_HOST, settings.SMTP_PORT, timeout=30) as server:
+            if settings.SMTP_USE_TLS and smtp_class == smtplib.SMTP:
+                server.starttls()
+
+            if settings.SMTP_USER and settings.SMTP_PASSWORD:
+                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+
+            server.send_message(msg)
+
+        logger.info(
+            "send_auto_reply.success",
+            to_email=to_email,
+            subject=subject,
+            order_number=order_number,
+        )
+
+        return {
+            "status": "sent",
+            "to_email": to_email,
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+
+    except Exception as exc:
+        logger.exception(
+            "send_auto_reply.failed",
+            to_email=to_email,
+            subject=subject,
+            error=str(exc),
+        )
+        raise
+
+
+def _generate_auto_reply_body(
+    classification: str | None,
+    order_number: str | None,
+) -> str:
+    """Generate auto-reply body based on classification.
+
+    Args:
+        classification: Email classification
+        order_number: Optional order number
+
+    Returns:
+        str: Email body text
+    """
+    if order_number:
+        return (
+            f"Děkujeme za Váš email týkající se zakázky {order_number}. "
+            "Váš dotaz jsme přijali a pracujeme na jeho zpracování. "
+            "V případě potřeby Vás budeme kontaktovat."
+        )
+
+    if classification == "poptavka":
+        return (
+            "Děkujeme za Vaši poptávku. "
+            "Váš email jsme přijali a připravíme pro Vás cenovou nabídku. "
+            "Ozveme se Vám do 2 pracovních dnů."
+        )
+    elif classification == "objednavka":
+        return (
+            "Děkujeme za Vaši objednávku. "
+            "Váš email jsme přijali a začneme s přípravou zakázky. "
+            "Potvrzení objednávky a harmonogram dodání Vám zašleme v nejbližší době."
+        )
+    elif classification == "reklamace":
+        return (
+            "Děkujeme za Váš email týkající se reklamace. "
+            "Velmi nás to mrzí a budeme situaci neprodleně řešit. "
+            "Náš kolega Vás bude kontaktovat do 24 hodin."
+        )
+    else:
+        return (
+            "Děkujeme za Váš email. "
+            "Váš dotaz jsme přijali a budeme se mu věnovat. "
+            "V případě potřeby Vás budeme kontaktovat."
+        )
+
+
+@celery_app.task(bind=True, max_retries=3)
+def send_auto_reply_task(  # type: ignore[no-untyped-def]
+    self,
+    to_email: str,
+    subject: str,
+    order_number: str | None = None,
+    classification: str | None = None,
+    message_preview: str | None = None,
+    original_message_id: str | None = None,
+) -> dict[str, object]:
+    """Celery task wrapper for sending auto-reply emails with retry logic.
+
+    Args:
+        to_email: Recipient email address
+        subject: Reply subject
+        order_number: Optional order number
+        classification: Email classification
+        message_preview: Preview of original message
+        original_message_id: Original message-id for threading
+
+    Returns:
+        dict: Task execution summary
+
+    Raises:
+        Exception: On transient failures, retries up to 3 times
+    """
+    logger.info(
+        "send_auto_reply_task.started",
+        task_id=self.request.id,
+        to_email=to_email,
+        retry_count=self.request.retries,
+    )
+
+    try:
+        result = send_auto_reply(
+            to_email=to_email,
+            subject=subject,
+            order_number=order_number,
+            classification=classification,
+            message_preview=message_preview,
+            original_message_id=original_message_id,
+        )
+
+        logger.info(
+            "send_auto_reply_task.completed",
+            task_id=self.request.id,
+            to_email=to_email,
+            status=result["status"],
+        )
+
+        return result
+
+    except Exception as exc:
+        logger.exception(
+            "send_auto_reply_task.failed",
+            task_id=self.request.id,
+            to_email=to_email,
+            error=str(exc),
+            retry_count=self.request.retries,
+        )
+
+        # Retry with exponential backoff
+        try:
+            raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))
+        except MaxRetriesExceededError:
+            logger.error(
+                "send_auto_reply_task.max_retries_exceeded",
+                task_id=self.request.id,
+                to_email=to_email,
+                error=str(exc),
+            )
+            return {
+                "status": "failed",
+                "error": str(exc),
+                "to_email": to_email,
+            }

@@ -5,7 +5,7 @@ and recording sync results in the database.
 """
 
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -325,7 +325,7 @@ class PohodaService:
         self,
         entity_type: str,
         entity_id: UUID,
-    ) -> dict:
+    ) -> dict[str, object]:
         """Get sync status for an entity.
 
         Args:
@@ -412,6 +412,118 @@ class PohodaService:
 
         result = await self.db.execute(query)
         return list(result.scalars().all())
+
+    async def generate_invoice(
+        self,
+        order_id: UUID,
+        invoice_number: str,
+        invoice_date: date | None = None,
+        due_days: int = 14,
+    ) -> PohodaSyncLog:
+        """Generate invoice XML for an order and send to Pohoda.
+
+        Args:
+            order_id: Order UUID to generate invoice for
+            invoice_number: Invoice number (e.g., "FV-2025-001")
+            invoice_date: Invoice issue date (defaults to today)
+            due_days: Payment due in days (default 14)
+
+        Returns:
+            PohodaSyncLog with sync result
+
+        Raises:
+            ValueError: If order not found
+        """
+        # Load order with items and customer
+        result = await self.db.execute(
+            select(Order)
+            .where(Order.id == order_id)
+            .options(
+                selectinload(Order.customer),
+                selectinload(Order.items),
+            )
+        )
+        order = result.scalar_one_or_none()
+        if not order:
+            raise ValueError(f"Order {order_id} not found")
+
+        # Create sync log entry
+        sync_log = PohodaSyncLog(
+            entity_type="invoice",
+            entity_id=order_id,
+            direction=SyncDirection.EXPORT,
+            status=SyncStatus.PENDING,
+        )
+        self.db.add(sync_log)
+        await self.db.flush()
+
+        try:
+            from app.integrations.pohoda.xml_builder import PohodaXMLBuilder
+
+            builder = PohodaXMLBuilder()
+            xml_data = builder.build_invoice_xml(
+                order=order,
+                customer=order.customer,
+                invoice_number=invoice_number,
+                invoice_date=invoice_date,
+                due_days=due_days,
+            )
+            sync_log.xml_request = xml_data.decode("Windows-1250", errors="replace")
+
+            if settings.POHODA_MSERVER_URL:
+                from app.integrations.pohoda.client import PohodaClient
+                from app.integrations.pohoda.xml_parser import PohodaXMLParser
+
+                async with PohodaClient(
+                    base_url=settings.POHODA_MSERVER_URL,
+                    ico=settings.POHODA_ICO,
+                ) as client:
+                    response_bytes = await client.send_xml(xml_data)
+
+                sync_log.xml_response = response_bytes.decode("Windows-1250", errors="replace")
+
+                parsed = PohodaXMLParser.parse_response(response_bytes)
+                if parsed.success and parsed.items:
+                    sync_log.status = SyncStatus.SUCCESS
+                    sync_log.pohoda_doc_number = parsed.items[0].id
+
+                    # Update order with invoice sync timestamp
+                    order.pohoda_synced_at = datetime.now(UTC)
+                else:
+                    error_notes = [item.note for item in parsed.items if item.state != "ok"]
+                    sync_log.status = SyncStatus.ERROR
+                    sync_log.error_message = "; ".join(error_notes) or "Unknown error"
+            else:
+                sync_log.status = SyncStatus.SUCCESS
+                logger.warning(
+                    "pohoda_mserver_not_configured entity_type=invoice entity_id=%s",
+                    str(order_id),
+                )
+
+        except Exception as e:
+            sync_log.status = SyncStatus.ERROR
+            sync_log.error_message = str(e)
+            logger.error(
+                "pohoda_sync_failed entity_type=invoice entity_id=%s error=%s",
+                str(order_id),
+                str(e),
+            )
+
+        await self.db.flush()
+        await self._create_audit_log(
+            action=AuditAction.CREATE,
+            entity_type="invoice",
+            entity_id=order_id,
+            changes={
+                "pohoda_invoice": {
+                    "invoice_number": invoice_number,
+                    "direction": "export",
+                    "status": sync_log.status.value,
+                    "error": sync_log.error_message,
+                }
+            },
+        )
+        return sync_log
 
     async def _create_audit_log(
         self,

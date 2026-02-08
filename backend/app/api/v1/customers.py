@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db, require_role
 from app.models.user import User, UserRole
-from app.schemas import CustomerCreate, CustomerResponse, CustomerUpdate
+from app.schemas import CustomerCategoryUpdate, CustomerCreate, CustomerResponse, CustomerUpdate
 from app.services import CustomerService
 
 router = APIRouter(prefix="/zakaznici", tags=["Zákazníci"])
@@ -79,6 +79,31 @@ async def update_customer(
     """Update customer."""
     service = CustomerService(db)
     customer = await service.update(customer_id, customer_data)
+    if not customer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Customer {customer_id} not found",
+        )
+    await db.commit()
+    return CustomerResponse.model_validate(customer)
+
+
+@router.patch("/{customer_id}/category", response_model=CustomerResponse)
+async def update_customer_category(
+    customer_id: UUID,
+    category_data: CustomerCategoryUpdate,
+    user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> CustomerResponse:
+    """Update customer category and apply default discount/payment terms.
+
+    Category defaults:
+    - A (Klíčový): 15% sleva, 30 dní splatnost
+    - B (Běžný): 5% sleva, 14 dní splatnost
+    - C (Nový): 0% sleva, 7 dní splatnost
+    """
+    service = CustomerService(db, user_id=user.id)
+    customer = await service.update_category(customer_id, category_data.category)
     if not customer:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

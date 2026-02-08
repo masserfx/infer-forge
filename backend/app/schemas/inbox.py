@@ -24,6 +24,7 @@ class InboxMessageResponse(BaseModel):
     status: InboxStatus = Field(..., description="Processing status")
     customer_id: UUID | None = Field(None, description="Assigned customer ID")
     order_id: UUID | None = Field(None, description="Assigned order ID")
+    auto_reply_sent: bool = Field(False, description="Whether auto-reply was sent")
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

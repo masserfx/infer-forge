@@ -1,6 +1,7 @@
 """Customer business logic service."""
 
 from datetime import UTC, datetime
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import select
@@ -27,7 +28,7 @@ class CustomerService:
         self,
         action: AuditAction,
         entity_id: UUID,
-        changes: dict | None = None,
+        changes: dict[str, object] | None = None,
     ) -> None:
         """Create audit log entry.
 
@@ -60,11 +61,16 @@ class CustomerService:
         await self.db.flush()
         await self.db.refresh(customer)
 
-        # Audit trail
+        # Audit trail (convert Decimals to str for JSON serialization)
+        changes_dict = customer_data.model_dump()
+        for key, value in changes_dict.items():
+            if isinstance(value, Decimal):
+                changes_dict[key] = str(value)
+
         await self._create_audit_log(
             action=AuditAction.CREATE,
             entity_id=customer.id,
-            changes={"created": customer_data.model_dump()},
+            changes={"created": changes_dict},
         )
 
         return customer
@@ -119,13 +125,16 @@ class CustomerService:
             return None
 
         # Track changes for audit
-        changes: dict = {}
+        changes: dict[str, object] = {}
         update_data = customer_data.model_dump(exclude_unset=True)
 
         for field, value in update_data.items():
             old_value = getattr(customer, field)
             if old_value != value:
-                changes[field] = {"old": old_value, "new": value}
+                # Convert Decimals to str for JSON serialization
+                old_str = str(old_value) if isinstance(old_value, Decimal) else old_value
+                new_str = str(value) if isinstance(value, Decimal) else value
+                changes[field] = {"old": old_str, "new": new_str}
                 setattr(customer, field, value)
 
         if changes:
@@ -138,6 +147,59 @@ class CustomerService:
                 entity_id=customer.id,
                 changes=changes,
             )
+
+        return customer
+
+    async def update_category(
+        self,
+        customer_id: UUID,
+        category: str,
+    ) -> Customer | None:
+        """Update customer category and apply default discount/payment terms.
+
+        Category defaults:
+        - A (Klíčový): 15% sleva, 30 dní splatnost
+        - B (Běžný): 5% sleva, 14 dní splatnost
+        - C (Nový): 0% sleva, 7 dní splatnost
+
+        Args:
+            customer_id: Customer UUID
+            category: Category code (A, B, or C)
+
+        Returns:
+            Updated customer instance or None if not found
+        """
+        customer = await self.get_by_id(customer_id)
+        if not customer:
+            return None
+
+        # Apply category defaults
+        old_category = customer.category
+        customer.category = category
+
+        if category == "A":
+            customer.discount_percent = Decimal("15.00")
+            customer.payment_terms_days = 30
+        elif category == "B":
+            customer.discount_percent = Decimal("5.00")
+            customer.payment_terms_days = 14
+        elif category == "C":
+            customer.discount_percent = Decimal("0.00")
+            customer.payment_terms_days = 7
+
+        await self.db.flush()
+        await self.db.refresh(customer)
+
+        # Audit trail
+        await self._create_audit_log(
+            action=AuditAction.UPDATE,
+            entity_id=customer.id,
+            changes={
+                "category": {"old": old_category, "new": category},
+                "discount_percent": str(customer.discount_percent),
+                "payment_terms_days": customer.payment_terms_days,
+            },
+        )
 
         return customer
 

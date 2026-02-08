@@ -1,9 +1,10 @@
 """Customer model."""
 
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Index, String, Text
+from sqlalchemy import DateTime, Index, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin, UUIDPKMixin
@@ -28,6 +29,36 @@ class Customer(Base, UUIDPKMixin, TimestampMixin):
     pohoda_synced_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
+    )
+
+    # Customer category and discount settings
+    category: Mapped[str | None] = mapped_column(
+        String(1),
+        nullable=True,
+        default="C",
+        comment="A=Klíčový, B=Běžný, C=Nový/jednorázový",
+    )
+    discount_percent: Mapped[Decimal | None] = mapped_column(
+        Numeric(5, 2),
+        nullable=True,
+        default=Decimal("0.00"),
+        comment="Sazba slevy 0.00-100.00",
+    )
+    payment_terms_days: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+        default=14,
+        comment="Splatnost faktur ve dnech",
+    )
+    credit_limit: Mapped[Decimal | None] = mapped_column(
+        Numeric(12, 2),
+        nullable=True,
+        comment="Kreditní limit zákazníka",
+    )
+    notes: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Interní poznámky ke klientovi",
     )
 
     # Relationships

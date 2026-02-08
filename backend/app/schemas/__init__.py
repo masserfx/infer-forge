@@ -17,10 +17,22 @@ from .calculation import (
     CalculationSummary,
     CalculationUpdate,
 )
-from .customer import CustomerCreate, CustomerResponse, CustomerUpdate
+from .customer import (
+    CustomerCategoryUpdate,
+    CustomerCreate,
+    CustomerResponse,
+    CustomerUpdate,
+)
 from .document import DocumentResponse, DocumentUpdate, DocumentUpload
 from .embedding import SimilarOrderResult, SimilarOrdersResponse, SimilarSearchRequest
 from .inbox import InboxAssign, InboxMessageResponse, InboxReclassify
+from .material_price import (
+    MaterialPriceCreate,
+    MaterialPriceImportResult,
+    MaterialPriceListResponse,
+    MaterialPriceResponse,
+    MaterialPriceUpdate,
+)
 from .notification import NotificationCreate, NotificationList, NotificationResponse
 from .order import (
     OrderCreate,
@@ -60,6 +72,7 @@ __all__ = [
     # Customer
     "CustomerCreate",
     "CustomerUpdate",
+    "CustomerCategoryUpdate",
     "CustomerResponse",
     # Order
     "OrderCreate",
@@ -72,6 +85,12 @@ __all__ = [
     "InboxMessageResponse",
     "InboxAssign",
     "InboxReclassify",
+    # MaterialPrice
+    "MaterialPriceCreate",
+    "MaterialPriceUpdate",
+    "MaterialPriceResponse",
+    "MaterialPriceListResponse",
+    "MaterialPriceImportResult",
     # Pohoda
     "PohodaSyncRequest",
     "PohodaSyncLogResponse",

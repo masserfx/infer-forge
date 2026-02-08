@@ -143,3 +143,37 @@ async def search_similar_orders(
     """Search orders by text similarity."""
     service = EmbeddingService(db)
     return await service.search_by_text(request.query, limit=request.limit)
+
+
+@router.post(
+    "/from-offer/{offer_id}",
+    response_model=OrderResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_order_from_offer(
+    offer_id: UUID,
+    user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> OrderResponse:
+    """Convert an accepted offer to a new order.
+
+    Creates a new order in OBJEDNAVKA status from an accepted offer,
+    copying all items from the source order.
+    """
+    service = OrderService(db, user_id=user.id)
+    try:
+        order = await service.convert_offer_to_order(offer_id)
+        await db.commit()
+        return OrderResponse.model_validate(order)
+    except ValueError as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to convert offer: {str(e)}",
+        ) from e
