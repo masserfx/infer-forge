@@ -132,16 +132,25 @@ def upgrade() -> None:
     op.create_index("ix_offers_converted_to_order_id", "offers", ["converted_to_order_id"])
 
     # --- inbox_messages: add order_id FK and auto_reply_sent ---
-    op.add_column(
-        "inbox_messages",
-        sa.Column(
-            "order_id",
-            sa.UUID(),
-            sa.ForeignKey("orders.id", ondelete="SET NULL"),
-            nullable=True,
-        ),
+    # order_id may already exist from previous deployment
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name='inbox_messages' AND column_name='order_id'"
+        )
     )
-    op.create_index("ix_inbox_messages_order_id", "inbox_messages", ["order_id"])
+    if not result.fetchone():
+        op.add_column(
+            "inbox_messages",
+            sa.Column(
+                "order_id",
+                sa.UUID(),
+                sa.ForeignKey("orders.id", ondelete="SET NULL"),
+                nullable=True,
+            ),
+        )
+        op.create_index("ix_inbox_messages_order_id", "inbox_messages", ["order_id"])
 
     op.add_column(
         "inbox_messages",
