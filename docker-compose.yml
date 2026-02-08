@@ -35,12 +35,15 @@ services:
       DATABASE_URL: postgresql+asyncpg://infer:${POSTGRES_PASSWORD:-infer_dev_pass}@db:5432/infer_forge
       REDIS_URL: redis://redis:6379/0
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      POHODA_MSERVER_URL: http://mock-pohoda:8081
     env_file:
       - .env
     depends_on:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      mock-pohoda:
         condition: service_healthy
     volumes:
       - ./backend:/app
@@ -87,6 +90,19 @@ services:
     depends_on:
       - backend
 
+  mock-pohoda:
+    build: ./mock-pohoda
+    ports:
+      - "8081:8081"
+    volumes:
+      - pohoda-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; r = httpx.get('http://localhost:8081/health'); r.raise_for_status()"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   loki:
     image: grafana/loki:3.0.0
     container_name: infer-forge-loki
@@ -113,4 +129,5 @@ services:
 volumes:
   pgdata:
   documents:
+  pohoda-data:
   loki-data:

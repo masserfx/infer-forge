@@ -11,13 +11,34 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.calculation import Calculation
+from app.models.calculation import Calculation, CalculationStatus
 from app.models.order import Order
 
 logger = logging.getLogger(__name__)
 
 # Template directory
 TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
+
+# Company info constant (Infer s.r.o.)
+COMPANY_INFO = {
+    "name": "Infer s.r.o.",
+    "ico": "04856562",
+    "dic": "CZ04856562",
+    "address": "Průmyslová 1, 741 01 Nový Jičín",
+    "phone": "+420 xxx xxx xxx",
+    "email": "info@infer.cz",
+    "bank": "CZ00 0000 0000 0000 0000 0000",
+    "bank_name": "Fio banka, a.s.",
+    "bank_account": "2501234567/2010",
+    "iban": "CZ65 2010 0000 0025 0123 4567",
+    "swift": "FIOBCZPPXXX",
+}
+
+INVOICE_TYPE_LABELS = {
+    "final": "Faktura",
+    "advance": "Zálohová faktura",
+    "proforma": "Proforma faktura",
+}
 
 
 def _get_jinja_env() -> Environment:
@@ -321,4 +342,219 @@ class DocumentGeneratorService:
             certificate_number,
             certificate_type,
         )
+        return pdf_bytes
+
+    async def _load_order_with_relations(self, order_id: UUID) -> Order:
+        """Load order with customer and items, raise ValueError if not found."""
+        result = await self.db.execute(
+            select(Order)
+            .where(Order.id == order_id)
+            .options(
+                selectinload(Order.items),
+                selectinload(Order.customer),
+            )
+        )
+        order = result.scalar_one_or_none()
+        if not order:
+            raise ValueError(f"Zakázka {order_id} nenalezena")
+        if not order.customer:
+            raise ValueError(f"Zakázka {order.number} nemá přiřazeného zákazníka")
+        return order
+
+    async def generate_invoice_pdf(
+        self,
+        order_id: UUID,
+        invoice_type: str = "final",
+        due_days: int = 14,
+        note: str | None = None,
+    ) -> bytes:
+        """Generate invoice PDF for an order.
+
+        Args:
+            order_id: Order UUID.
+            invoice_type: "final", "advance", or "proforma".
+            due_days: Payment due in days.
+            note: Optional additional note.
+
+        Returns:
+            PDF file bytes.
+        """
+        order = await self._load_order_with_relations(order_id)
+        today = date.today()
+        due_date_val = today + timedelta(days=due_days)
+
+        # Generate invoice number
+        type_prefix = {"final": "FV", "advance": "ZF", "proforma": "PF"}
+        prefix = type_prefix.get(invoice_type, "FV")
+        invoice_number = f"{prefix}-{today.strftime('%Y')}-{order.number}"
+        variable_symbol = order.number.replace("-", "").replace("ZAK", "")
+
+        # Get approved calculation for pricing
+        calc_result = await self.db.execute(
+            select(Calculation)
+            .where(Calculation.order_id == order_id, Calculation.status == CalculationStatus.APPROVED)
+            .options(selectinload(Calculation.items))
+            .order_by(Calculation.updated_at.desc())
+            .limit(1)
+        )
+        calculation = calc_result.scalar_one_or_none()
+
+        # Build invoice items with prices
+        invoice_items = []
+        total_items = len(order.items)
+        for item in order.items:
+            if calculation and total_items > 0:
+                item_share = float(calculation.total_price) / total_items
+                unit_price = item_share / float(item.quantity) if item.quantity > 0 else item_share
+            else:
+                unit_price = 1000.00  # placeholder
+
+            if invoice_type == "advance":
+                unit_price *= 0.5  # 50% advance
+
+            total_price = unit_price * float(item.quantity)
+            invoice_items.append({
+                "name": item.name,
+                "material": item.material,
+                "dn": item.dn,
+                "pn": item.pn,
+                "quantity": item.quantity,
+                "unit": item.unit,
+                "unit_price": unit_price,
+                "total_price": total_price,
+            })
+
+        subtotal = sum(i["total_price"] for i in invoice_items)
+        vat_amount = subtotal * 0.21
+        total_with_vat = subtotal + vat_amount
+
+        context = {
+            "order": order,
+            "customer": order.customer,
+            "invoice_items": invoice_items,
+            "invoice_number": invoice_number,
+            "invoice_type": invoice_type,
+            "invoice_type_label": INVOICE_TYPE_LABELS.get(invoice_type, "Faktura"),
+            "issue_date": today.strftime("%d.%m.%Y"),
+            "due_date": due_date_val.strftime("%d.%m.%Y"),
+            "variable_symbol": variable_symbol,
+            "subtotal": subtotal,
+            "vat_amount": vat_amount,
+            "total_with_vat": total_with_vat,
+            "note": note,
+            "format_price": _format_price,
+            "today": today.strftime("%d.%m.%Y"),
+            "company": COMPANY_INFO,
+        }
+
+        env = _get_jinja_env()
+        template = env.get_template("faktura.html")
+        html_content = template.render(**context)
+
+        from weasyprint import HTML
+        pdf_bytes: bytes = HTML(string=html_content).write_pdf()
+        logger.info("document_generator.invoice_generated order_id=%s invoice_number=%s", order_id, invoice_number)
+        return pdf_bytes
+
+    async def generate_delivery_note_pdf(
+        self,
+        order_id: UUID,
+        delivery_address: str | None = None,
+        note: str | None = None,
+    ) -> bytes:
+        """Generate delivery note (dodací list) PDF for an order.
+
+        Args:
+            order_id: Order UUID.
+            delivery_address: Optional delivery address override.
+            note: Optional additional note.
+
+        Returns:
+            PDF file bytes.
+        """
+        order = await self._load_order_with_relations(order_id)
+        today = date.today()
+        delivery_number = f"DL-{today.strftime('%Y%m%d')}-{order.number}"
+
+        context = {
+            "order": order,
+            "customer": order.customer,
+            "items": order.items,
+            "delivery_number": delivery_number,
+            "delivery_address": delivery_address,
+            "today": today.strftime("%d.%m.%Y"),
+            "note": note,
+            "company": COMPANY_INFO,
+        }
+
+        env = _get_jinja_env()
+        template = env.get_template("dodaci_list.html")
+        html_content = template.render(**context)
+
+        from weasyprint import HTML
+        pdf_bytes: bytes = HTML(string=html_content).write_pdf()
+        logger.info("document_generator.delivery_note_generated order_id=%s delivery_number=%s", order_id, delivery_number)
+        return pdf_bytes
+
+    async def generate_order_confirmation_pdf(
+        self,
+        order_id: UUID,
+        show_prices: bool = False,
+        delivery_terms: str | None = None,
+        payment_terms: str | None = None,
+        note: str | None = None,
+    ) -> bytes:
+        """Generate order confirmation (potvrzení objednávky) PDF for an order.
+
+        Args:
+            order_id: Order UUID.
+            show_prices: Whether to include price columns.
+            delivery_terms: Optional delivery terms override.
+            payment_terms: Optional payment terms override.
+            note: Optional additional note.
+
+        Returns:
+            PDF file bytes.
+        """
+        order = await self._load_order_with_relations(order_id)
+        today = date.today()
+        due_date_str = order.due_date.strftime("%d.%m.%Y") if order.due_date else None
+
+        # Optionally calculate prices
+        total_price = None
+        items_with_prices = order.items
+        if show_prices:
+            calc_result = await self.db.execute(
+                select(Calculation)
+                .where(Calculation.order_id == order_id, Calculation.status == CalculationStatus.APPROVED)
+                .options(selectinload(Calculation.items))
+                .order_by(Calculation.updated_at.desc())
+                .limit(1)
+            )
+            calculation = calc_result.scalar_one_or_none()
+            if calculation:
+                total_price = calculation.total_price
+
+        context = {
+            "order": order,
+            "customer": order.customer,
+            "items": items_with_prices,
+            "today": today.strftime("%d.%m.%Y"),
+            "due_date": due_date_str,
+            "show_prices": show_prices,
+            "total_price": total_price,
+            "delivery_terms": delivery_terms,
+            "payment_terms": payment_terms,
+            "note": note,
+            "format_price": _format_price,
+            "company": COMPANY_INFO,
+        }
+
+        env = _get_jinja_env()
+        template = env.get_template("objednavka.html")
+        html_content = template.render(**context)
+
+        from weasyprint import HTML
+        pdf_bytes: bytes = HTML(string=html_content).write_pdf()
+        logger.info("document_generator.order_confirmation_generated order_id=%s", order_id)
         return pdf_bytes

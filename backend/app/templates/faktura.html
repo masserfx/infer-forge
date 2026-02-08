@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}{{ invoice_type_label }} č. {{ invoice_number }}{% endblock %}
+
+{% block extra_styles %}
+.invoice-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 10pt;
+    font-weight: bold;
+    color: white;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+.badge-final { background-color: #1e3a5f; }
+.badge-advance { background-color: #e65100; }
+.badge-proforma { background-color: #7b1fa2; }
+.bank-info {
+    background-color: #f0f4f8;
+    border: 1px solid #d0d8e0;
+    border-radius: 4px;
+    padding: 12px;
+    margin: 15px 0;
+}
+.bank-info h3 { color: #1e3a5f; margin-bottom: 8px; border-bottom: 1px solid #d0d8e0; padding-bottom: 4px; }
+.vat-summary { margin-top: 10px; }
+.vat-summary td { text-align: right; }
+.vs-highlight { font-size: 12pt; font-weight: bold; color: #1e3a5f; }
+.qr-placeholder {
+    width: 100px;
+    height: 100px;
+    border: 2px dashed #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8pt;
+    color: #999;
+    margin-top: 8px;
+}
+{% endblock %}
+
+{% block content %}
+<h2 class="doc-title">
+    {{ invoice_type_label }} č. {{ invoice_number }}
+    <span class="invoice-badge badge-{{ invoice_type }}">{{ invoice_type_label }}</span>
+</h2>
+
+<div class="info-grid">
+    <div class="info-box">
+        <h3>Dodavatel</h3>
+        <p><strong>{{ company.name }}</strong></p>
+        <p>{{ company.address }}</p>
+        <p><span class="label">IČO:</span> {{ company.ico }}</p>
+        <p><span class="label">DIČ:</span> {{ company.dic }}</p>
+        <p><span class="label">Tel:</span> {{ company.phone }}</p>
+        <p><span class="label">Email:</span> {{ company.email }}</p>
+    </div>
+    <div class="info-box">
+        <h3>Odběratel</h3>
+        <p><strong>{{ customer.company_name }}</strong></p>
+        {% if customer.address %}
+        <p>{{ customer.address }}</p>
+        {% endif %}
+        <p><span class="label">IČO:</span> {{ customer.ico }}</p>
+        {% if customer.dic %}
+        <p><span class="label">DIČ:</span> {{ customer.dic }}</p>
+        {% endif %}
+        <p><span class="label">Kontakt:</span> {{ customer.contact_name }}</p>
+        <p><span class="label">Email:</span> {{ customer.email }}</p>
+    </div>
+</div>
+
+<div class="info-box" style="margin: 15px 0;">
+    <h3>Údaje dokladu</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+        <p><span class="label">Číslo:</span> {{ invoice_number }}</p>
+        <p><span class="label">Zakázka:</span> {{ order.number }}</p>
+        <p><span class="label">Vystaveno:</span> {{ issue_date }}</p>
+        <p><span class="label">Splatnost:</span> {{ due_date }}</p>
+        <p class="vs-highlight"><span class="label">Var. symbol:</span> {{ variable_symbol }}</p>
+        <p><span class="label">Způsob úhrady:</span> Bankovní převod</p>
+    </div>
+</div>
+
+<h3 style="color: #1e3a5f; margin: 20px 0 10px;">Položky</h3>
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Název</th>
+            <th>Množství</th>
+            <th>Jednotka</th>
+            <th style="text-align: right;">Cena/ks (Kč)</th>
+            <th style="text-align: right;">DPH</th>
+            <th style="text-align: right;">Celkem (Kč)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in invoice_items %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ item.name }}{% if item.material %} | {{ item.material }}{% endif %}{% if item.dn %} DN{{ item.dn }}{% endif %}{% if item.pn %}/PN{{ item.pn }}{% endif %}</td>
+            <td style="text-align: right;">{{ item.quantity }}</td>
+            <td>{{ item.unit }}</td>
+            <td style="text-align: right;">{{ format_price(item.unit_price) }}</td>
+            <td style="text-align: right;">21 %</td>
+            <td style="text-align: right;">{{ format_price(item.total_price) }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h3 style="color: #1e3a5f; margin: 20px 0 10px;">Rekapitulace DPH</h3>
+<table class="vat-summary" style="width: 50%; margin-left: auto;">
+    <thead>
+        <tr>
+            <th>Sazba DPH</th>
+            <th style="text-align: right;">Základ (Kč)</th>
+            <th style="text-align: right;">DPH (Kč)</th>
+            <th style="text-align: right;">Celkem (Kč)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">21 %</td>
+            <td>{{ format_price(subtotal) }}</td>
+            <td>{{ format_price(vat_amount) }}</td>
+            <td>{{ format_price(total_with_vat) }}</td>
+        </tr>
+        <tr class="total-row">
+            <td style="text-align: left;"><strong>Celkem k úhradě</strong></td>
+            <td><strong>{{ format_price(subtotal) }}</strong></td>
+            <td><strong>{{ format_price(vat_amount) }}</strong></td>
+            <td><strong>{{ format_price(total_with_vat) }}</strong></td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="bank-info">
+    <h3>Bankovní spojení</h3>
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+        <div>
+            <p><span class="label">Banka:</span> {{ company.bank_name }}</p>
+            <p><span class="label">Číslo účtu:</span> {{ company.bank_account }}</p>
+            <p><span class="label">IBAN:</span> {{ company.iban }}</p>
+            <p><span class="label">SWIFT:</span> {{ company.swift }}</p>
+        </div>
+        <div style="text-align: center;">
+            <div class="qr-placeholder">QR platba</div>
+        </div>
+    </div>
+</div>
+
+{% if note %}
+<div class="note">
+    <strong>Poznámka:</strong> {{ note }}
+</div>
+{% endif %}
+
+<div class="signature-grid">
+    <div class="signature-box">
+        <div class="signature-line">Vystavil</div>
+    </div>
+    <div class="signature-box">
+        <div class="signature-line">Schválil</div>
+    </div>
+</div>
+{% endblock %}

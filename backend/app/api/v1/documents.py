@@ -13,7 +13,13 @@ from app.integrations.ocr.processor import OCRProcessor
 from app.models import DocumentCategory
 from app.models.user import User, UserRole
 from app.schemas import DocumentResponse, DocumentUpdate, DocumentUpload
-from app.schemas.document_generator import GenerateOfferRequest, GenerateProductionSheetRequest
+from app.schemas.document_generator import (
+    GenerateDeliveryNoteRequest,
+    GenerateInvoiceRequest,
+    GenerateOfferRequest,
+    GenerateOrderConfirmationRequest,
+    GenerateProductionSheetRequest,
+)
 from app.schemas.drawing import (
     DrawingAnalysisResponse,
     DrawingDimensionSchema,
@@ -431,5 +437,98 @@ async def generate_material_certificate(
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
+
+
+@router.post("/generate/invoice/{order_id}")
+async def generate_invoice_pdf(
+    order_id: UUID,
+    request: GenerateInvoiceRequest | None = None,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Generate invoice PDF for an order."""
+    service = DocumentGeneratorService(db)
+    req = request or GenerateInvoiceRequest()
+    try:
+        pdf_bytes = await service.generate_invoice_pdf(
+            order_id=order_id,
+            invoice_type=req.invoice_type,
+            due_days=req.due_days,
+            note=req.note,
+        )
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="faktura_{order_id}.pdf"',
+            },
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
+
+
+@router.post("/generate/delivery-note/{order_id}")
+async def generate_delivery_note(
+    order_id: UUID,
+    request: GenerateDeliveryNoteRequest | None = None,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Generate delivery note PDF for an order."""
+    service = DocumentGeneratorService(db)
+    req = request or GenerateDeliveryNoteRequest()
+    try:
+        pdf_bytes = await service.generate_delivery_note_pdf(
+            order_id=order_id,
+            delivery_address=req.delivery_address,
+            note=req.note,
+        )
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="dodaci_list_{order_id}.pdf"',
+            },
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
+
+
+@router.post("/generate/order-confirmation/{order_id}")
+async def generate_order_confirmation(
+    order_id: UUID,
+    request: GenerateOrderConfirmationRequest | None = None,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Generate order confirmation PDF for an order."""
+    service = DocumentGeneratorService(db)
+    req = request or GenerateOrderConfirmationRequest()
+    try:
+        pdf_bytes = await service.generate_order_confirmation_pdf(
+            order_id=order_id,
+            show_prices=req.show_prices,
+            delivery_terms=req.delivery_terms,
+            payment_terms=req.payment_terms,
+            note=req.note,
+        )
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="objednavka_{order_id}.pdf"',
+            },
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         ) from e

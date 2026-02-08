@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Dodací list č. {{ delivery_number }}{% endblock %}
+
+{% block extra_styles %}
+.delivery-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    margin: 15px 0;
+}
+.check-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0;
+    font-size: 10pt;
+}
+.checkbox {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #333;
+    display: inline-block;
+    vertical-align: middle;
+}
+.signature-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 30px;
+    margin-top: 40px;
+}
+{% endblock %}
+
+{% block content %}
+<h2 class="doc-title">Dodací list č. {{ delivery_number }}</h2>
+
+<div class="delivery-info">
+    <div class="info-box">
+        <h3>Dodavatel</h3>
+        <p><strong>{{ company.name }}</strong></p>
+        <p>{{ company.address }}</p>
+        <p><span class="label">IČO:</span> {{ company.ico }}</p>
+        <p><span class="label">DIČ:</span> {{ company.dic }}</p>
+    </div>
+    <div class="info-box">
+        <h3>Odběratel</h3>
+        <p><strong>{{ customer.company_name }}</strong></p>
+        {% if customer.address %}
+        <p>{{ customer.address }}</p>
+        {% endif %}
+        <p><span class="label">IČO:</span> {{ customer.ico }}</p>
+        {% if customer.dic %}
+        <p><span class="label">DIČ:</span> {{ customer.dic }}</p>
+        {% endif %}
+    </div>
+    <div class="info-box">
+        <h3>Místo dodání</h3>
+        <p>{{ delivery_address or customer.address or 'Sídlo odběratele' }}</p>
+    </div>
+</div>
+
+<div class="info-box" style="margin: 15px 0;">
+    <h3>Údaje dodacího listu</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+        <p><span class="label">Číslo DL:</span> <strong>{{ delivery_number }}</strong></p>
+        <p><span class="label">Datum:</span> {{ today }}</p>
+        <p><span class="label">Zakázka:</span> {{ order.number }}</p>
+        {% if order.due_date %}
+        <p><span class="label">Objednávka:</span> {{ order.number }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<h3 style="color: #1e3a5f; margin: 20px 0 10px;">Dodávané položky</h3>
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Název</th>
+            <th>Materiál</th>
+            <th>DN/PN</th>
+            <th style="text-align: right;">Množství</th>
+            <th>Jednotka</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.material or '—' }}</td>
+            <td>{{ item.dn or '—' }}/{{ item.pn or '—' }}</td>
+            <td style="text-align: right;">{{ item.quantity }}</td>
+            <td>{{ item.unit }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if note %}
+<div class="note">
+    <strong>Poznámka:</strong> {{ note }}
+</div>
+{% endif %}
+
+<div style="margin-top: 25px; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">
+    <h3 style="color: #1e3a5f; margin-bottom: 10px;">Kontrola při převzetí</h3>
+    <div class="check-field">
+        <span class="checkbox"></span>
+        <span>Zboží předáno bez viditelných závad</span>
+    </div>
+    <div class="check-field">
+        <span class="checkbox"></span>
+        <span>Množství odpovídá dodacímu listu</span>
+    </div>
+    <div class="check-field">
+        <span class="checkbox"></span>
+        <span>Dokumentace (atestace, protokoly) přiložena</span>
+    </div>
+    <div class="check-field">
+        <span class="checkbox"></span>
+        <span>Balení nepoškozené</span>
+    </div>
+    <div style="margin-top: 10px;">
+        <p style="font-size: 9pt;"><span class="label">Připomínky:</span></p>
+        <div style="border-bottom: 1px solid #ccc; height: 30px; margin-top: 5px;"></div>
+        <div style="border-bottom: 1px solid #ccc; height: 30px;"></div>
+    </div>
+</div>
+
+<div class="signature-grid-3">
+    <div class="signature-box">
+        <div class="signature-line">Předal</div>
+        <p style="font-size: 8pt; color: #888; margin-top: 4px;">Jméno, datum, podpis</p>
+    </div>
+    <div class="signature-box">
+        <div class="signature-line">Převzal</div>
+        <p style="font-size: 8pt; color: #888; margin-top: 4px;">Jméno, datum, podpis</p>
+    </div>
+    <div class="signature-box">
+        <div class="signature-line">Datum převzetí</div>
+        <p style="font-size: 8pt; color: #888; margin-top: 4px;">DD.MM.RRRR</p>
+    </div>
+</div>
+{% endblock %}

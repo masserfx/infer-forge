@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Potvrzení objednávky č. {{ order.number }}{% endblock %}
+
+{% block extra_styles %}
+.order-highlight {
+    background: linear-gradient(135deg, #e8eef5, #f0f4f8);
+    border: 2px solid #1e3a5f;
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 15px 0;
+    text-align: center;
+}
+.order-highlight h2 {
+    color: #1e3a5f;
+    font-size: 14pt;
+}
+.conditions {
+    font-size: 9pt;
+    margin: 15px 0;
+}
+.conditions p {
+    margin: 4px 0;
+    padding-left: 15px;
+    text-indent: -15px;
+}
+{% endblock %}
+
+{% block content %}
+<h2 class="doc-title">Potvrzení objednávky</h2>
+
+<div class="order-highlight">
+    <h2>Objednávka č. {{ order.number }}</h2>
+    <p style="font-size: 10pt; color: #555;">Datum: {{ today }} | Požadovaný termín dodání: {{ due_date or 'Dle dohody' }}</p>
+</div>
+
+<div class="info-grid">
+    <div class="info-box">
+        <h3>Objednatel (odběratel)</h3>
+        <p><strong>{{ company.name }}</strong></p>
+        <p>{{ company.address }}</p>
+        <p><span class="label">IČO:</span> {{ company.ico }}</p>
+        <p><span class="label">DIČ:</span> {{ company.dic }}</p>
+        <p><span class="label">Tel:</span> {{ company.phone }}</p>
+        <p><span class="label">Email:</span> {{ company.email }}</p>
+    </div>
+    <div class="info-box">
+        <h3>Dodavatel</h3>
+        <p><strong>{{ customer.company_name }}</strong></p>
+        {% if customer.address %}
+        <p>{{ customer.address }}</p>
+        {% endif %}
+        <p><span class="label">IČO:</span> {{ customer.ico }}</p>
+        {% if customer.dic %}
+        <p><span class="label">DIČ:</span> {{ customer.dic }}</p>
+        {% endif %}
+        <p><span class="label">Kontakt:</span> {{ customer.contact_name }}</p>
+        <p><span class="label">Email:</span> {{ customer.email }}</p>
+    </div>
+</div>
+
+<h3 style="color: #1e3a5f; margin: 20px 0 10px;">Objednávané položky</h3>
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Název</th>
+            <th>Materiál</th>
+            <th>DN/PN</th>
+            <th style="text-align: right;">Množství</th>
+            <th>Jednotka</th>
+            {% if show_prices %}
+            <th style="text-align: right;">Cena/ks (Kč)</th>
+            <th style="text-align: right;">Celkem (Kč)</th>
+            {% endif %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.material or '—' }}</td>
+            <td>{{ item.dn or '—' }}/{{ item.pn or '—' }}</td>
+            <td style="text-align: right;">{{ item.quantity }}</td>
+            <td>{{ item.unit }}</td>
+            {% if show_prices %}
+            <td style="text-align: right;">{{ format_price(item.unit_price) if item.unit_price else '—' }}</td>
+            <td style="text-align: right;">{{ format_price(item.total_price) if item.total_price else '—' }}</td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+        {% if show_prices and total_price %}
+        <tr class="total-row">
+            <td colspan="6"></td>
+            <td style="text-align: right;">Celkem bez DPH:</td>
+            <td style="text-align: right;">{{ format_price(total_price) }} Kč</td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
+
+{% if note %}
+<div class="note">
+    <strong>Poznámka:</strong> {{ note }}
+</div>
+{% endif %}
+
+<div class="conditions">
+    <h3 style="color: #1e3a5f; margin-bottom: 8px;">Dodací a platební podmínky</h3>
+    <p>1. Dodací podmínky: {{ delivery_terms or 'DAP sídlo objednatele' }}</p>
+    <p>2. Platební podmínky: {{ payment_terms or '14 dní od data fakturace' }}</p>
+    <p>3. Požadovaný termín dodání: {{ due_date or 'Dle vzájemné dohody' }}</p>
+    <p>4. Požadujeme materiálové atestace dle EN 10204 3.1 ke každé položce.</p>
+    <p>5. Dodávka musí být doprovázena dodacím listem se specifikací materiálu.</p>
+    <p>6. Na objednávku se vztahují Všeobecné obchodní podmínky objednatele.</p>
+</div>
+
+<div class="signature-grid">
+    <div class="signature-box">
+        <div class="signature-line">Za objednatele</div>
+    </div>
+    <div class="signature-box">
+        <p style="font-size: 9pt; color: #888;">Potvrzení objednávky zašlete prosím na email {{ company.email }}</p>
+    </div>
+</div>
+{% endblock %}

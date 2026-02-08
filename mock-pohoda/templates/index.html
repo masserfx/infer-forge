@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Pohoda mServer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { background: linear-gradient(135deg, #1e3a5f, #2d5a8e); color: white; padding: 20px 30px; border-radius: 8px; margin-bottom: 24px; }
+        header h1 { font-size: 24px; margin-bottom: 4px; }
+        header p { font-size: 13px; opacity: 0.85; }
+        .stats { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+        .stat-card { background: white; border-radius: 8px; padding: 16px 20px; flex: 1; min-width: 140px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stat-card .value { font-size: 28px; font-weight: bold; color: #1e3a5f; }
+        .stat-card .label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        th { background: #1e3a5f; color: white; padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px; }
+        td { padding: 10px 16px; border-bottom: 1px solid #eee; font-size: 13px; }
+        tr:hover td { background: #f8f9fc; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .badge-addressbook { background: #e3f2fd; color: #1565c0; }
+        .badge-order { background: #e8f5e9; color: #2e7d32; }
+        .badge-offer { background: #fff3e0; color: #e65100; }
+        .badge-invoice { background: #fce4ec; color: #c62828; }
+        .xml-preview { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; margin-top: 16px; overflow-x: auto; max-height: 500px; overflow-y: auto; }
+        .xml-preview pre { font-family: 'Fira Code', 'Consolas', monospace; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; }
+        a { color: #1e3a5f; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #888; }
+        .empty-state h3 { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Mock Pohoda mServer</h1>
+            <p>Simulace Pohoda mServer API pro INFER FORGE | {{ now }}</p>
+        </header>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="value">{{ stats.total }}</div>
+                <div class="label">Celkem dokladů</div>
+            </div>
+            {% for type_key, count in stats.by_type.items() %}
+            <div class="stat-card">
+                <div class="value">{{ count }}</div>
+                <div class="label">{{ type_labels.get(type_key, type_key) }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if detail %}
+        <div style="background: white; border-radius: 8px; padding: 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h3 style="margin-bottom: 12px; color: #1e3a5f;">
+                Detail dokladu #{{ detail.id }}
+                <span class="badge badge-{{ detail.doc_type }}">{{ type_labels.get(detail.doc_type, detail.doc_type) }}</span>
+            </h3>
+            <p><strong>Číslo:</strong> {{ detail.doc_number or '—' }} | <strong>Pohoda ID:</strong> {{ detail.pohoda_id }} | <strong>Firma:</strong> {{ detail.company_name or '—' }} ({{ detail.ico or '—' }})</p>
+
+            <h4 style="margin-top: 16px; color: #555;">Přijatý XML požadavek:</h4>
+            <div class="xml-preview">
+                <pre>{{ detail.xml_request }}</pre>
+            </div>
+
+            <h4 style="margin-top: 16px; color: #555;">Odpověď (responsePack):</h4>
+            <div class="xml-preview">
+                <pre>{{ detail.xml_response }}</pre>
+            </div>
+
+            <p style="margin-top: 12px;"><a href="/">&larr; Zpět na přehled</a></p>
+        </div>
+        {% endif %}
+
+        {% if documents and not detail %}
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Typ</th>
+                    <th>Číslo dokladu</th>
+                    <th>Pohoda ID</th>
+                    <th>Firma</th>
+                    <th>IČO</th>
+                    <th>Datum</th>
+                    <th>Akce</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in documents %}
+                <tr>
+                    <td>{{ doc.id }}</td>
+                    <td><span class="badge badge-{{ doc.doc_type }}">{{ type_labels.get(doc.doc_type, doc.doc_type) }}</span></td>
+                    <td>{{ doc.doc_number or '—' }}</td>
+                    <td>{{ doc.pohoda_id }}</td>
+                    <td>{{ doc.company_name or '—' }}</td>
+                    <td>{{ doc.ico or '—' }}</td>
+                    <td>{{ doc.created_at }}</td>
+                    <td><a href="/xml/docs/{{ doc.id }}">Detail</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% elif not detail %}
+        <div class="empty-state">
+            <h3>Žádné doklady</h3>
+            <p>Zatím nebyl přijat žádný XML doklad. Spusťte synchronizaci z INFER FORGE.</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
