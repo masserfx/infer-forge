@@ -1,9 +1,16 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { getSyncLogs } from "@/lib/api";
-import type { PohodaSyncLog } from "@/types";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  getSyncLogs,
+  getCustomers,
+  getOrders,
+  syncEntity,
+  syncPohodaInventory,
+} from "@/lib/api";
+import type { Customer, Order, PohodaSyncLog } from "@/types";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -11,10 +18,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RefreshCw, CheckCircle, XCircle, Clock } from "lucide-react";
+import {
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Upload,
+  Download,
+  Users,
+  Package,
+  Loader2,
+  Warehouse,
+} from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale/cs";
+import { toast } from "sonner";
 
 const STATUS_CONFIG = {
   pending: { label: "Čeká", icon: Clock, color: "bg-yellow-100 text-yellow-800" },
@@ -35,7 +54,11 @@ const ENTITY_LABELS: Record<string, string> = {
 };
 
 export default function PohodaPage() {
+  const queryClient = useQueryClient();
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>("all");
+  const [syncingCustomer, setSyncingCustomer] = useState<string | null>(null);
+  const [syncingOrder, setSyncingOrder] = useState<string | null>(null);
+  const [syncingInventory, setSyncingInventory] = useState(false);
 
   const { data: logs = [], isLoading } = useQuery<PohodaSyncLog[]>({
     queryKey: ["pohoda-logs", entityTypeFilter],
@@ -44,6 +67,83 @@ export default function PohodaPage() {
         entityTypeFilter !== "all" ? { entity_type: entityTypeFilter } : undefined,
       ),
   });
+
+  const { data: customers = [] } = useQuery<Customer[]>({
+    queryKey: ["customers"],
+    queryFn: getCustomers,
+  });
+
+  const { data: orders = [] } = useQuery<Order[]>({
+    queryKey: ["orders"],
+    queryFn: () => getOrders({ limit: 100 }),
+  });
+
+  const refreshLogs = () => {
+    queryClient.invalidateQueries({ queryKey: ["pohoda-logs"] });
+  };
+
+  const handleSyncCustomer = async (customerId: string) => {
+    setSyncingCustomer(customerId);
+    try {
+      const result = await syncEntity("customer", customerId);
+      if (result.success) {
+        toast.success("Zákazník synchronizován do Pohody", {
+          description: `Pohoda ID: ${result.pohoda_doc_number || result.pohoda_id}`,
+        });
+      } else {
+        toast.error("Synchronizace selhala", {
+          description: result.error || "Neznámá chyba",
+        });
+      }
+      refreshLogs();
+    } catch (err) {
+      toast.error("Chyba při synchronizaci", {
+        description: err instanceof Error ? err.message : "Neznámá chyba",
+      });
+    } finally {
+      setSyncingCustomer(null);
+    }
+  };
+
+  const handleSyncOrder = async (orderId: string) => {
+    setSyncingOrder(orderId);
+    try {
+      const result = await syncEntity("order", orderId);
+      if (result.success) {
+        toast.success("Zakázka synchronizována do Pohody", {
+          description: `Pohoda ID: ${result.pohoda_doc_number || result.pohoda_id}`,
+        });
+      } else {
+        toast.error("Synchronizace selhala", {
+          description: result.error || "Neznámá chyba",
+        });
+      }
+      refreshLogs();
+    } catch (err) {
+      toast.error("Chyba při synchronizaci", {
+        description: err instanceof Error ? err.message : "Neznámá chyba",
+      });
+    } finally {
+      setSyncingOrder(null);
+    }
+  };
+
+  const handleSyncInventory = async () => {
+    setSyncingInventory(true);
+    try {
+      const result = await syncPohodaInventory();
+      toast.success("Import skladu dokončen", {
+        description: `Vytvořeno: ${result.created}, aktualizováno: ${result.updated}, chyb: ${result.errors}`,
+      });
+      refreshLogs();
+    } catch (err) {
+      toast.error("Chyba při importu skladu", {
+        description: err instanceof Error ? err.message : "Neznámá chyba",
+      });
+    } finally {
+      setSyncingInventory(false);
+    }
+  };
 
   const sortedLogs = [...logs].sort(
     (a, b) => new Date(b.synced_at).getTime() - new Date(a.synced_at).getTime(),
@@ -62,6 +162,96 @@ export default function PohodaPage() {
         </p>
       </div>
 
+      {/* Sync actions panel */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Sync customer */}
+        <div className="rounded-lg border bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-blue-600" />
+            <h3 className="font-semibold text-sm">Export zákazníka</h3>
+          </div>
+          <div className="flex gap-2">
+            <Select
+              value={syncingCustomer === null ? "" : ""}
+              onValueChange={(val) => handleSyncCustomer(val)}
+            >
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Vyberte zákazníka" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.company_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {syncingCustomer && (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mt-2" />
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Odešle zákazníka do adresáře Pohody (adb:addressbook)
+          </p>
+        </div>
+
+        {/* Sync order */}
+        <div className="rounded-lg border bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Package className="h-5 w-5 text-orange-600" />
+            <h3 className="font-semibold text-sm">Export zakázky</h3>
+          </div>
+          <div className="flex gap-2">
+            <Select
+              value=""
+              onValueChange={(val) => handleSyncOrder(val)}
+            >
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Vyberte zakázku" />
+              </SelectTrigger>
+              <SelectContent>
+                {orders.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.number} — {o.customer?.company_name || "bez zákazníka"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {syncingOrder && (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mt-2" />
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Odešle zakázku do Pohody (ord:order)
+          </p>
+        </div>
+
+        {/* Import inventory */}
+        <div className="rounded-lg border bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Warehouse className="h-5 w-5 text-green-600" />
+            <h3 className="font-semibold text-sm">Import skladu</h3>
+          </div>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleSyncInventory}
+            disabled={syncingInventory}
+          >
+            {syncingInventory ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            Importovat skladové karty
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Stáhne materiálové ceny ze skladu Pohody (lStk:listStock)
+          </p>
+        </div>
+      </div>
+
+      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-lg border bg-card p-4">
           <div className="flex items-center gap-2">
@@ -88,18 +278,23 @@ export default function PohodaPage() {
 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Historie synchronizací</h2>
-        <Select value={entityTypeFilter} onValueChange={setEntityTypeFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Typ entity" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Všechny typy</SelectItem>
-            <SelectItem value="order">Zakázky</SelectItem>
-            <SelectItem value="customer">Zákazníci</SelectItem>
-            <SelectItem value="invoice">Faktury</SelectItem>
-            <SelectItem value="offer">Nabídky</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={refreshLogs}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Select value={entityTypeFilter} onValueChange={setEntityTypeFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Typ entity" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Všechny typy</SelectItem>
+              <SelectItem value="order">Zakázky</SelectItem>
+              <SelectItem value="customer">Zákazníci</SelectItem>
+              <SelectItem value="invoice">Faktury</SelectItem>
+              <SelectItem value="offer">Nabídky</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="rounded-lg border bg-card">
@@ -109,10 +304,10 @@ export default function PohodaPage() {
           </div>
         ) : sortedLogs.length === 0 ? (
           <div className="p-8 text-center">
-            <RefreshCw className="mx-auto h-12 w-12 text-muted-foreground" />
+            <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
             <p className="mt-2 text-sm font-medium">Žádné synchronizace</p>
             <p className="text-sm text-muted-foreground">
-              Zatím neproběhla žádná synchronizace s Pohodou
+              Použijte panel výše pro synchronizaci zákazníků, zakázek nebo import skladu
             </p>
           </div>
         ) : (
