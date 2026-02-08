@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await apiLogin(email, password);
     setAuthToken(response.access_token);
     setUser(response.user);
-    router.push("/dashboard");
+    router.push("/vitejte");
   };
 
   const logout = () => {

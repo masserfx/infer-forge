@@ -20,7 +20,7 @@ export default function LoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.push("/dashboard");
+      router.push("/vitejte");
     }
   }, [isAuthenticated, isLoading, router]);
 
