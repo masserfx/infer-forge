@@ -187,12 +187,12 @@ class IMAPClient:
             emails: list[RawEmail] = []
             for msg_id in message_ids:
                 try:
-                    raw_email = await self._fetch_single_message(msg_id.decode("utf-8"))
+                    raw_email = await self._fetch_single_message(msg_id)
                     emails.append(raw_email)
                 except Exception as e:
                     logger.error(
                         "imap_fetch_message_failed",
-                        message_id=msg_id.decode("utf-8"),
+                        message_id=msg_id,
                         error=str(e),
                     )
                     continue
