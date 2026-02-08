@@ -74,7 +74,7 @@ async def get_customer_report(
     return await service.get_customer_report(limit=limit)
 
 
-@router.get("/material-requirements")
+@router.get("/material-requirements", response_model=None)
 async def get_material_requirements(
     order_ids: list[UUID] | None = Query(default=None, description="Filter by specific order IDs"),  # noqa: E501
     status_filter: list[str] | None = Query(default=None, description="Filter by order status"),
