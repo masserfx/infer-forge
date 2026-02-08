@@ -117,6 +117,8 @@ export interface Order {
   due_date: string | null;
   note: string | null;
   created_by: string | null;
+  assigned_to: string | null;
+  assigned_to_name: string | null;
   pohoda_id: number | null;
   source_offer_id: string | null;
   created_at: string;

@@ -160,6 +160,7 @@ class OrderService:
             .options(
                 selectinload(Order.items),
                 selectinload(Order.customer),
+                selectinload(Order.assignee),
             )
         )
         return result.scalar_one_or_none()
@@ -183,6 +184,7 @@ class OrderService:
         query = select(Order).options(
             selectinload(Order.items),
             selectinload(Order.customer),
+            selectinload(Order.assignee),
         )
 
         if status:
@@ -296,6 +298,45 @@ class OrderService:
                 )
         except Exception:
             logger.warning("Failed to award points for order %s", str(order.id))
+
+        return order
+
+    async def assign_order(
+        self,
+        order_id: UUID,
+        assignee_id: UUID,
+    ) -> Order | None:
+        """Assign order to a user.
+
+        Args:
+            order_id: Order UUID
+            assignee_id: User UUID to assign to
+
+        Returns:
+            Updated order or None if not found
+        """
+        order = await self.get_by_id(order_id)
+        if not order:
+            return None
+
+        old_assignee = str(order.assigned_to) if order.assigned_to else None
+        order.assigned_to = assignee_id
+
+        await self.db.flush()
+        await self.db.refresh(order)
+        await self.db.refresh(order, ["assignee"])
+
+        # Audit trail
+        await self._create_audit_log(
+            action=AuditAction.UPDATE,
+            entity_id=order.id,
+            changes={
+                "assigned_to": {
+                    "old": old_assignee,
+                    "new": str(assignee_id),
+                }
+            },
+        )
 
         return order
 

@@ -79,6 +79,8 @@ class OrderResponse(OrderBase):
 
     id: UUID
     created_by: UUID | None = None
+    assigned_to: UUID | None = None
+    assigned_to_name: str | None = None
     created_at: datetime
     updated_at: datetime
     source_offer_id: UUID | None = Field(None, description="ID of source offer if converted")

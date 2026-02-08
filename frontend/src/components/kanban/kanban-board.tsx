@@ -108,7 +108,18 @@ export function KanbanBoard() {
     if (!over) return;
 
     const orderId = active.id as string;
-    const newStatus = over.id as OrderStatus;
+    const overId = over.id as string;
+
+    // over.id can be a column status OR another card's UUID
+    let newStatus: OrderStatus;
+    if (ORDER_STATUSES.includes(overId as OrderStatus)) {
+      newStatus = overId as OrderStatus;
+    } else {
+      // Dropped over a card — find which column it belongs to
+      const overOrder = orders.find((o) => o.id === overId);
+      if (!overOrder) return;
+      newStatus = overOrder.status;
+    }
 
     const order = orders.find((o) => o.id === orderId);
     if (!order || order.status === newStatus) return;

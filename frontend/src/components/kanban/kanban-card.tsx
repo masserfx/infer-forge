@@ -3,9 +3,13 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useRouter } from "next/navigation";
-import { Calendar, Package } from "lucide-react";
+import { Calendar, Package, UserCheck, UserPlus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { assignOrder } from "@/lib/api";
+import { useAuth } from "@/lib/auth-provider";
 import type { Order } from "@/types";
 import { PRIORITY_LABELS, PRIORITY_COLORS } from "@/types";
 
@@ -15,6 +19,8 @@ interface KanbanCardProps {
 
 export function KanbanCard({ order }: KanbanCardProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const {
     attributes,
     listeners,
@@ -30,13 +36,27 @@ export function KanbanCard({ order }: KanbanCardProps) {
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const assignMutation = useMutation({
+    mutationFn: () => assignOrder(order.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+
   const handleClick = () => {
     router.push(`/zakazky/${order.id}`);
+  };
+
+  const handleAssign = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    assignMutation.mutate();
   };
 
   const dueDate = order.due_date ? new Date(order.due_date) : null;
   const isOverdue =
     dueDate && dueDate < new Date() && order.status !== "dokonceno";
+
+  const isAssignedToMe = order.assigned_to === user?.id;
 
   return (
     <div
@@ -86,6 +106,38 @@ export function KanbanCard({ order }: KanbanCardProps) {
                 </div>
               )}
             </div>
+
+            {/* Assignment status */}
+            {order.assigned_to_name ? (
+              <div className="flex items-center gap-1.5">
+                <div
+                  className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${
+                    isAssignedToMe
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {order.assigned_to_name.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-xs text-muted-foreground truncate">
+                  {isAssignedToMe ? "Vy" : order.assigned_to_name}
+                </span>
+                {isAssignedToMe && (
+                  <UserCheck className="h-3 w-3 text-primary ml-auto" />
+                )}
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-full text-xs text-muted-foreground hover:text-primary"
+                onClick={handleAssign}
+                disabled={assignMutation.isPending}
+              >
+                <UserPlus className="h-3 w-3 mr-1" />
+                {assignMutation.isPending ? "Přiřazuji..." : "Převzít"}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

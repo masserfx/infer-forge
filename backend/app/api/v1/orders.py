@@ -6,13 +6,21 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_role
-from app.models import OrderStatus
+from app.models import Order, OrderStatus
 from app.models.user import User, UserRole
 from app.schemas import OrderCreate, OrderResponse, OrderStatusUpdate, OrderUpdate
 from app.schemas.embedding import SimilarOrderResult, SimilarOrdersResponse, SimilarSearchRequest
 from app.services import EmbeddingService, OrderService
 
 router = APIRouter(prefix="/zakazky", tags=["Zakázky"])
+
+
+def _order_response(order: Order) -> OrderResponse:
+    """Convert Order model to OrderResponse with assigned_to_name."""
+    resp = OrderResponse.model_validate(order)
+    if order.assignee:
+        resp.assigned_to_name = order.assignee.full_name
+    return resp
 
 
 @router.get("", response_model=list[OrderResponse])
@@ -26,7 +34,7 @@ async def get_orders(
     """Get all orders with pagination and optional filtering."""
     service = OrderService(db)
     orders = await service.get_all(skip=skip, limit=limit, status=status)
-    return [OrderResponse.model_validate(o) for o in orders]
+    return [_order_response(o) for o in orders]
 
 
 @router.post(
@@ -44,7 +52,7 @@ async def create_order(
     try:
         order = await service.create(order_data)
         await db.commit()
-        return OrderResponse.model_validate(order)
+        return _order_response(order)
     except Exception as e:
         await db.rollback()
         if "unique constraint" in str(e).lower():
@@ -69,7 +77,7 @@ async def get_order(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Order {order_id} not found",
         )
-    return OrderResponse.model_validate(order)
+    return _order_response(order)
 
 
 @router.put("/{order_id}", response_model=OrderResponse)
@@ -88,7 +96,7 @@ async def update_order(
             detail=f"Order {order_id} not found",
         )
     await db.commit()
-    return OrderResponse.model_validate(order)
+    return _order_response(order)
 
 
 @router.patch("/{order_id}/status", response_model=OrderResponse)
@@ -108,13 +116,31 @@ async def update_order_status(
                 detail=f"Order {order_id} not found",
             )
         await db.commit()
-        return OrderResponse.model_validate(order)
+        return _order_response(order)
     except ValueError as e:
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         ) from e
+
+
+@router.patch("/{order_id}/assign", response_model=OrderResponse)
+async def assign_order(
+    order_id: UUID,
+    user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> OrderResponse:
+    """Assign order to the current user (claim order)."""
+    service = OrderService(db, user_id=user.id)
+    order = await service.assign_order(order_id, user.id)
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Order {order_id} not found",
+        )
+    await db.commit()
+    return _order_response(order)
 
 
 @router.get("/{order_id}/similar", response_model=SimilarOrdersResponse)
@@ -164,7 +190,7 @@ async def create_order_from_offer(
     try:
         order = await service.convert_offer_to_order(offer_id)
         await db.commit()
-        return OrderResponse.model_validate(order)
+        return _order_response(order)
     except ValueError as e:
         await db.rollback()
         raise HTTPException(

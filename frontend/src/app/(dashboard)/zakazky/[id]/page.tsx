@@ -9,11 +9,12 @@ import { SimilarOrders } from "@/components/zakazky/similar-orders";
 import { DocumentGenerator } from "@/components/zakazky/document-generator";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { getOrder } from "@/lib/api";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Package } from "lucide-react";
+import { getOrder, assignOrder } from "@/lib/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Package, UserPlus, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use } from "react";
+import { useAuth } from "@/lib/auth-provider";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -21,12 +22,24 @@ interface PageProps {
 
 export default function OrderDetailPage({ params }: PageProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const resolvedParams = use(params);
 
   const { data: order, isLoading } = useQuery({
     queryKey: ["order", resolvedParams.id],
     queryFn: () => getOrder(resolvedParams.id),
   });
+
+  const assignMutation = useMutation({
+    mutationFn: () => assignOrder(resolvedParams.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["order", resolvedParams.id] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+
+  const isAssignedToMe = order?.assigned_to === user?.id;
 
   if (isLoading) {
     return (
@@ -77,6 +90,39 @@ export default function OrderDetailPage({ params }: PageProps) {
               Detail zakázky a přehled položek
             </p>
           </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {order.assigned_to_name ? (
+            <div className="flex items-center gap-2 text-sm">
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs ${
+                  isAssignedToMe
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {order.assigned_to_name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="font-medium">
+                  {isAssignedToMe ? "Převzato vámi" : order.assigned_to_name}
+                </p>
+                <p className="text-xs text-muted-foreground">Přiřazeno</p>
+              </div>
+              {isAssignedToMe && (
+                <UserCheck className="h-4 w-4 text-primary" />
+              )}
+            </div>
+          ) : (
+            <Button
+              onClick={() => assignMutation.mutate()}
+              disabled={assignMutation.isPending}
+              variant="default"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              {assignMutation.isPending ? "Přiřazuji..." : "Převzít zakázku"}
+            </Button>
+          )}
         </div>
       </div>
 

@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from .operation import Operation
     from .order_embedding import OrderEmbedding
     from .subcontract import Subcontract
+    from .user import User
 
 
 class OrderStatus(str, enum.Enum):
@@ -74,6 +75,11 @@ class Order(Base, UUIDPKMixin, TimestampMixin):
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by: Mapped[UUID | None] = mapped_column(nullable=True)
+    assigned_to: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     pohoda_id: Mapped[int | None] = mapped_column(nullable=True)
     pohoda_synced_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
@@ -125,6 +131,12 @@ class Order(Base, UUIDPKMixin, TimestampMixin):
         "Subcontract",
         back_populates="order",
         cascade="all, delete-orphan",
+    )
+    assignee: Mapped["User | None"] = relationship(
+        "User",
+        foreign_keys=[assigned_to],
+        uselist=False,
+        viewonly=True,
     )
 
     __table_args__ = (

@@ -141,6 +141,12 @@ export async function updateOrderStatus(
   });
 }
 
+export async function assignOrder(id: string): Promise<Order> {
+  return fetchApi<Order>(`/zakazky/${id}/assign`, {
+    method: "PATCH",
+  });
+}
+
 export async function convertOfferToOrder(offerId: string): Promise<Order> {
   return fetchApi<Order>(`/zakazky/from-offer/${offerId}`, {
     method: "POST",
