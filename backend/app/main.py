@@ -223,7 +223,7 @@ from app.api.v1 import (
     orders,
     pohoda,
     reporting,
-    settings,
+    settings as settings_router_module,
     subcontractors,
     websocket,
 )
@@ -243,7 +243,7 @@ app.include_router(material_prices.router, prefix="/api/v1")
 app.include_router(subcontractors.router, prefix="/api/v1")
 app.include_router(orchestration.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
-app.include_router(settings.router, prefix="/api/v1")
+app.include_router(settings_router_module.router, prefix="/api/v1")
 app.include_router(websocket.router)
 
 if __name__ == "__main__":
