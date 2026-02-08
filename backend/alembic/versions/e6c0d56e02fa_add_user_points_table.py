@@ -1,7 +1,7 @@
 """add user_points table
 
 Revision ID: e6c0d56e02fa
-Revises: dde641b78bb9
+Revises: a1b2c3d4e5f6
 Create Date: 2026-02-08 10:00:00.000000
 
 """
@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "e6c0d56e02fa"
-down_revision: str | None = "dde641b78bb9"
+down_revision: str | None = "a1b2c3d4e5f6"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
