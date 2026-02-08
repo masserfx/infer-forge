@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Activity, AlertTriangle, Clock, Cpu, RefreshCw, CheckCircle, XCircle, Zap, BarChart3 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Activity, AlertTriangle, Clock, Cpu, RefreshCw, CheckCircle, XCircle, Zap, BarChart3, Send, Mail } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 // API client
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -99,8 +103,48 @@ const statusVariants: Record<string, "default" | "secondary" | "destructive" | "
   dlq: "destructive",
 };
 
+interface TestEmailResult {
+  pipeline_stages: {
+    stage: string;
+    status: string;
+    time_ms?: number;
+    category?: string;
+    confidence?: number;
+    method?: string;
+    inbox_message_id?: string;
+    customer_id?: string;
+    order_id?: string;
+    customer_created?: boolean;
+    order_created?: boolean;
+    error?: string;
+  }[];
+  inbox_message_id?: string;
+  classification?: string;
+  classification_confidence?: number;
+  classification_method?: string;
+  customer_id?: string;
+  order_id?: string;
+  total_time_ms: number;
+  errors: string[];
+}
+
 export default function AutomatizacePage() {
   const queryClient = useQueryClient();
+  const [testEmail, setTestEmail] = useState({ from_email: "", subject: "", body_text: "" });
+  const [testResult, setTestResult] = useState<TestEmailResult | null>(null);
+
+  const testEmailMutation = useMutation({
+    mutationFn: (data: { from_email: string; subject: string; body_text: string }) =>
+      fetchApi<TestEmailResult>("/orchestrace/test-email", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (data) => {
+      setTestResult(data);
+      queryClient.invalidateQueries({ queryKey: ["orchestration-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["orchestration-tasks"] });
+    },
+  });
 
   const { data: stats } = useQuery<PipelineStats>({
     queryKey: ["orchestration-stats"],
@@ -148,6 +192,140 @@ export default function AutomatizacePage() {
           Obnovit
         </Button>
       </div>
+
+      {/* Test Email */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Test email pipeline
+          </CardTitle>
+          <CardDescription>
+            Odešlete testovací email a sledujte průběh celého pipeline
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="test-from">Od (email)</Label>
+              <Input
+                id="test-from"
+                placeholder="novak@firma.cz"
+                value={testEmail.from_email}
+                onChange={(e) => setTestEmail((prev) => ({ ...prev, from_email: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="test-subject">Předmět</Label>
+              <Input
+                id="test-subject"
+                placeholder="Poptávka na výrobu přírub DN200"
+                value={testEmail.subject}
+                onChange={(e) => setTestEmail((prev) => ({ ...prev, subject: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="mt-4 space-y-2">
+            <Label htmlFor="test-body">Text emailu</Label>
+            <Textarea
+              id="test-body"
+              placeholder="Dobrý den, potřebujeme nacenit výrobu..."
+              rows={4}
+              value={testEmail.body_text}
+              onChange={(e) => setTestEmail((prev) => ({ ...prev, body_text: e.target.value }))}
+            />
+          </div>
+          <div className="mt-4 flex items-center gap-4">
+            <Button
+              onClick={() => testEmailMutation.mutate(testEmail)}
+              disabled={testEmailMutation.isPending || !testEmail.from_email || !testEmail.subject || !testEmail.body_text}
+            >
+              {testEmailMutation.isPending ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Zpracovávám...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Odeslat test
+                </>
+              )}
+            </Button>
+            {testEmailMutation.isError && (
+              <p className="text-sm text-destructive">
+                Chyba: {(testEmailMutation.error as Error).message}
+              </p>
+            )}
+          </div>
+
+          {/* Test Result */}
+          {testResult && (
+            <div className="mt-6 space-y-4 rounded-lg border bg-muted/30 p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Výsledek pipeline</h3>
+                <Badge variant={testResult.errors.length > 0 ? "destructive" : "default"}>
+                  {testResult.total_time_ms}ms
+                </Badge>
+              </div>
+
+              <div className="space-y-2">
+                {testResult.pipeline_stages.map((stage, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 rounded border bg-background p-3"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-bold">
+                      {i + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{stageLabels[stage.stage] ?? stage.stage}</span>
+                        <Badge variant={stage.status === "success" ? "default" : "destructive"}>
+                          {stage.status}
+                        </Badge>
+                        {stage.time_ms !== undefined && (
+                          <span className="text-xs text-muted-foreground">{stage.time_ms}ms</span>
+                        )}
+                      </div>
+                      {stage.category && (
+                        <p className="text-sm text-muted-foreground">
+                          Kategorie: <span className="font-medium text-foreground">{stage.category}</span>
+                          {stage.confidence !== undefined && ` (${Math.round(stage.confidence * 100)}%)`}
+                          {stage.method && ` — metoda: ${stage.method}`}
+                        </p>
+                      )}
+                      {stage.order_created && (
+                        <p className="text-sm text-green-600">
+                          Zakázka vytvořena
+                          {stage.customer_created && " + nový zákazník"}
+                        </p>
+                      )}
+                      {stage.error && (
+                        <p className="text-sm text-destructive">{stage.error}</p>
+                      )}
+                    </div>
+                    {stage.status === "success" ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-destructive" />
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {testResult.errors.length > 0 && (
+                <div className="rounded border border-destructive/50 bg-destructive/10 p-3">
+                  <p className="text-sm font-medium text-destructive">Chyby:</p>
+                  {testResult.errors.map((err, i) => (
+                    <p key={i} className="text-sm text-destructive">{err}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
