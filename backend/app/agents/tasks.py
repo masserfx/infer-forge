@@ -151,6 +151,25 @@ def run_calculation_estimate(
             for item in result.breakdown
         ]
 
+        # Emit WebSocket notification
+        try:
+            import asyncio as _asyncio
+
+            from app.core.websocket import manager
+
+            _asyncio.run(
+                manager.broadcast(
+                    {
+                        "type": "CALCULATION_COMPLETE",
+                        "title": "Kalkulace dokončena",
+                        "message": f"Celková cena: {result.total_czk:,.0f} Kč",
+                        "link": "/kalkulace",
+                    }
+                )
+            )
+        except Exception:
+            log.warning("task.calculation_estimate.notification_failed")
+
         return {
             "material_cost_czk": result.material_cost_czk,
             "labor_hours": result.labor_hours,

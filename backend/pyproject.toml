@@ -68,6 +68,7 @@ ignore = [
 "app/integrations/*/example*.py" = ["T201"]  # Allow print in examples
 "tests/*.py" = ["N806"]  # Allow uppercase variables in tests (Mock objects)
 "app/main.py" = ["E402"]  # Allow imports after app initialization
+"app/core/logging.py" = ["A005"]  # Module name shadows stdlib logging
 
 [tool.mypy]
 python_version = "3.12"

@@ -54,6 +54,22 @@ def sync_entity_task(self, entity_type: str, entity_id: str) -> dict:  # type: i
                     return {"success": False, "error": f"Unknown entity type: {entity_type}"}
 
                 await session.commit()
+
+                # Emit WebSocket notification
+                try:
+                    from app.core.websocket import manager
+
+                    await manager.broadcast(
+                        {
+                            "type": "POHODA_SYNC_COMPLETE",
+                            "title": "Synchronizace Pohoda",
+                            "message": f"{entity_type} {'úspěšně synchronizován' if sync_log.status.value == 'success' else 'chyba synchronizace'}",
+                            "link": "/pohoda",
+                        }
+                    )
+                except Exception:
+                    logger.warning("pohoda_sync_notification_failed entity_type=%s", entity_type)
+
                 return {
                     "success": sync_log.status.value == "success",
                     "sync_log_id": str(sync_log.id),

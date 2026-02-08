@@ -199,6 +199,31 @@ async def _poll_inbox_async(settings: object) -> dict[str, object]:
                         await session.commit()
                         processed_count += 1
 
+                        # Emit WebSocket notification for classified email
+                        try:
+                            from app.models.notification import NotificationType
+                            from app.services.notification import NotificationService
+
+                            notif_service = NotificationService(session)
+                            await notif_service.create_for_all(
+                                notification_type=NotificationType.EMAIL_CLASSIFIED,
+                                title="Email klasifikován",
+                                message=f"'{raw_email.subject}' → {classification_result.category or 'neznámé'}",
+                                link="/inbox",
+                            )
+                        except Exception:
+                            logger.warning("poll_inbox.notification_failed", message_id=raw_email.message_id)
+
+                        # Prometheus metric
+                        try:
+                            from app.core.metrics import emails_processed_total
+
+                            emails_processed_total.labels(
+                                classification=classification_result.category or "unknown"
+                            ).inc()
+                        except Exception:
+                            pass
+
                         logger.info(
                             "poll_inbox.message_processed",
                             message_id=raw_email.message_id,
