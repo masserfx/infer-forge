@@ -105,7 +105,7 @@ class AttachmentProcessor:
                 logger.info(
                     "cad_metadata_extracted",
                     attachment_id=str(attachment_id),
-                    metadata_keys=len(cad_metadata.metadata),
+                    metadata_keys=len(cad_metadata.raw_metadata),
                 )
             else:
                 # Unsupported type → skip
@@ -243,11 +243,17 @@ class AttachmentProcessor:
         Returns:
             Formatted text string
         """
-        lines = [f"CAD Format: {cad_metadata.format}"]
-        if cad_metadata.layer_count > 0:
-            lines.append(f"Layers: {cad_metadata.layer_count}")
-        if cad_metadata.entity_count > 0:
-            lines.append(f"Entities: {cad_metadata.entity_count}")
-        for key, value in cad_metadata.metadata.items():
-            lines.append(f"{key}: {value}")
+        lines = [f"CAD Format: {cad_metadata.file_format}"]
+        if cad_metadata.layers:
+            lines.append(f"Layers ({len(cad_metadata.layers)}): {', '.join(cad_metadata.layers[:10])}")
+        if cad_metadata.blocks:
+            lines.append(f"Blocks ({len(cad_metadata.blocks)}): {', '.join(cad_metadata.blocks[:10])}")
+        if cad_metadata.text_entities:
+            lines.append(f"Text entities: {len(cad_metadata.text_entities)}")
+        if cad_metadata.dimensions:
+            lines.append(f"Dimensions: {len(cad_metadata.dimensions)}")
+        if cad_metadata.product_name:
+            lines.append(f"Product: {cad_metadata.product_name}")
+        if cad_metadata.material:
+            lines.append(f"Material: {cad_metadata.material}")
         return "\n".join(lines)
