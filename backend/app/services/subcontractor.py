@@ -10,9 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import AuditAction, AuditLog, Subcontract, Subcontractor
 from app.schemas.subcontractor import (
     SubcontractCreate,
-    SubcontractUpdate,
     SubcontractorCreate,
     SubcontractorUpdate,
+    SubcontractUpdate,
 )
 
 
@@ -297,8 +297,8 @@ class SubcontractorService:
             old_value = getattr(subcontract, field)
             if old_value != value:
                 # Convert Decimals and UUIDs to str for JSON serialization
-                old_str = str(old_value) if isinstance(old_value, (Decimal, UUID)) else old_value
-                new_str = str(value) if isinstance(value, (Decimal, UUID)) else value
+                old_str = str(old_value) if isinstance(old_value, Decimal | UUID) else old_value
+                new_str = str(value) if isinstance(value, Decimal | UUID) else value
                 changes[field] = {"old": old_str, "new": new_str}
                 setattr(subcontract, field, value)
 

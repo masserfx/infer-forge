@@ -18,6 +18,8 @@ import type {
   LoginResponse,
   MaterialPrice,
   Notification,
+  Operation,
+  OperationCreate,
   Order,
   OrderStatus,
   PipelineReport,
@@ -558,4 +560,33 @@ export async function importMaterialPrices(file: File): Promise<{ imported: numb
   }
 
   return res.json() as Promise<{ imported: number; errors: string[] }>;
+}
+
+// --- Operations ---
+
+export async function getOperations(orderId: string): Promise<Operation[]> {
+  const res = await fetchApi<{ items: Operation[]; total: number }>(`/zakazky/${orderId}/operace`);
+  return res.items;
+}
+
+export async function createOperation(orderId: string, data: OperationCreate): Promise<Operation> {
+  return fetchApi<Operation>(`/zakazky/${orderId}/operace`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateOperation(
+  orderId: string,
+  operationId: string,
+  data: Partial<OperationCreate & { status: string; actual_start: string; actual_end: string }>
+): Promise<Operation> {
+  return fetchApi<Operation>(`/zakazky/${orderId}/operace/${operationId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteOperation(orderId: string, operationId: string): Promise<void> {
+  await fetchApi(`/zakazky/${orderId}/operace/${operationId}`, { method: "DELETE" });
 }

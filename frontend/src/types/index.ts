@@ -493,3 +493,34 @@ export interface MaterialPrice {
   created_at: string;
   updated_at: string;
 }
+
+// --- Operations ---
+
+export interface Operation {
+  id: string;
+  order_id: string;
+  name: string;
+  description: string | null;
+  sequence: number;
+  duration_hours: number | null;
+  responsible: string | null;
+  planned_start: string | null;
+  planned_end: string | null;
+  actual_start: string | null;
+  actual_end: string | null;
+  status: "planned" | "in_progress" | "completed" | "cancelled";
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OperationCreate {
+  name: string;
+  description?: string;
+  sequence: number;
+  duration_hours?: number;
+  responsible?: string;
+  planned_start?: string;
+  planned_end?: string;
+  notes?: string;
+}

@@ -145,3 +145,114 @@ def sync_daily_exports() -> dict:  # type: ignore[no-untyped-def]
         return results
 
     return _run_async(_daily_sync())
+
+
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=300)
+def sync_inventory_from_pohoda(self) -> dict:  # type: ignore[no-untyped-def]
+    """Import material prices from Pohoda stock cards.
+
+    Returns:
+        Summary dict with synced/created/updated/errors counts
+    """
+    logger.info("pohoda_inventory_sync_started")
+
+    async def _sync() -> dict:
+        from datetime import date
+
+        from sqlalchemy import select
+
+        from app.integrations.pohoda.stock_parser import PohodaStockParser
+        from app.integrations.pohoda.xml_builder import PohodaXMLBuilder
+        from app.models.material_price import MaterialPrice
+
+        results = {"synced": 0, "created": 0, "updated": 0, "errors": 0}
+
+        async with AsyncSessionLocal() as session:
+            try:
+                # Build stock list request
+                builder = PohodaXMLBuilder()
+                request_xml = builder.build_stock_list_request()
+
+                # Send to Pohoda (try to use client, graceful fallback)
+                try:
+                    from app.integrations.pohoda.client import PohodaClient
+
+                    client = PohodaClient()
+                    response_xml = await client.send(request_xml)
+                except Exception as e:
+                    logger.error("Pohoda client failed: %s", str(e))
+                    return {"synced": 0, "created": 0, "updated": 0, "errors": 1, "error": str(e)}
+
+                # Parse response
+                parser = PohodaStockParser()
+                stock_items = parser.parse_stock_list(response_xml)
+
+                today = date.today()
+
+                for item in stock_items:
+                    try:
+                        # Find existing material price by name
+                        result = await session.execute(
+                            select(MaterialPrice).where(
+                                MaterialPrice.name == item.name,
+                                MaterialPrice.is_active.is_(True),
+                            )
+                        )
+                        existing = result.scalar_one_or_none()
+
+                        if existing:
+                            existing.unit_price = item.purchasing_price
+                            existing.unit = item.unit
+                            if item.supplier:
+                                existing.supplier = item.supplier
+                            if item.note:
+                                existing.specification = item.note
+                            results["updated"] += 1
+                        else:
+                            new_price = MaterialPrice(
+                                name=item.name,
+                                specification=item.note,
+                                unit=item.unit,
+                                unit_price=item.purchasing_price,
+                                supplier=item.supplier,
+                                valid_from=today,
+                                is_active=True,
+                            )
+                            session.add(new_price)
+                            results["created"] += 1
+
+                        results["synced"] += 1
+                    except Exception as e:
+                        logger.error("Failed to sync stock item %s: %s", item.code, str(e))
+                        results["errors"] += 1
+
+                await session.commit()
+
+                logger.info(
+                    "pohoda_inventory_sync_complete synced=%d created=%d updated=%d errors=%d",
+                    results["synced"],
+                    results["created"],
+                    results["updated"],
+                    results["errors"],
+                )
+
+                # WebSocket notification
+                try:
+                    from app.core.websocket import manager
+
+                    await manager.broadcast({
+                        "type": "POHODA_SYNC_COMPLETE",
+                        "title": "Import skladových karet",
+                        "message": f"Synchronizováno {results['synced']} položek ({results['created']} nových, {results['updated']} aktualizovaných)",
+                        "link": "/materialy",
+                    })
+                except Exception:
+                    logger.warning("inventory_sync_notification_failed")
+
+                return results
+            except Exception as e:
+                await session.rollback()
+                logger.error("pohoda_inventory_sync_failed error=%s", str(e))
+                raise self.retry(exc=e) from e
+
+    return _run_async(_sync())

@@ -27,6 +27,8 @@ NAMESPACES = {
     "ftr": "http://www.stormware.cz/schema/version_2/filter.xsd",
     "prn": "http://www.stormware.cz/schema/version_2/print.xsd",
     "lAdb": "http://www.stormware.cz/schema/version_2/list_addBook.xsd",
+    "lStk": "http://www.stormware.cz/schema/version_2/list_stock.xsd",
+    "stk": "http://www.stormware.cz/schema/version_2/stock.xsd",
 }
 
 
@@ -618,3 +620,29 @@ class PohodaXMLBuilder:
             encoding="Windows-1250",
             pretty_print=True,
         )
+
+    def build_stock_list_request(self) -> bytes:
+        """Build XML request for stock list from Pohoda.
+
+        Returns:
+            XML bytes (Windows-1250 encoded)
+        """
+        root = self._create_datapack_root()
+
+        item = etree.SubElement(root, f"{{{NAMESPACES['dat']}}}dataPackItem")
+        item.set("id", "stk001")
+        item.set("version", self.xml_version)
+
+        lst_ns = NAMESPACES["lStk"]
+        ftr_ns = NAMESPACES["ftr"]
+
+        list_req = etree.SubElement(item, f"{{{lst_ns}}}listStockRequest")
+        list_req.set("version", "2.0")
+        list_req.set("stockType", "card")
+
+        req_stock = etree.SubElement(list_req, f"{{{lst_ns}}}requestStock")
+        ftr = etree.SubElement(req_stock, f"{{{ftr_ns}}}filter")
+        stock_type = etree.SubElement(ftr, f"{{{ftr_ns}}}stockType")
+        stock_type.text = "card"
+
+        return etree.tostring(root, xml_declaration=True, encoding="Windows-1250", pretty_print=True)

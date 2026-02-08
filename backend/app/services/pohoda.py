@@ -576,3 +576,68 @@ class PohodaService:
             timestamp=datetime.now(UTC),
         )
         self.db.add(audit)
+
+    async def sync_inventory(self) -> dict[str, int]:
+        """Sync Pohoda stock cards to MaterialPrice table.
+
+        Returns:
+            Summary: {synced, created, updated, errors}
+        """
+        from app.integrations.pohoda.client import PohodaClient
+        from app.integrations.pohoda.stock_parser import PohodaStockParser
+        from app.integrations.pohoda.xml_builder import PohodaXMLBuilder
+        from app.models.material_price import MaterialPrice
+
+        builder = PohodaXMLBuilder()
+        request_xml = builder.build_stock_list_request()
+
+        async with PohodaClient(
+            base_url=settings.POHODA_MSERVER_URL,
+            ico=settings.POHODA_ICO,
+        ) as client:
+            response_xml = await client.send_xml(request_xml)
+
+        parser = PohodaStockParser()
+        stock_items = parser.parse_stock_list(response_xml)
+
+        results = {"synced": 0, "created": 0, "updated": 0, "errors": 0}
+        today = date.today()
+
+        for item in stock_items:
+            try:
+                result = await self.db.execute(
+                    select(MaterialPrice).where(
+                        MaterialPrice.name == item.name,
+                        MaterialPrice.is_active.is_(True),
+                    )
+                )
+                existing = result.scalar_one_or_none()
+
+                if existing:
+                    existing.unit_price = item.purchasing_price
+                    existing.unit = item.unit
+                    if item.supplier:
+                        existing.supplier = item.supplier
+                    if item.note:
+                        existing.specification = item.note
+                    results["updated"] += 1
+                else:
+                    new_price = MaterialPrice(
+                        name=item.name,
+                        specification=item.note,
+                        unit=item.unit,
+                        unit_price=item.purchasing_price,
+                        supplier=item.supplier,
+                        valid_from=today,
+                        is_active=True,
+                    )
+                    self.db.add(new_price)
+                    results["created"] += 1
+
+                results["synced"] += 1
+            except Exception as e:
+                logger.error("Failed to sync item %s: %s", item.code, str(e))
+                results["errors"] += 1
+
+        await self.db.commit()
+        return results

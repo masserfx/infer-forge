@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Customer, Order, OrderStatus, Subcontract, Subcontractor
 from app.schemas.subcontractor import (
     SubcontractCreate,
-    SubcontractUpdate,
     SubcontractorCreate,
     SubcontractorUpdate,
+    SubcontractUpdate,
 )
 from app.services.subcontractor import SubcontractorService
 

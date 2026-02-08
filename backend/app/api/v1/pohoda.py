@@ -173,3 +173,18 @@ async def generate_invoice(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         ) from e
+
+
+@router.post("/sync-inventory", status_code=status.HTTP_200_OK)
+async def sync_inventory(
+    user: User = Depends(require_role(UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Trigger manual inventory sync from Pohoda stock cards.
+
+    Imports material prices from Pohoda into MaterialPrice table.
+    Requires VEDENI role.
+    """
+    service = PohodaService(db)
+    result = await service.sync_inventory()
+    return result
