@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: infer_forge
       POSTGRES_USER: infer
-      POSTGRES_PASSWORD: infer_dev_pass
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-infer_dev_pass}
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
@@ -32,7 +32,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://infer:infer_dev_pass@db:5432/infer_forge
+      DATABASE_URL: postgresql+asyncpg://infer:${POSTGRES_PASSWORD:-infer_dev_pass}@db:5432/infer_forge
       REDIS_URL: redis://redis:6379/0
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     env_file:
@@ -56,7 +56,7 @@ services:
     build: ./backend
     command: celery -A app.core.celery_app worker -l info
     environment:
-      DATABASE_URL: postgresql+asyncpg://infer:infer_dev_pass@db:5432/infer_forge
+      DATABASE_URL: postgresql+asyncpg://infer:${POSTGRES_PASSWORD:-infer_dev_pass}@db:5432/infer_forge
       REDIS_URL: redis://redis:6379/0
     env_file:
       - .env
@@ -70,7 +70,7 @@ services:
     build: ./backend
     command: celery -A app.core.celery_app beat -l info
     environment:
-      DATABASE_URL: postgresql+asyncpg://infer:infer_dev_pass@db:5432/infer_forge
+      DATABASE_URL: postgresql+asyncpg://infer:${POSTGRES_PASSWORD:-infer_dev_pass}@db:5432/infer_forge
       REDIS_URL: redis://redis:6379/0
     env_file:
       - .env
