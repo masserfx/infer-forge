@@ -35,6 +35,8 @@ services:
       DATABASE_URL: postgresql+asyncpg://infer:infer_dev_pass@db:5432/infer_forge
       REDIS_URL: redis://redis:6379/0
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    env_file:
+      - .env
     depends_on:
       db:
         condition: service_healthy
@@ -56,6 +58,22 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://infer:infer_dev_pass@db:5432/infer_forge
       REDIS_URL: redis://redis:6379/0
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery-beat:
+    build: ./backend
+    command: celery -A app.core.celery_app beat -l info
+    environment:
+      DATABASE_URL: postgresql+asyncpg://infer:infer_dev_pass@db:5432/infer_forge
+      REDIS_URL: redis://redis:6379/0
+    env_file:
+      - .env
     depends_on:
       db:
         condition: service_healthy
