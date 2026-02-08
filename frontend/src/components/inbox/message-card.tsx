@@ -13,6 +13,13 @@ import {
   type InboxClassification,
 } from "@/types";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Mail,
   Clock,
   TrendingUp,
@@ -55,25 +62,6 @@ export function MessageCard({ message }: MessageCardProps) {
       queryClient.invalidateQueries({ queryKey: ["inbox"] });
     },
   });
-
-  const handleReclassify = async () => {
-    if (!message.classification) return;
-
-    // Cycle through classifications for demo
-    const classifications: InboxClassification[] = [
-      "poptavka",
-      "objednavka",
-      "reklamace",
-      "dotaz",
-      "faktura",
-      "ostatni",
-    ];
-    const currentIndex = classifications.indexOf(message.classification);
-    const nextClassification =
-      classifications[(currentIndex + 1) % classifications.length];
-
-    await reclassifyMutation.mutateAsync(nextClassification);
-  };
 
   return (
     <Card className="cursor-pointer transition-shadow hover:shadow-md">
@@ -235,29 +223,35 @@ export function MessageCard({ message }: MessageCardProps) {
               </div>
             )}
 
-            {/* Reclassify button */}
-            {message.classification && (
-              <div className="flex justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleReclassify();
+            {/* Reclassify select */}
+            <div className="flex items-center justify-end gap-3">
+              {reclassifyMutation.isPending && (
+                <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+              <div onClick={(e) => e.stopPropagation()}>
+                <Select
+                  value={message.classification ?? undefined}
+                  onValueChange={(value) => {
+                    if (value !== message.classification) {
+                      reclassifyMutation.mutate(value as InboxClassification);
+                    }
                   }}
                   disabled={reclassifyMutation.isPending}
                 >
-                  <RefreshCw
-                    className={`mr-2 h-4 w-4 ${
-                      reclassifyMutation.isPending ? "animate-spin" : ""
-                    }`}
-                  />
-                  {reclassifyMutation.isPending
-                    ? "Reklasifikuji..."
-                    : "Reklasifikovat"}
-                </Button>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Změnit klasifikaci" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="poptavka">Poptávka</SelectItem>
+                    <SelectItem value="objednavka">Objednávka</SelectItem>
+                    <SelectItem value="reklamace">Reklamace</SelectItem>
+                    <SelectItem value="dotaz">Dotaz</SelectItem>
+                    <SelectItem value="faktura">Faktura</SelectItem>
+                    <SelectItem value="ostatni">Ostatní</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+            </div>
           </div>
         )}
       </CardContent>
