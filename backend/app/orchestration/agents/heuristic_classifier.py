@@ -58,6 +58,26 @@ _FAKTURA_PATTERNS = [
     re.compile(r"splatnost.*\d+.*dn", re.IGNORECASE),
 ]
 
+_DOTAZ_PATTERNS = [
+    re.compile(r"dotaz\s+(na|ohled)", re.IGNORECASE),
+    re.compile(r"informac[ie]?\s+o", re.IGNORECASE),
+    re.compile(r"pros[ií]m\s+o\s+informac", re.IGNORECASE),
+    re.compile(r"m[uů][zž]ete\s+sd[eě]lit", re.IGNORECASE),
+    re.compile(r"jak[yý]\s+je\s+stav", re.IGNORECASE),
+    re.compile(r"r[aá]d[ai]?\s+bych\s+(se\s+)?zeptal", re.IGNORECASE),
+    re.compile(r"pot[rř]eboval[ai]?\s+bych\s+v[eě]d[eě]t", re.IGNORECASE),
+]
+
+_INFORMACE_ZAKAZKA_PATTERNS = [
+    re.compile(r"stav\s+(zak[aá]zky|objedn[aá]vky)", re.IGNORECASE),
+    re.compile(r"kde\s+je\s+(zak[aá]zka|objedn[aá]vka)", re.IGNORECASE),
+    re.compile(r"term[ií]n\w*\s+(dokon[cč]en[ií]|dod[aá]n[ií])", re.IGNORECASE),
+    re.compile(r"p[rř]edpokl[aá]dan[yý]\s+term[ií]n", re.IGNORECASE),
+    re.compile(r"zak[aá]zka\s+[cč](\.|[ií]slo)", re.IGNORECASE),
+    re.compile(r"jak\s+to\s+vypad[aá]\s+s", re.IGNORECASE),
+    re.compile(r"postup\w*\s+(prac[ií]|v[yý]roby)", re.IGNORECASE),
+]
+
 
 class HeuristicClassifier:
     """Fast regex-based classifier for Czech emails.
@@ -104,6 +124,8 @@ class HeuristicClassifier:
             "reklamace": self._count_matches(_REKLAMACE_PATTERNS, combined_text),
             "obchodni_sdeleni": self._count_matches(_OBCHODNI_SDELENI_PATTERNS, combined_text),
             "faktura": self._count_matches(_FAKTURA_PATTERNS, combined_text),
+            "dotaz": self._count_matches(_DOTAZ_PATTERNS, combined_text),
+            "informace_zakazka": self._count_matches(_INFORMACE_ZAKAZKA_PATTERNS, combined_text),
         }
 
         # Find category with most matches

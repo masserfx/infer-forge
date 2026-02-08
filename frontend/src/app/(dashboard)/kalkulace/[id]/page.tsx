@@ -53,6 +53,8 @@ import {
   removeCalculationItem,
   updateCalculation,
   updateCalculationItem,
+  getAIEstimate,
+  getCalculationAnomalies,
 } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -70,6 +72,8 @@ import {
   FileText,
   Plus,
   Trash2,
+  Sparkles,
+  AlertTriangle as WarningIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -83,6 +87,7 @@ export default function CalculationDetailPage() {
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
+  const [isAIEstimateOpen, setIsAIEstimateOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [itemToEdit, setItemToEdit] = useState<CalculationItem | null>(null);
 
@@ -175,6 +180,16 @@ export default function CalculationDetailPage() {
         `Nabídka ${data.number} byla vygenerována. Celková cena: ${data.total_price}`,
       );
     },
+  });
+
+  const aiEstimateMutation = useMutation({
+    mutationFn: () => getAIEstimate(calculation?.order_id || ""),
+  });
+
+  const { data: anomalies } = useQuery({
+    queryKey: ["anomalies", id],
+    queryFn: () => getCalculationAnomalies(id),
+    enabled: !!id,
   });
 
   const handleAddItem = (e: React.FormEvent) => {
@@ -300,6 +315,16 @@ export default function CalculationDetailPage() {
             <Edit2 className="mr-2 h-4 w-4" />
             Upravit
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setIsAIEstimateOpen(true);
+              aiEstimateMutation.mutate();
+            }}
+          >
+            <Sparkles className="mr-2 h-4 w-4" />
+            AI Kalkulace
+          </Button>
           {calculation.status === "approved" && (
             <Button onClick={() => setIsOfferDialogOpen(true)}>
               <FileText className="mr-2 h-4 w-4" />
@@ -308,6 +333,19 @@ export default function CalculationDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Anomaly Warning */}
+      {anomalies?.anomalies && anomalies.anomalies.length > 0 && (
+        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <WarningIcon className="h-5 w-5 text-yellow-600" />
+            <h3 className="font-medium text-yellow-900">Upozornění na anomálie</h3>
+          </div>
+          {anomalies.anomalies.map((a: { type: string; message: string }, i: number) => (
+            <p key={i} className="text-sm text-yellow-800">{a.message}</p>
+          ))}
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -871,6 +909,97 @@ export default function CalculationDetailPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Estimate Dialog */}
+      <Dialog open={isAIEstimateOpen} onOpenChange={setIsAIEstimateOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              AI Kalkulace
+            </DialogTitle>
+            <DialogDescription>
+              Automatický odhad nákladů pomocí AI
+            </DialogDescription>
+          </DialogHeader>
+          {aiEstimateMutation.isPending ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
+                <p className="mt-4 text-sm text-muted-foreground">
+                  AI analyzuje položky zakázky...
+                </p>
+              </div>
+            </div>
+          ) : aiEstimateMutation.data ? (
+            <div className="space-y-4">
+              <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+                <div className="rounded-lg bg-blue-50 p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Materiál</p>
+                  <p className="text-lg font-bold">{formatCurrency(aiEstimateMutation.data.material_cost_czk)}</p>
+                </div>
+                <div className="rounded-lg bg-green-50 p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Práce</p>
+                  <p className="text-lg font-bold">{formatCurrency(aiEstimateMutation.data.labor_cost_czk)}</p>
+                </div>
+                <div className="rounded-lg bg-orange-50 p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Režie</p>
+                  <p className="text-lg font-bold">{formatCurrency(aiEstimateMutation.data.overhead_czk)}</p>
+                </div>
+                <div className="rounded-lg bg-purple-50 p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Celkem</p>
+                  <p className="text-lg font-bold">{formatCurrency(aiEstimateMutation.data.total_czk)}</p>
+                </div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Marže: {aiEstimateMutation.data.margin_percent}%</p>
+                <p className="text-xs font-medium text-muted-foreground">Pracnost: {aiEstimateMutation.data.labor_hours} hodin</p>
+              </div>
+              {aiEstimateMutation.data.items.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Rozpad položek</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Název</TableHead>
+                        <TableHead className="text-right">Materiál</TableHead>
+                        <TableHead className="text-right">Hodiny</TableHead>
+                        <TableHead>Poznámky</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {aiEstimateMutation.data.items.map((item: { name: string; material_cost_czk: number; labor_hours: number; notes: string }, idx: number) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-medium text-sm">{item.name}</TableCell>
+                          <TableCell className="text-right text-sm">{formatCurrency(item.material_cost_czk)}</TableCell>
+                          <TableCell className="text-right text-sm">{item.labor_hours}h</TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{item.notes}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+              {aiEstimateMutation.data.reasoning && (
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="text-xs font-medium mb-1">Zdůvodnění AI:</p>
+                  <p className="text-xs text-muted-foreground whitespace-pre-line">{aiEstimateMutation.data.reasoning}</p>
+                </div>
+              )}
+            </div>
+          ) : aiEstimateMutation.error ? (
+            <div className="text-center py-8 text-destructive">
+              <p>Chyba při generování AI kalkulace</p>
+              <p className="text-xs mt-1">{String(aiEstimateMutation.error)}</p>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAIEstimateOpen(false)}>
+              Zavřít
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

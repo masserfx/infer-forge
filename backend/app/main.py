@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 
 from app.core import get_db, get_logger, get_settings
 from app.core.database import close_db, init_db
-from app.core.health import check_database, check_redis, get_version
+from app.core.health import check_database, check_redis, get_aggregated_health, get_version
 from app.core.sentry import init_sentry
 
 # Initialize Sentry (before app creation)
@@ -98,8 +98,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 app.add_middleware(SecurityHeadersMiddleware)
 
 # Request logging middleware
-from app.core.middleware import RequestLoggingMiddleware
+from app.core.middleware import CorrelationIDMiddleware, RequestLoggingMiddleware
 
+app.add_middleware(CorrelationIDMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 
 # Prometheus metrics middleware
@@ -149,6 +150,26 @@ async def health_check() -> JSONResponse:
     )
 
 
+@app.get("/health/all", status_code=status.HTTP_200_OK)
+async def health_check_all() -> JSONResponse:
+    """Aggregated health check including DB, Redis, and Celery.
+
+    Returns degraded status if some services are down but not all.
+    """
+    async for db in get_db():
+        result = await get_aggregated_health(db)
+        break
+    else:
+        result = {"status": "unhealthy", "services": {"database": "down"}}
+
+    status_code = (
+        status.HTTP_200_OK
+        if result["status"] in ("healthy", "degraded")
+        else status.HTTP_503_SERVICE_UNAVAILABLE
+    )
+    return JSONResponse(status_code=status_code, content=result)
+
+
 @app.get("/health/db", status_code=status.HTTP_200_OK)
 async def health_check_db() -> dict[str, Any]:
     """Database-only health check.
@@ -191,6 +212,7 @@ from app.api.v1 import (
     auth,
     calculations,
     customers,
+    dashboard,
     documents,
     gamification,
     inbox,
@@ -201,6 +223,7 @@ from app.api.v1 import (
     orders,
     pohoda,
     reporting,
+    settings,
     subcontractors,
     websocket,
 )
@@ -219,6 +242,8 @@ app.include_router(gamification.router, prefix="/api/v1")
 app.include_router(material_prices.router, prefix="/api/v1")
 app.include_router(subcontractors.router, prefix="/api/v1")
 app.include_router(orchestration.router, prefix="/api/v1")
+app.include_router(dashboard.router, prefix="/api/v1")
+app.include_router(settings.router, prefix="/api/v1")
 app.include_router(websocket.router)
 
 if __name__ == "__main__":

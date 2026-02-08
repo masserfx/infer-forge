@@ -114,6 +114,29 @@ export function MessageCard({ message }: MessageCardProps) {
                   <span>{Math.round(message.confidence * 100)}%</span>
                 </div>
               )}
+
+              {message.processing_status && (
+                <Badge
+                  variant="secondary"
+                  className={
+                    message.processing_status === "completed"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : message.processing_status === "error"
+                        ? "bg-red-100 text-red-800"
+                        : message.processing_status === "processing"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-gray-100 text-gray-800"
+                  }
+                >
+                  {message.processing_status === "completed"
+                    ? "Zpracováno"
+                    : message.processing_status === "error"
+                      ? "Chyba pipeline"
+                      : message.processing_status === "processing"
+                        ? "Zpracovává se..."
+                        : "Čeká"}
+                </Badge>
+              )}
             </div>
           </div>
 

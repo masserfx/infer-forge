@@ -1,8 +1,11 @@
 """Order API endpoints."""
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_role
@@ -61,6 +64,77 @@ async def create_order(
                 detail=f"Order with number {order_data.number} already exists",
             ) from e
         raise
+
+
+class BulkStatusUpdate(BaseModel):
+    order_ids: list[UUID]
+    status: OrderStatus
+
+
+class BulkAssignUpdate(BaseModel):
+    order_ids: list[UUID]
+    assignee_id: UUID
+
+
+@router.post("/bulk/status")
+async def bulk_update_status(
+    data: BulkStatusUpdate,
+    user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Bulk update order statuses."""
+    service = OrderService(db, user_id=user.id)
+    updated = 0
+    errors = []
+    for order_id in data.order_ids:
+        try:
+            result = await service.change_status(order_id, data.status)
+            if result:
+                updated += 1
+            else:
+                errors.append(f"{order_id}: not found")
+        except ValueError as e:
+            errors.append(f"{order_id}: {str(e)}")
+    await db.commit()
+    return {"updated": updated, "errors": errors}
+
+
+@router.post("/bulk/assign")
+async def bulk_assign_orders(
+    data: BulkAssignUpdate,
+    user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Bulk assign orders to a user."""
+    service = OrderService(db, user_id=user.id)
+    updated = 0
+    errors = []
+    for order_id in data.order_ids:
+        try:
+            result = await service.assign_order(order_id, data.assignee_id)
+            if result:
+                updated += 1
+            else:
+                errors.append(f"{order_id}: not found")
+        except Exception as e:
+            errors.append(f"{order_id}: {str(e)}")
+    await db.commit()
+    return {"updated": updated, "errors": errors}
+
+
+@router.get("/next-number")
+async def get_next_order_number(
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Get the next order number based on sequential pattern."""
+    year = datetime.now(UTC).year
+    prefix = f"ZAK-{year}-"
+    result = await db.execute(
+        select(func.count()).select_from(Order).where(Order.number.like(f"{prefix}%"))
+    )
+    count = (result.scalar() or 0) + 1
+    return {"next_number": f"{prefix}{count:04d}"}
 
 
 @router.get("/{order_id}", response_model=OrderResponse)
@@ -169,6 +243,30 @@ async def search_similar_orders(
     """Search orders by text similarity."""
     service = EmbeddingService(db)
     return await service.search_by_text(request.query, limit=request.limit)
+
+
+@router.get("/{order_id}/predict-due-date")
+async def predict_due_date(
+    order_id: UUID,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Get AI-predicted completion time for an order."""
+    from app.services.prediction import PredictionService
+    service = PredictionService(db)
+    return await service.predict_due_date(order_id)
+
+
+@router.get("/{order_id}/suggest-assignee")
+async def suggest_assignee(
+    order_id: UUID,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Get AI suggestion for order assignee."""
+    from app.services.assignment import AssignmentService
+    service = AssignmentService(db)
+    return await service.suggest_assignee(order_id)
 
 
 @router.post(

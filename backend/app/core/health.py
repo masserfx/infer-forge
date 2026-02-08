@@ -57,3 +57,35 @@ def get_version() -> dict[str, str]:
         "app": settings.APP_NAME,
         "version": "0.1.0",
     }
+
+
+async def get_aggregated_health(db: AsyncSession) -> dict:
+    """Get aggregated health status of all services."""
+    db_status = await check_database(db)
+    redis_status = await check_redis()
+
+    # Check Celery
+    celery_status = {"healthy": False, "service": "celery"}
+    try:
+        from app.core.celery_app import celery_app
+        inspect = celery_app.control.inspect()
+        if inspect.active_queues():
+            celery_status["healthy"] = True
+    except Exception:
+        pass
+
+    services = [db_status, redis_status, celery_status]
+    all_healthy = all(s["healthy"] for s in services)
+    any_healthy = any(s["healthy"] for s in services)
+
+    if all_healthy:
+        overall = "healthy"
+    elif any_healthy:
+        overall = "degraded"
+    else:
+        overall = "unhealthy"
+
+    return {
+        "status": overall,
+        "services": {s["service"]: "ok" if s["healthy"] else "down" for s in services},
+    }

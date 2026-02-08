@@ -6,7 +6,7 @@ import time
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 
@@ -221,6 +221,7 @@ async def retry_dlq_entry(entry_id: UUID):
             "orchestration.classify_email": orch_tasks.classify_email,
             "orchestration.parse_email": orch_tasks.parse_email,
             "orchestration.process_attachment": orch_tasks.process_attachment,
+            "orchestration.analyze_drawing": orch_tasks.analyze_drawing,
             "orchestration.orchestrate_order": orch_tasks.orchestrate_order,
             "orchestration.auto_calculate": orch_tasks.auto_calculate,
             "orchestration.generate_offer": orch_tasks.generate_offer,
@@ -230,9 +231,24 @@ async def retry_dlq_entry(entry_id: UUID):
         if not task_func:
             raise HTTPException(status_code=400, detail=f"Unknown task: {entry.original_task}")
 
-        # Re-dispatch
+        # Re-dispatch with task-specific argument unpacking
         if entry.payload:
-            if isinstance(entry.payload, dict):
+            if entry.original_task == "orchestration.process_attachment":
+                p = entry.payload
+                task_func.delay(
+                    p.get("attachment_id", ""),
+                    p.get("file_path", ""),
+                    p.get("content_type", ""),
+                    p.get("filename", ""),
+                )
+            elif entry.original_task == "orchestration.analyze_drawing":
+                p = entry.payload
+                task_func.delay(
+                    p.get("document_id", ""),
+                    p.get("ocr_text", ""),
+                    p.get("ocr_confidence", 0.0),
+                )
+            elif isinstance(entry.payload, dict):
                 task_func.delay(entry.payload)
             elif isinstance(entry.payload, list):
                 task_func.delay(*entry.payload)
@@ -607,3 +623,78 @@ async def test_email_pipeline(body: TestEmailRequest):
     result.errors = errors
     result.total_time_ms = int((time.time() - start) * 1000)
     return result
+
+
+@router.post("/batch-upload")
+async def batch_upload_eml(
+    files: list[UploadFile] = File(...),
+):
+    """Upload multiple EML files and dispatch them to the orchestration pipeline.
+
+    Each EML file is parsed and dispatched as a run_pipeline task.
+    """
+    import email as email_module
+    from uuid import uuid4
+
+    results = []
+
+    for upload_file in files:
+        try:
+            content = await upload_file.read()
+            msg = email_module.message_from_bytes(content)
+
+            # Extract basic headers
+            message_id = msg.get("Message-ID", f"<batch-{uuid4()}@infer-forge>")
+            from_email = msg.get("From", "unknown@unknown.com")
+            subject = msg.get("Subject", "(bez předmětu)")
+
+            # Extract body
+            body_text = ""
+            if msg.is_multipart():
+                for part in msg.walk():
+                    if part.get_content_type() == "text/plain" and "attachment" not in str(part.get("Content-Disposition", "")):
+                        payload = part.get_payload(decode=True)
+                        if payload:
+                            charset = part.get_content_charset() or "utf-8"
+                            body_text = payload.decode(charset, errors="replace")
+                            break
+            else:
+                payload = msg.get_payload(decode=True)
+                if payload:
+                    charset = msg.get_content_charset() or "utf-8"
+                    body_text = payload.decode(charset, errors="replace")
+
+            raw_email_data = {
+                "message_id": message_id,
+                "from_email": from_email,
+                "subject": subject,
+                "body_text": body_text,
+                "received_at": datetime.now(UTC).isoformat(),
+                "attachments": [],
+                "references_header": msg.get("References"),
+                "in_reply_to_header": msg.get("In-Reply-To"),
+            }
+
+            from app.orchestration.tasks import run_pipeline
+            task = run_pipeline.delay(raw_email_data)
+
+            results.append({
+                "filename": upload_file.filename,
+                "status": "dispatched",
+                "task_id": task.id,
+                "message_id": message_id,
+                "subject": subject,
+            })
+        except Exception as e:
+            results.append({
+                "filename": upload_file.filename,
+                "status": "failed",
+                "error": str(e),
+            })
+
+    return {
+        "total": len(files),
+        "dispatched": sum(1 for r in results if r["status"] == "dispatched"),
+        "failed": sum(1 for r in results if r["status"] == "failed"),
+        "results": results,
+    }

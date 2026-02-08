@@ -9,6 +9,8 @@ from __future__ import annotations
 import asyncio
 import time
 import traceback
+from datetime import UTC, datetime
+from decimal import Decimal
 from uuid import UUID
 
 import structlog
@@ -50,6 +52,55 @@ def _make_json_safe(data: dict | None) -> dict | None:
     if data is None:
         return None
     return {k: str(v) if isinstance(v, UUID) else v for k, v in data.items()}
+
+
+def _observe_stage(stage: str, status: str, elapsed_seconds: float, tokens: int = 0, task_name: str = "") -> None:
+    """Record Prometheus metrics for a pipeline stage."""
+    try:
+        from app.core.metrics import (
+            claude_api_calls,
+            claude_tokens_used,
+            pipeline_stage_duration,
+            pipeline_stage_total,
+        )
+
+        pipeline_stage_total.labels(stage=stage, status=status).inc()
+        pipeline_stage_duration.labels(stage=stage).observe(elapsed_seconds)
+        if tokens > 0 and task_name:
+            claude_tokens_used.labels(task=task_name).inc(tokens)
+            claude_api_calls.labels(task=task_name, status=status).inc()
+    except Exception:
+        pass
+
+
+def _observe_dlq(stage: str) -> None:
+    """Record DLQ entry in Prometheus."""
+    try:
+        from app.core.metrics import dlq_entries_total
+        dlq_entries_total.labels(stage=stage).inc()
+    except Exception:
+        pass
+
+
+async def _broadcast_pipeline_progress(
+    inbox_message_id: str | None,
+    stage: str,
+    status: str,
+    data: dict | None = None,
+) -> None:
+    """Broadcast pipeline progress via WebSocket."""
+    try:
+        from app.core.websocket import manager
+        await manager.broadcast({
+            "type": "pipeline_progress",
+            "inbox_message_id": inbox_message_id,
+            "stage": stage,
+            "status": status,
+            "data": data or {},
+            "timestamp": datetime.now(UTC).isoformat(),
+        })
+    except Exception:
+        pass
 
 
 async def _record_processing_task(
@@ -105,6 +156,31 @@ async def _send_to_dlq(
         session.add(entry)
         await session.commit()
 
+    _observe_dlq(stage)
+
+
+async def _update_inbox_timestamp(inbox_message_id: str | None, field_name: str) -> None:
+    """Update a timestamp field on InboxMessage.
+
+    Args:
+        inbox_message_id: InboxMessage UUID string
+        field_name: 'processing_started_at' or 'processing_completed_at'
+    """
+    if not inbox_message_id:
+        return
+    from sqlalchemy import select
+
+    from app.models.inbox import InboxMessage
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(InboxMessage).where(InboxMessage.id == UUID(inbox_message_id))
+        )
+        msg = result.scalar_one_or_none()
+        if msg:
+            setattr(msg, field_name, datetime.now(UTC))
+            await session.commit()
+
 
 # ─── Stage 1: Ingest Email ─────────────────────────────────────
 
@@ -126,7 +202,8 @@ def ingest_email(self, raw_email_data: dict) -> dict:
     start = time.monotonic()
     try:
         result = _run_async(_ingest_email_async(raw_email_data))
-        elapsed_ms = int((time.monotonic() - start) * 1000)
+        elapsed = time.monotonic() - start
+        elapsed_ms = int(elapsed * 1000)
 
         _run_async(_record_processing_task(
             inbox_message_id=result.get("inbox_message_id"),
@@ -138,10 +215,23 @@ def ingest_email(self, raw_email_data: dict) -> dict:
             processing_time_ms=elapsed_ms,
         ))
 
+        # M1: Mark processing started
+        _run_async(_update_inbox_timestamp(result.get("inbox_message_id"), "processing_started_at"))
+
+        # M3: WebSocket progress
+        _run_async(_broadcast_pipeline_progress(
+            result.get("inbox_message_id"), "ingest", "success",
+            {"attachments": len(result.get("attachment_ids", []))},
+        ))
+
+        # M4: Prometheus
+        _observe_stage("ingest", "success", elapsed)
+
         return result
 
     except Exception as exc:
-        elapsed_ms = int((time.monotonic() - start) * 1000)
+        elapsed = time.monotonic() - start
+        elapsed_ms = int(elapsed * 1000)
         logger.exception("orchestration.ingest_failed", error=str(exc))
 
         _run_async(_record_processing_task(
@@ -153,6 +243,7 @@ def ingest_email(self, raw_email_data: dict) -> dict:
             error_message=str(exc),
             processing_time_ms=elapsed_ms,
         ))
+        _observe_stage("ingest", "failed", elapsed)
 
         try:
             raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
@@ -191,7 +282,8 @@ def classify_email(self, ingest_result: dict) -> dict:
     start = time.monotonic()
     try:
         result = _run_async(_classify_email_async(ingest_result))
-        elapsed_ms = int((time.monotonic() - start) * 1000)
+        elapsed = time.monotonic() - start
+        elapsed_ms = int(elapsed * 1000)
 
         _run_async(_record_processing_task(
             inbox_message_id=ingest_result.get("inbox_message_id"),
@@ -203,10 +295,25 @@ def classify_email(self, ingest_result: dict) -> dict:
             processing_time_ms=elapsed_ms,
         ))
 
+        # M3: WebSocket progress
+        _run_async(_broadcast_pipeline_progress(
+            ingest_result.get("inbox_message_id"), "classify", "success",
+            {"classification": result.get("classification"), "confidence": result.get("confidence"), "method": result.get("method")},
+        ))
+
+        # M4: Prometheus
+        _observe_stage("classify", "success", elapsed, result.get("tokens_used", 0), "classify")
+        try:
+            from app.core.metrics import pipeline_emails_total
+            pipeline_emails_total.labels(classification=result.get("classification", "unknown")).inc()
+        except Exception:
+            pass
+
         return result
 
     except Exception as exc:
-        elapsed_ms = int((time.monotonic() - start) * 1000)
+        elapsed = time.monotonic() - start
+        elapsed_ms = int(elapsed * 1000)
         logger.exception("orchestration.classify_failed", error=str(exc))
 
         _run_async(_record_processing_task(
@@ -217,6 +324,7 @@ def classify_email(self, ingest_result: dict) -> dict:
             error_message=str(exc),
             processing_time_ms=elapsed_ms,
         ))
+        _observe_stage("classify", "failed", elapsed)
 
         try:
             raise self.retry(exc=exc, countdown=30 * (2 ** self.request.retries))
@@ -254,17 +362,41 @@ async def _classify_email_async(ingest_result: dict) -> dict:
         classification = heuristic_result.category
         confidence = heuristic_result.confidence
     else:
-        # Fall back to Claude classifier
+        # Fall back to Claude classifier with rate limiting
         from app.agents.email_classifier import EmailClassifier
         from app.core.config import get_settings
 
         settings = get_settings()
-        classifier = EmailClassifier(api_key=settings.ANTHROPIC_API_KEY)
-        result = await classifier.classify(subject=subject, body=body_text)
-        classification = result.category
-        confidence = result.confidence
-        tokens_used = 900  # Approximate
-        method = "claude"
+
+        if not settings.ANTHROPIC_API_KEY:
+            classification = "dotaz"
+            confidence = 0.5
+            method = "default_fallback"
+        else:
+            # H4: Rate limiter
+            try:
+                from app.core.rate_limiter import RateLimitExceeded, get_rate_limiter
+                limiter = get_rate_limiter()
+                limiter.acquire(estimated_tokens=900)
+            except RateLimitExceeded:
+                raise
+            except Exception:
+                pass  # Redis unavailable — proceed without limiting
+
+            try:
+                classifier = EmailClassifier(api_key=settings.ANTHROPIC_API_KEY)
+                result = await classifier.classify(subject=subject, body=body_text)
+                classification = result.category
+                confidence = result.confidence
+                tokens_used = 900
+                method = "claude"
+            finally:
+                try:
+                    limiter = get_rate_limiter()
+                    limiter.release()
+                    limiter.record_usage(tokens_used)
+                except Exception:
+                    pass
 
     # Determine processing stages
     stages = route_classification(
@@ -334,6 +466,9 @@ async def _classify_email_async(ingest_result: dict) -> dict:
 def process_attachment(self, attachment_id: str, file_path: str, content_type: str, filename: str) -> dict:
     """Process a single attachment: OCR + type detection.
 
+    After processing, if the detected category is a drawing, triggers
+    analyze_drawing as a follow-up task.
+
     Args:
         attachment_id: UUID of EmailAttachment
         file_path: Path to file on disk
@@ -346,7 +481,8 @@ def process_attachment(self, attachment_id: str, file_path: str, content_type: s
     start = time.monotonic()
     try:
         result = _run_async(_process_attachment_async(attachment_id, file_path, content_type, filename))
-        elapsed_ms = int((time.monotonic() - start) * 1000)
+        elapsed = time.monotonic() - start
+        elapsed_ms = int(elapsed * 1000)
 
         _run_async(_record_processing_task(
             inbox_message_id=None,
@@ -357,19 +493,36 @@ def process_attachment(self, attachment_id: str, file_path: str, content_type: s
             output_data=result,
             processing_time_ms=elapsed_ms,
         ))
+        _observe_stage("ocr", "success", elapsed)
+
+        # H2: Trigger drawing analysis for technical drawings
+        detected_category = result.get("detected_category", "")
+        if detected_category in ("vykres", "technical_drawing") and result.get("document_id"):
+            analyze_drawing.delay(
+                result["document_id"],
+                result.get("ocr_text", ""),
+                result.get("ocr_confidence", 0.0),
+            )
+            logger.info(
+                "orchestration.drawing_analysis_triggered",
+                document_id=result["document_id"],
+                category=detected_category,
+            )
 
         return result
 
     except Exception as exc:
-        elapsed_ms = int((time.monotonic() - start) * 1000)
+        elapsed = time.monotonic() - start
+        elapsed_ms = int(elapsed * 1000)
         logger.exception("orchestration.process_attachment_failed", attachment_id=attachment_id, error=str(exc))
+        _observe_stage("ocr", "failed", elapsed)
 
         try:
             raise self.retry(exc=exc, countdown=30 * (2 ** self.request.retries))
         except MaxRetriesExceededError:
             _run_async(_send_to_dlq(
                 "orchestration.process_attachment", "ocr",
-                {"attachment_id": attachment_id, "filename": filename},
+                {"attachment_id": attachment_id, "file_path": file_path, "content_type": content_type, "filename": filename},
                 str(exc), traceback.format_exc(), self.request.retries,
             ))
             return {"status": "failed", "attachment_id": attachment_id, "error": str(exc)}
@@ -402,7 +555,8 @@ def parse_email(self, classify_result: dict) -> dict:
     start = time.monotonic()
     try:
         result = _run_async(_parse_email_async(classify_result))
-        elapsed_ms = int((time.monotonic() - start) * 1000)
+        elapsed = time.monotonic() - start
+        elapsed_ms = int(elapsed * 1000)
 
         _run_async(_record_processing_task(
             inbox_message_id=classify_result.get("inbox_message_id"),
@@ -414,11 +568,22 @@ def parse_email(self, classify_result: dict) -> dict:
             processing_time_ms=elapsed_ms,
         ))
 
+        # M3: WebSocket progress
+        _run_async(_broadcast_pipeline_progress(
+            classify_result.get("inbox_message_id"), "parse", "success",
+            {"parsed_keys": list(result.get("parsed_data", {}).keys())},
+        ))
+
+        # M4: Prometheus
+        _observe_stage("parse", "success", elapsed, result.get("parse_tokens_used", 0), "parse")
+
         return result
 
     except Exception as exc:
-        elapsed_ms = int((time.monotonic() - start) * 1000)
+        elapsed = time.monotonic() - start
+        elapsed_ms = int(elapsed * 1000)
         logger.exception("orchestration.parse_failed", error=str(exc))
+        _observe_stage("parse", "failed", elapsed)
 
         try:
             raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
@@ -440,12 +605,30 @@ async def _parse_email_async(classify_result: dict) -> dict:
     from app.models.inbox import InboxMessage
 
     settings = get_settings()
-    parser = EmailParser(api_key=settings.ANTHROPIC_API_KEY)
 
-    parsed = await parser.parse(
-        subject=classify_result.get("subject", ""),
-        body=classify_result.get("body_text", ""),
-    )
+    # H4: Rate limiter
+    try:
+        from app.core.rate_limiter import RateLimitExceeded, get_rate_limiter
+        limiter = get_rate_limiter()
+        limiter.acquire(estimated_tokens=1200)
+    except RateLimitExceeded:
+        raise
+    except Exception:
+        pass
+
+    try:
+        parser = EmailParser(api_key=settings.ANTHROPIC_API_KEY)
+        parsed = await parser.parse(
+            subject=classify_result.get("subject", ""),
+            body=classify_result.get("body_text", ""),
+        )
+    finally:
+        try:
+            limiter = get_rate_limiter()
+            limiter.release()
+            limiter.record_usage(1200)
+        except Exception:
+            pass
 
     # Convert to serializable dict
     parsed_data = {
@@ -506,8 +689,27 @@ def analyze_drawing(self, document_id: str, ocr_text: str, ocr_confidence: float
 
     start = time.monotonic()
     try:
+        # H4: Rate limiter
+        try:
+            from app.core.rate_limiter import RateLimitExceeded, get_rate_limiter
+            limiter = get_rate_limiter()
+            limiter.acquire(estimated_tokens=2500)
+        except RateLimitExceeded:
+            raise
+        except Exception:
+            pass
+
         result = _run_async(_analyze_drawing_async(document_id, ocr_text))
-        elapsed_ms = int((time.monotonic() - start) * 1000)
+        elapsed = time.monotonic() - start
+        elapsed_ms = int(elapsed * 1000)
+
+        # Release rate limiter
+        try:
+            limiter = get_rate_limiter()
+            limiter.release()
+            limiter.record_usage(result.get("tokens_used", 2500))
+        except Exception:
+            pass
 
         _run_async(_record_processing_task(
             inbox_message_id=None,
@@ -520,10 +722,26 @@ def analyze_drawing(self, document_id: str, ocr_text: str, ocr_confidence: float
             processing_time_ms=elapsed_ms,
         ))
 
+        # M3: WebSocket progress
+        _run_async(_broadcast_pipeline_progress(
+            None, "analyze", "success",
+            {"document_id": document_id, "dimensions_count": len(result.get("dimensions", []))},
+        ))
+
+        # M4: Prometheus
+        _observe_stage("analyze", "success", elapsed, result.get("tokens_used", 0), "analyze_drawing")
+
         return result
 
     except Exception as exc:
+        elapsed = time.monotonic() - start
         logger.exception("orchestration.analyze_drawing_failed", document_id=document_id)
+        _observe_stage("analyze", "failed", elapsed)
+        try:
+            limiter = get_rate_limiter()
+            limiter.release()
+        except Exception:
+            pass
         try:
             raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
         except MaxRetriesExceededError:
@@ -594,7 +812,8 @@ def orchestrate_order(self, pipeline_result: dict) -> dict:
     start = time.monotonic()
     try:
         result = _run_async(_orchestrate_order_async(pipeline_result))
-        elapsed_ms = int((time.monotonic() - start) * 1000)
+        elapsed = time.monotonic() - start
+        elapsed_ms = int(elapsed * 1000)
 
         _run_async(_record_processing_task(
             inbox_message_id=pipeline_result.get("inbox_message_id"),
@@ -605,11 +824,22 @@ def orchestrate_order(self, pipeline_result: dict) -> dict:
             processing_time_ms=elapsed_ms,
         ))
 
+        # M3: WebSocket progress
+        _run_async(_broadcast_pipeline_progress(
+            pipeline_result.get("inbox_message_id"), "orchestrate", "success",
+            {"order_id": str(result.get("order_id", "")), "customer_created": result.get("customer_created")},
+        ))
+
+        # M4: Prometheus
+        _observe_stage("orchestrate", "success", elapsed)
+
         return result
 
     except Exception as exc:
-        elapsed_ms = int((time.monotonic() - start) * 1000)
+        elapsed = time.monotonic() - start
+        elapsed_ms = int(elapsed * 1000)
         logger.exception("orchestration.orchestrate_order_failed", error=str(exc))
+        _observe_stage("orchestrate", "failed", elapsed)
 
         try:
             raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
@@ -661,102 +891,328 @@ def auto_calculate(self, orchestration_result: dict) -> dict:
     if not order_id:
         return {**orchestration_result, "calculation": "skipped", "reason": "no_order"}
 
+    if not settings.ANTHROPIC_API_KEY:
+        logger.warning("orchestration.auto_calculate_skipped", reason="ANTHROPIC_API_KEY not set")
+        return {**orchestration_result, "calculation": "skipped", "reason": "no_api_key"}
+
     start = time.monotonic()
     try:
-        result = _run_async(_auto_calculate_async(order_id))
-        elapsed_ms = int((time.monotonic() - start) * 1000)
+        result = _run_async(_auto_calculate_async(str(order_id)))
+        elapsed = time.monotonic() - start
+        elapsed_ms = int(elapsed * 1000)
 
         _run_async(_record_processing_task(
             inbox_message_id=orchestration_result.get("inbox_message_id"),
             celery_task_id=self.request.id,
             stage="calculate",
             status="success",
-            input_data={"order_id": order_id},
+            input_data={"order_id": str(order_id)},
             output_data=result,
             tokens_used=result.get("tokens_used", 0),
             processing_time_ms=elapsed_ms,
         ))
 
+        # M3: WebSocket progress
+        _run_async(_broadcast_pipeline_progress(
+            orchestration_result.get("inbox_message_id"), "calculate", "success",
+            {"calculation_id": result.get("calculation_id"), "total_czk": result.get("total_czk")},
+        ))
+
+        # M4: Prometheus
+        _observe_stage("calculate", "success", elapsed, result.get("tokens_used", 0), "auto_calculate")
+
         return {**orchestration_result, **result}
 
     except Exception as exc:
+        elapsed = time.monotonic() - start
         logger.exception("orchestration.auto_calculate_failed", order_id=order_id)
+        _observe_stage("calculate", "failed", elapsed)
         try:
             raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
         except MaxRetriesExceededError:
             _run_async(_send_to_dlq(
                 "orchestration.auto_calculate", "calculate",
-                {"order_id": order_id}, str(exc), traceback.format_exc(),
+                {"order_id": str(order_id)}, str(exc), traceback.format_exc(),
                 self.request.retries,
             ))
             return {**orchestration_result, "calculation": "failed"}
 
 
 async def _auto_calculate_async(order_id: str) -> dict:
-    """Trigger calculation agent for order."""
+    """Trigger calculation agent for order — full implementation.
+
+    Loads the order from DB, builds description/items, calls CalculationAgent.estimate(),
+    creates Calculation + CalculationItem records, and returns summary.
+    """
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
     from app.agents.calculation_agent import CalculationAgent
     from app.core.config import get_settings
+    from app.models.calculation import Calculation, CalculationItem, CalculationStatus, CostType
+    from app.models.order import Order
 
     settings = get_settings()
-    CalculationAgent(api_key=settings.ANTHROPIC_API_KEY)
-    # The agent produces a calculation for the order
-    # Returns a summary
-    return {
-        "calculation": "triggered",
-        "order_id": order_id,
-        "tokens_used": 2000,
-    }
+
+    # H4: Rate limiter
+    try:
+        from app.core.rate_limiter import RateLimitExceeded, get_rate_limiter
+        limiter = get_rate_limiter()
+        limiter.acquire(estimated_tokens=4000)
+    except RateLimitExceeded:
+        raise
+    except Exception:
+        pass
+
+    try:
+        async with AsyncSessionLocal() as session:
+            # Load order with items and customer
+            result = await session.execute(
+                select(Order)
+                .options(selectinload(Order.customer))
+                .where(Order.id == UUID(order_id))
+            )
+            order = result.scalar_one_or_none()
+            if not order:
+                raise ValueError(f"Order not found: {order_id}")
+
+            # Build description from order data
+            customer_name = order.customer.company_name if order.customer else "Neznámý zákazník"
+            description = f"Zakázka {order.number} pro {customer_name}"
+            if order.note:
+                description += f"\n{order.note}"
+
+            # Build items list from parsed_data (stored on related InboxMessage)
+            items: list[dict] = []
+            # Try to get items from inbox message parsed_data
+            from app.models.inbox import InboxMessage
+            inbox_result = await session.execute(
+                select(InboxMessage).where(InboxMessage.order_id == UUID(order_id))
+            )
+            inbox_msg = inbox_result.scalar_one_or_none()
+            if inbox_msg and inbox_msg.parsed_data and isinstance(inbox_msg.parsed_data, dict):
+                parsed_items = inbox_msg.parsed_data.get("items", [])
+                for item in parsed_items:
+                    if isinstance(item, dict):
+                        items.append({
+                            "name": item.get("name", "Položka"),
+                            "material": item.get("material", "Nespecifikováno"),
+                            "dimension": item.get("dimensions", ""),
+                            "quantity": item.get("quantity", 1),
+                            "unit": item.get("unit", "ks"),
+                        })
+
+            # Fallback if no items
+            if not items:
+                items = [{
+                    "name": f"Zakázka {order.number}",
+                    "material": "Nespecifikováno",
+                    "dimension": "",
+                    "quantity": 1,
+                    "unit": "ks",
+                }]
+
+            # Call CalculationAgent
+            agent = CalculationAgent(api_key=settings.ANTHROPIC_API_KEY, db_session=session)
+            estimate = await agent.estimate(description=description, items=items)
+
+            tokens_used = 4000  # Approximate
+
+            # Create Calculation record
+            calc = Calculation(
+                order_id=UUID(order_id),
+                name=f"Auto-kalkulace {order.number}",
+                status=CalculationStatus.DRAFT,
+                note=estimate.reasoning,
+                material_total=Decimal(str(estimate.material_cost_czk)),
+                labor_total=Decimal(str(estimate.labor_cost_czk)),
+                overhead_total=Decimal(str(estimate.overhead_czk)),
+                margin_percent=Decimal(str(estimate.margin_percent)),
+                total_price=Decimal(str(estimate.total_czk)),
+            )
+            # Calculate margin amount
+            direct = estimate.material_cost_czk + estimate.labor_cost_czk + estimate.overhead_czk
+            calc.margin_amount = Decimal(str(direct * (estimate.margin_percent / 100.0)))
+
+            session.add(calc)
+            await session.flush()
+
+            # Create CalculationItem records from breakdown
+            for item_est in estimate.breakdown:
+                labor_cost = item_est.labor_hours * 850.0  # Default hourly rate
+                # Material item
+                if item_est.material_cost_czk > 0:
+                    mat_item = CalculationItem(
+                        calculation_id=calc.id,
+                        cost_type=CostType.MATERIAL,
+                        name=item_est.name,
+                        description=item_est.notes,
+                        quantity=Decimal("1"),
+                        unit="ks",
+                        unit_price=Decimal(str(item_est.material_cost_czk)),
+                        total_price=Decimal(str(item_est.material_cost_czk)),
+                    )
+                    session.add(mat_item)
+
+                # Labor item
+                if item_est.labor_hours > 0:
+                    lab_item = CalculationItem(
+                        calculation_id=calc.id,
+                        cost_type=CostType.LABOR,
+                        name=f"Práce - {item_est.name}",
+                        description=f"{item_est.labor_hours} hodin",
+                        quantity=Decimal(str(item_est.labor_hours)),
+                        unit="hod",
+                        unit_price=Decimal("850"),
+                        total_price=Decimal(str(labor_cost)),
+                    )
+                    session.add(lab_item)
+
+            # Overhead item
+            if estimate.overhead_czk > 0:
+                overhead_item = CalculationItem(
+                    calculation_id=calc.id,
+                    cost_type=CostType.OVERHEAD,
+                    name="Režijní náklady",
+                    description="Energie, spotřební materiál, administrativa",
+                    quantity=Decimal("1"),
+                    unit="ks",
+                    unit_price=Decimal(str(estimate.overhead_czk)),
+                    total_price=Decimal(str(estimate.overhead_czk)),
+                )
+                session.add(overhead_item)
+
+            await session.commit()
+
+            logger.info(
+                "orchestration.auto_calculate_complete",
+                order_id=order_id,
+                calculation_id=str(calc.id),
+                total_czk=estimate.total_czk,
+            )
+
+            return {
+                "calculation_id": str(calc.id),
+                "total_czk": estimate.total_czk,
+                "margin_percent": estimate.margin_percent,
+                "tokens_used": tokens_used,
+                "items_count": len(estimate.breakdown),
+            }
+    finally:
+        try:
+            limiter = get_rate_limiter()
+            limiter.release()
+            limiter.record_usage(4000)
+        except Exception:
+            pass
 
 
 # ─── Stage 8: Generate Offer ──────────────────────────────────
 
 
 @celery_app.task(bind=True, max_retries=2, queue="orchestration", name="orchestration.generate_offer")
-def generate_offer(self, order_id: str, calculation_id: str) -> dict:
-    """Generate PDF offer + Pohoda XML after calculation approval.
+def generate_offer(self, pipeline_result: dict) -> dict:
+    """Generate PDF offer + Pohoda XML after calculation.
+
+    Accepts pipeline_result dict from the chain (auto_calculate output).
+    Extracts order_id and calculation_id from the result.
 
     Args:
-        order_id: UUID of Order
-        calculation_id: UUID of Calculation
+        pipeline_result: Output from auto_calculate task (or dict with order_id/calculation_id)
 
     Returns:
         dict with offer_pdf_path, pohoda_xml_path, document_id
     """
     settings = get_settings()
     if not settings.ORCHESTRATION_AUTO_OFFER:
-        return {"status": "skipped", "reason": "auto_offer disabled"}
+        return {**pipeline_result, "offer": "skipped", "reason": "auto_offer disabled"}
+
+    # Extract order_id and calculation_id from pipeline result
+    order_id = pipeline_result.get("order_id")
+    calculation_id = pipeline_result.get("calculation_id")
+
+    if not order_id or not calculation_id:
+        logger.info(
+            "orchestration.generate_offer_skipped",
+            reason="missing order_id or calculation_id",
+            order_id=order_id,
+            calculation_id=calculation_id,
+        )
+        return {**pipeline_result, "offer": "skipped", "reason": "no_order_or_calculation"}
 
     start = time.monotonic()
     try:
-        result = _run_async(_generate_offer_async(order_id, calculation_id))
-        elapsed_ms = int((time.monotonic() - start) * 1000)
+        result = _run_async(_generate_offer_async(str(order_id), str(calculation_id)))
+        elapsed = time.monotonic() - start
+        elapsed_ms = int(elapsed * 1000)
 
         _run_async(_record_processing_task(
-            inbox_message_id=None,
+            inbox_message_id=pipeline_result.get("inbox_message_id"),
             celery_task_id=self.request.id,
             stage="offer",
             status="success",
-            input_data={"order_id": order_id, "calculation_id": calculation_id},
+            input_data={"order_id": str(order_id), "calculation_id": str(calculation_id)},
             output_data=result,
             processing_time_ms=elapsed_ms,
         ))
 
-        return result
+        # M1: Mark processing completed (terminal stage for poptavka)
+        _run_async(_update_inbox_timestamp(pipeline_result.get("inbox_message_id"), "processing_completed_at"))
+
+        # M3: WebSocket progress
+        _run_async(_broadcast_pipeline_progress(
+            pipeline_result.get("inbox_message_id"), "offer", "success",
+            {"document_id": result.get("document_id")},
+        ))
+
+        # M4: Prometheus
+        _observe_stage("offer", "success", elapsed)
+
+        return {**pipeline_result, **result}
 
     except Exception as exc:
+        elapsed = time.monotonic() - start
         logger.exception("orchestration.generate_offer_failed", order_id=order_id)
+        _observe_stage("offer", "failed", elapsed)
         try:
             raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
         except MaxRetriesExceededError:
             _run_async(_send_to_dlq(
                 "orchestration.generate_offer", "offer",
-                {"order_id": order_id, "calculation_id": calculation_id},
+                {"order_id": str(order_id), "calculation_id": str(calculation_id)},
                 str(exc), traceback.format_exc(), self.request.retries,
             ))
-            return {"status": "failed", "order_id": order_id}
+            return {**pipeline_result, "offer": "failed"}
 
 
 async def _generate_offer_async(order_id: str, calculation_id: str) -> dict:
+    """Generate offer — checks calculation status before proceeding."""
+    from sqlalchemy import select
+
+    from app.models.calculation import Calculation, CalculationStatus
+
+    # Check if calculation is approved
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Calculation).where(Calculation.id == UUID(calculation_id))
+        )
+        calc = result.scalar_one_or_none()
+        if not calc:
+            return {"offer": "skipped", "reason": f"calculation {calculation_id} not found"}
+
+        if calc.status != CalculationStatus.APPROVED:
+            logger.info(
+                "orchestration.offer_awaiting_approval",
+                calculation_id=calculation_id,
+                current_status=calc.status.value,
+            )
+            return {
+                "offer": "awaiting_approval",
+                "reason": f"Calculation status is {calc.status.value}, not approved",
+                "calculation_id": calculation_id,
+            }
+
+    # Calculation is approved — generate offer
     from app.orchestration.agents.offer_generator import OfferGenerator
     generator = OfferGenerator()
     return await generator.generate(
@@ -773,7 +1229,7 @@ def run_pipeline(self, raw_email_data: dict) -> dict:
     """Run the full orchestration pipeline for a single email.
 
     This is the main entry point. It chains:
-    ingest → classify → route → (parse + process_attachments) → orchestrate → calculate
+    ingest → classify → route → (parse + process_attachments) → orchestrate → calculate → offer
 
     Args:
         raw_email_data: Serialized email data from IMAP
@@ -827,10 +1283,14 @@ def route_and_execute(self, classify_result: dict) -> dict:
 
     if "review" in stages:
         _run_async(_mark_for_review(classify_result.get("inbox_message_id")))
+        # M1: Mark processing completed (terminal: review)
+        _run_async(_update_inbox_timestamp(classify_result.get("inbox_message_id"), "processing_completed_at"))
         return {**classify_result, "pipeline_status": "needs_review"}
 
     if "archive" in stages:
         _run_async(_archive_message(classify_result.get("inbox_message_id")))
+        # M1: Mark processing completed (terminal: archive)
+        _run_async(_update_inbox_timestamp(classify_result.get("inbox_message_id"), "processing_completed_at"))
         return {**classify_result, "pipeline_status": "archived"}
 
     # Process attachments in parallel (fire-and-forget)
@@ -854,6 +1314,8 @@ def route_and_execute(self, classify_result: dict) -> dict:
         chain_tasks.append(orchestrate_order.s())
     if "auto_calculate" in stages:
         chain_tasks.append(auto_calculate.s())
+    if "generate_offer" in stages:
+        chain_tasks.append(generate_offer.s())
 
     if chain_tasks:
         # First task in chain gets classify_result as argument

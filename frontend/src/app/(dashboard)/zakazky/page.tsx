@@ -3,6 +3,8 @@
 import { NewOrderDialog } from "@/components/zakazky/new-order-dialog";
 import { OrderFilters } from "@/components/zakazky/order-filters";
 import { OrdersTable } from "@/components/zakazky/orders-table";
+import { BulkActionBar } from "@/components/ui/bulk-action-bar";
+import { Button } from "@/components/ui/button";
 import { getOrders } from "@/lib/api";
 import type { OrderStatus } from "@/types";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +13,8 @@ import { useState } from "react";
 export default function ZakazkyPage() {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [quickFilter, setQuickFilter] = useState<string>("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [skip] = useState(0);
   const [limit] = useState(50);
 
@@ -24,15 +28,25 @@ export default function ZakazkyPage() {
       }),
   });
 
-  // Client-side search filtering
+  // Client-side search and quick filtering
   const filteredOrders = orders?.filter((order) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      order.number.toLowerCase().includes(query) ||
-      order.customer?.company_name?.toLowerCase().includes(query) ||
-      order.customer?.contact_name?.toLowerCase().includes(query)
-    );
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        order.number.toLowerCase().includes(query) ||
+        order.customer?.company_name?.toLowerCase().includes(query) ||
+        order.customer?.contact_name?.toLowerCase().includes(query);
+      if (!matchesSearch) return false;
+    }
+
+    // Quick filter
+    if (quickFilter === "all") return true;
+    if (quickFilter === "overdue") return order.due_date && new Date(order.due_date) < new Date();
+    if (quickFilter === "high") return order.priority === "high" || order.priority === "urgent";
+    if (quickFilter === "unassigned") return !order.assigned_to;
+    if (quickFilter === "poptavka") return order.status === "poptavka";
+    return true;
   });
 
   return (
@@ -54,6 +68,28 @@ export default function ZakazkyPage() {
         onSearchChange={setSearchQuery}
       />
 
+      <div className="flex gap-2 flex-wrap">
+        {[
+          { key: "all", label: "Vše" },
+          { key: "overdue", label: "Po termínu" },
+          { key: "high", label: "Vysoká priorita" },
+          { key: "unassigned", label: "Nepřiřazené" },
+          { key: "poptavka", label: "Nové poptávky" },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setQuickFilter(key)}
+            className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+              quickFilter === key
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background text-muted-foreground border-border hover:border-primary/50"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {isLoading ? (
         <div className="flex min-h-[400px] items-center justify-center rounded-lg border">
           <div className="text-center">
@@ -66,6 +102,18 @@ export default function ZakazkyPage() {
       ) : (
         <OrdersTable orders={filteredOrders || []} />
       )}
+
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+      >
+        <Button size="sm" variant="outline" disabled>
+          Změnit stav
+        </Button>
+        <Button size="sm" variant="outline" disabled>
+          Přiřadit
+        </Button>
+      </BulkActionBar>
     </div>
   );
 }

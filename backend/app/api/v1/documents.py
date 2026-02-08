@@ -124,6 +124,39 @@ async def get_entity_documents(
     return [DocumentResponse.model_validate(d) for d in documents]
 
 
+@router.get("/{document_id}/analysis")
+async def get_drawing_analysis(
+    document_id: UUID,
+    _user: User = Depends(require_role(UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Get cached drawing analysis results for a document."""
+    from sqlalchemy import select as sql_select
+    from app.models.drawing_analysis import DrawingAnalysis
+
+    result = await db.execute(
+        sql_select(DrawingAnalysis).where(DrawingAnalysis.document_id == document_id)
+    )
+    analysis = result.scalar_one_or_none()
+
+    if not analysis:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No analysis found for document {document_id}",
+        )
+
+    return {
+        "document_id": str(document_id),
+        "dimensions": analysis.dimensions or [],
+        "materials": analysis.materials or [],
+        "tolerances": analysis.tolerances or [],
+        "surface_treatments": analysis.surface_treatments or [],
+        "welding_requirements": analysis.welding_requirements or {},
+        "notes": analysis.notes or [],
+        "analyzed_at": str(analysis.created_at) if hasattr(analysis, 'created_at') else None,
+    }
+
+
 @router.get("/{document_id}", response_model=DocumentResponse)
 async def get_document(
     document_id: UUID,

@@ -1,0 +1,56 @@
+global:
+  smtp_smarthost: smtp.infer.cz:587
+  smtp_from: monitoring@infer.cz
+  smtp_auth_username: monitoring@infer.cz
+  smtp_auth_password: ${SMTP_PASSWORD}
+  smtp_require_tls: true
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname']
+  group_wait: 30s
+  group_interval: 5m
+  receiver: 'email-admin'
+  routes:
+    - match:
+        severity: critical
+      receiver: email-admin
+      repeat_interval: 1h
+      continue: false
+    - match:
+        severity: warning
+      receiver: email-admin
+      repeat_interval: 4h
+      continue: false
+
+receivers:
+  - name: 'email-admin'
+    email_configs:
+      - to: admin@infer.cz
+        headers:
+          Subject: '[INFER FORGE] {{ .GroupLabels.alertname }} - {{ .Status | toUpper }}'
+        html: |
+          <h2>Alert: {{ .GroupLabels.alertname }}</h2>
+          <p><strong>Status:</strong> {{ .Status | toUpper }}</p>
+          <p><strong>Severity:</strong> {{ .CommonLabels.severity }}</p>
+          {{ range .Alerts }}
+          <hr>
+          <h3>{{ .Labels.alertname }}</h3>
+          <p><strong>Summary:</strong> {{ .Annotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <p><strong>Started:</strong> {{ .StartsAt }}</p>
+          {{ if .EndsAt }}<p><strong>Ended:</strong> {{ .EndsAt }}</p>{{ end }}
+          <p><strong>Labels:</strong></p>
+          <ul>
+          {{ range .Labels.SortedPairs }}
+            <li><strong>{{ .Name }}:</strong> {{ .Value }}</li>
+          {{ end }}
+          </ul>
+          {{ end }}
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname']

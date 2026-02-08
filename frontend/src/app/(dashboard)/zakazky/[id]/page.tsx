@@ -8,10 +8,11 @@ import { OrderOperations } from "@/components/zakazky/order-operations";
 import { SimilarOrders } from "@/components/zakazky/similar-orders";
 import { DocumentGenerator } from "@/components/zakazky/document-generator";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { getOrder, assignOrder } from "@/lib/api";
+import { getOrder, assignOrder, getPredictedDueDate, getSuggestedAssignee } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Package, UserPlus, UserCheck } from "lucide-react";
+import { ArrowLeft, Package, UserPlus, UserCheck, Sparkles, Clock, Brain } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use } from "react";
 import { useAuth } from "@/lib/auth-provider";
@@ -29,6 +30,18 @@ export default function OrderDetailPage({ params }: PageProps) {
   const { data: order, isLoading } = useQuery({
     queryKey: ["order", resolvedParams.id],
     queryFn: () => getOrder(resolvedParams.id),
+  });
+
+  const { data: prediction } = useQuery({
+    queryKey: ["prediction", resolvedParams.id],
+    queryFn: () => getPredictedDueDate(resolvedParams.id),
+    enabled: !!resolvedParams.id,
+  });
+
+  const { data: assigneeSuggestion } = useQuery({
+    queryKey: ["suggest-assignee", resolvedParams.id],
+    queryFn: () => getSuggestedAssignee(resolvedParams.id),
+    enabled: !!resolvedParams.id && !order?.assigned_to,
   });
 
   const assignMutation = useMutation({
@@ -83,9 +96,17 @@ export default function OrderDetailPage({ params }: PageProps) {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Zakázka {order.number}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold tracking-tight">
+                Zakázka {order.number}
+              </h1>
+              {order.source_offer_id && (
+                <Badge variant="secondary" className="bg-purple-100 text-purple-800">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Z nabídky
+                </Badge>
+              )}
+            </div>
             <p className="text-muted-foreground">
               Detail zakázky a přehled položek
             </p>
@@ -123,10 +144,29 @@ export default function OrderDetailPage({ params }: PageProps) {
               {assignMutation.isPending ? "Přiřazuji..." : "Převzít zakázku"}
             </Button>
           )}
+          {!order.assigned_to && assigneeSuggestion?.suggestion && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground ml-2">
+              <Brain className="h-3 w-3" />
+              AI doporučuje: {assigneeSuggestion.suggestion.user_name}
+              <span className="text-muted-foreground/60">
+                ({assigneeSuggestion.suggestion.reason})
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
       <OrderDetail order={order} />
+
+      {prediction && prediction.predicted_days > 0 && (
+        <div className="rounded-lg border bg-blue-50/50 p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Clock className="h-4 w-4 text-blue-600" />
+            <span className="text-sm font-medium text-blue-900">AI odhad dokončení</span>
+          </div>
+          <p className="text-sm text-blue-800">{prediction.message}</p>
+        </div>
+      )}
 
       <Separator className="my-2" />
 

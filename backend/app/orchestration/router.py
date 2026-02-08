@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import structlog
 
+from app.core.config import get_settings
+
 logger = structlog.get_logger(__name__)
 
 
@@ -24,9 +26,12 @@ def route_classification(
     Returns:
         List of stage names to execute in order
     """
+    settings = get_settings()
+    review_threshold = settings.ORCHESTRATION_REVIEW_THRESHOLD
+
     stages: list[str] = []
 
-    if needs_review or confidence < 0.6:
+    if needs_review or confidence < review_threshold:
         return ["review"]
 
     # Always process attachments if present
@@ -39,6 +44,7 @@ def route_classification(
         stages.append("orchestrate_order")
         if classification == "poptavka":
             stages.append("auto_calculate")
+            stages.append("generate_offer")
     elif classification == "informace_zakazka":
         stages.append("parse_email")
         stages.append("orchestrate_order")

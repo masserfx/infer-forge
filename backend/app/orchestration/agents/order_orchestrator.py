@@ -68,6 +68,41 @@ class OrderOrchestrator:
             if not inbox_msg:
                 raise ValueError(f"InboxMessage not found: {inbox_message_id}")
 
+            # Thread-based order matching: if thread_id exists, look for
+            # previous messages in the same thread that already have an order
+            if hasattr(inbox_msg, 'thread_id') and inbox_msg.thread_id:
+                thread_result = await session.execute(
+                    select(InboxMessage).where(
+                        InboxMessage.thread_id == inbox_msg.thread_id,
+                        InboxMessage.order_id.isnot(None),
+                        InboxMessage.id != inbox_message_id,
+                    ).limit(1)
+                )
+                thread_msg = thread_result.scalar_one_or_none()
+                if thread_msg and thread_msg.order_id:
+                    # Found a previous message with an order — reuse it
+                    inbox_msg.order_id = thread_msg.order_id
+                    inbox_msg.customer_id = thread_msg.customer_id
+                    inbox_msg.status = InboxStatus.PROCESSED
+                    await session.commit()
+
+                    logger.info(
+                        "order_matched_by_thread",
+                        inbox_message_id=str(inbox_message_id),
+                        thread_id=inbox_msg.thread_id,
+                        order_id=str(thread_msg.order_id),
+                    )
+
+                    return {
+                        "customer_id": thread_msg.customer_id,
+                        "order_id": thread_msg.order_id,
+                        "customer_created": False,
+                        "order_created": False,
+                        "documents_linked": 0,
+                        "next_stage": None,
+                        "matched_by": "thread",
+                    }
+
             # Dedup: if order already exists for this message, skip
             if inbox_msg.order_id:
                 result = await session.execute(

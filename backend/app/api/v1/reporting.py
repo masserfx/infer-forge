@@ -1,5 +1,6 @@
 """Reporting API endpoints."""
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
@@ -72,6 +73,59 @@ async def get_customer_report(
     """Get customer analytics."""
     service = ReportingService(db)
     return await service.get_customer_report(limit=limit)
+
+
+@router.get("/insights")
+async def get_insights(
+    _user: User = Depends(require_role(UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Get AI-generated insights from reporting data."""
+    from app.core.config import get_settings
+    settings = get_settings()
+
+    # Gather basic stats
+    service = ReportingService(db)
+
+    try:
+        dashboard = await service.get_dashboard_stats()
+    except Exception:
+        dashboard = None
+
+    insights = []
+
+    if dashboard:
+        if dashboard.get("overdue_orders", 0) > 0:
+            insights.append({
+                "type": "warning",
+                "text": f"Máte {dashboard['overdue_orders']} zakázek po termínu. Doporučujeme přehodnotit priority.",
+                "icon": "alert-triangle",
+            })
+
+        production = dashboard.get("orders_in_production", 0)
+        if production > 10:
+            insights.append({
+                "type": "info",
+                "text": f"Ve výrobě je {production} zakázek. Zvažte navýšení kapacit nebo outsourcing.",
+                "icon": "trending-up",
+            })
+
+        new_msgs = dashboard.get("new_inbox_messages", 0)
+        if new_msgs > 5:
+            insights.append({
+                "type": "info",
+                "text": f"{new_msgs} nezpracovaných zpráv v inboxu. Zapněte automatickou orchestraci.",
+                "icon": "mail",
+            })
+
+    if not insights:
+        insights.append({
+            "type": "success",
+            "text": "Systém funguje optimálně. Žádné neobvyklé situace nebyly detekovány.",
+            "icon": "check-circle",
+        })
+
+    return {"insights": insights, "generated_at": datetime.now(UTC).isoformat()}
 
 
 @router.get("/material-requirements", response_model=None)

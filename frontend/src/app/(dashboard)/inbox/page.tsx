@@ -2,6 +2,7 @@
 
 import { MessageList } from "@/components/inbox/message-list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { getInboxMessages } from "@/lib/api";
 import type { InboxStatus } from "@/types";
 import { useQuery } from "@tanstack/react-query";
@@ -30,13 +31,27 @@ export default function InboxPage() {
 
   return (
     <div className="flex h-full flex-col gap-6 p-6">
-      <div className="flex items-center gap-3">
-        <Inbox className="h-8 w-8 text-primary" />
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Příchozí pošta</h1>
-          <p className="text-muted-foreground">
-            AI klasifikace a přiřazení e-mailů
-          </p>
+      <div>
+        <div className="flex items-center gap-3">
+          <Inbox className="h-8 w-8 text-primary" />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Příchozí pošta</h1>
+            <p className="text-muted-foreground">
+              AI klasifikace a přiřazení e-mailů
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2 flex-wrap mt-3">
+          {messages && messages.filter(m => m.assigned_order_id).length > 0 && (
+            <Badge variant="secondary" className="bg-green-100 text-green-800">
+              {messages.filter(m => m.assigned_order_id).length} přiřazeno k zakázkám
+            </Badge>
+          )}
+          {messages && messages.filter(m => m.status === "new").length > 0 && (
+            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+              {messages.filter(m => m.status === "new").length} čeká na zpracování
+            </Badge>
+          )}
         </div>
       </div>
 

@@ -6,9 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getDashboardStats, getRevenueReport, getProductionReport, getCustomerReport } from "@/lib/api";
+import { getDashboardStats, getRevenueReport, getProductionReport, getCustomerReport, getInsights } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
-import { Loader2, FileDown, Printer } from "lucide-react";
+import { Loader2, FileDown, Printer, Lightbulb, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { ORDER_STATUS_COLORS, ORDER_STATUS_LABELS, PRIORITY_COLORS, PRIORITY_LABELS } from "@/types";
 import type { OrderStatus, OrderPriority } from "@/types";
@@ -303,6 +303,67 @@ function CustomersTab() {
   );
 }
 
+function InsightsTab() {
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["insights"],
+    queryFn: getInsights,
+  });
+
+  if (isLoading) return <LoadingSpinner />;
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-yellow-500" />
+              <CardTitle>AI Insights</CardTitle>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+          <CardDescription>Automaticky generované poznatky z dat</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {data?.insights.map((insight, idx) => (
+              <div
+                key={idx}
+                className={`rounded-lg border p-4 ${
+                  insight.type === "warning"
+                    ? "border-yellow-200 bg-yellow-50"
+                    : insight.type === "success"
+                      ? "border-green-200 bg-green-50"
+                      : "border-blue-200 bg-blue-50"
+                }`}
+              >
+                <p className={`text-sm ${
+                  insight.type === "warning"
+                    ? "text-yellow-900"
+                    : insight.type === "success"
+                      ? "text-green-900"
+                      : "text-blue-900"
+                }`}>
+                  {insight.text}
+                </p>
+              </div>
+            )) || (
+              <p className="text-sm text-muted-foreground">Žádné insights k zobrazení</p>
+            )}
+          </div>
+          {data?.generated_at && (
+            <p className="text-xs text-muted-foreground mt-4">
+              Generováno: {new Date(data.generated_at).toLocaleString("cs-CZ")}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function ReportingPage() {
   const handlePrint = () => {
     window.print();
@@ -404,11 +465,12 @@ export default function ReportingPage() {
         </div>
 
         <Tabs defaultValue="prehled" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
             <TabsTrigger value="prehled">Přehled</TabsTrigger>
             <TabsTrigger value="obrat">Obrat</TabsTrigger>
             <TabsTrigger value="vyroba">Výroba</TabsTrigger>
             <TabsTrigger value="zakaznici">Zákazníci</TabsTrigger>
+            <TabsTrigger value="insights">AI Insights</TabsTrigger>
           </TabsList>
 
           <TabsContent value="prehled" className="print-section">
@@ -429,6 +491,11 @@ export default function ReportingPage() {
           <TabsContent value="zakaznici" className="print-section">
             <h2 className="hidden print:block text-2xl font-bold mb-4">Zákazníci</h2>
             <CustomersTab />
+          </TabsContent>
+
+          <TabsContent value="insights" className="print-section">
+            <h2 className="hidden print:block text-2xl font-bold mb-4">AI Insights</h2>
+            <InsightsTab />
           </TabsContent>
         </Tabs>
       </div>

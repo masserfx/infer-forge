@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Activity, AlertTriangle, Clock, Cpu, RefreshCw, CheckCircle, XCircle, Zap, BarChart3, Send, Mail } from "lucide-react";
+import { Activity, AlertTriangle, Clock, Cpu, RefreshCw, CheckCircle, XCircle, Zap, BarChart3, Send, Mail, Upload } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -128,10 +128,122 @@ interface TestEmailResult {
   errors: string[];
 }
 
+function BatchUploadZone() {
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadResults, setUploadResults] = useState<{ total: number; dispatched: number; failed: number; results: { filename: string; status: string; error?: string }[] } | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleUpload = async (files: FileList) => {
+    setUploading(true);
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+      formData.append("files", files[i]);
+    }
+
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+      const res = await fetch(`${API_BASE}/orchestrace/batch-upload`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setUploadResults(data);
+    } catch (e) {
+      setUploadResults({ total: files.length, dispatched: 0, failed: files.length, results: [{ filename: "upload", status: "failed", error: String(e) }] });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div>
+      <div
+        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300"}`}
+        onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+        onDragLeave={() => setDragActive(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragActive(false);
+          if (e.dataTransfer.files.length > 0) handleUpload(e.dataTransfer.files);
+        }}
+      >
+        <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+        <p className="text-sm text-muted-foreground">
+          {uploading ? "Nahrávání..." : "Přetáhněte .eml soubory sem nebo"}
+        </p>
+        {!uploading && (
+          <label className="mt-2 inline-block cursor-pointer text-sm text-blue-600 hover:underline">
+            vyberte soubory
+            <input
+              type="file"
+              accept=".eml"
+              multiple
+              className="hidden"
+              onChange={(e) => e.target.files && handleUpload(e.target.files)}
+            />
+          </label>
+        )}
+      </div>
+      {uploadResults && (
+        <div className="mt-4 rounded-lg border p-3">
+          <p className="text-sm font-medium">
+            Nahráno: {uploadResults.dispatched}/{uploadResults.total}
+            {uploadResults.failed > 0 && <span className="text-destructive"> ({uploadResults.failed} chyb)</span>}
+          </p>
+          {uploadResults.results.map((r, i) => (
+            <p key={i} className={`text-xs ${r.status === "failed" ? "text-destructive" : "text-muted-foreground"}`}>
+              {r.filename}: {r.status} {r.error ? `— ${r.error}` : ""}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AutomatizacePage() {
   const queryClient = useQueryClient();
   const [testEmail, setTestEmail] = useState({ from_email: "", subject: "", body_text: "" });
   const [testResult, setTestResult] = useState<TestEmailResult | null>(null);
+  const [livePipeline, setLivePipeline] = useState<Record<string, { stage: string; status: string; data?: Record<string, unknown>; timestamp?: string }[]>>({});
+
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+    if (!token) return;
+
+    const wsUrl = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/api/v1/ws/${token}`;
+    let ws: WebSocket | null = null;
+
+    try {
+      ws = new WebSocket(wsUrl);
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === "pipeline_progress" && msg.inbox_message_id) {
+            setLivePipeline((prev) => {
+              const key = msg.inbox_message_id;
+              const existing = prev[key] || [];
+              return {
+                ...prev,
+                [key]: [...existing, { stage: msg.stage, status: msg.status, data: msg.data, timestamp: msg.timestamp }],
+              };
+            });
+          }
+        } catch {
+          // ignore parse errors
+        }
+      };
+      ws.onerror = () => {};
+    } catch {
+      // WS not available
+    }
+
+    return () => {
+      if (ws) ws.close();
+    };
+  }, []);
 
   const testEmailMutation = useMutation({
     mutationFn: (data: { from_email: string; subject: string; body_text: string }) =>
@@ -326,6 +438,72 @@ export default function AutomatizacePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Batch Upload EML */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Upload className="h-5 w-5" />
+            Hromadný upload EML
+          </CardTitle>
+          <CardDescription>
+            Nahrajte EML soubory pro hromadné zpracování pipeline
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BatchUploadZone />
+        </CardContent>
+      </Card>
+
+      {/* Live Pipeline Progress */}
+      {Object.keys(livePipeline).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-yellow-500" />
+              Pipeline v reálném čase
+            </CardTitle>
+            <CardDescription>
+              Live zobrazení průběhu zpracování emailů
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {Object.entries(livePipeline).slice(-5).map(([msgId, stages]) => (
+                <div key={msgId} className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground font-mono mb-2">
+                    {msgId.slice(0, 8)}...
+                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {["ingest", "classify", "parse", "orchestrate", "calculate", "offer"].map((stageName) => {
+                      const stageData = stages.find((s) => s.stage === stageName);
+                      const isComplete = stageData?.status === "success";
+                      const isFailed = stageData?.status === "failed";
+                      const isPending = !stageData;
+                      return (
+                        <div key={stageName} className="flex items-center gap-1">
+                          <div
+                            className={`h-2 w-2 rounded-full ${
+                              isComplete ? "bg-green-500" : isFailed ? "bg-red-500" : "bg-gray-300"
+                            }`}
+                          />
+                          <span className={`text-xs ${isPending ? "text-muted-foreground" : isComplete ? "text-green-700" : "text-red-700"}`}>
+                            {stageLabels[stageName] ?? stageName}
+                          </span>
+                          {stages.findIndex((s) => s.stage === stageName) === stages.length - 1 && !isComplete && !isFailed && (
+                            <RefreshCw className="h-3 w-3 animate-spin text-blue-500" />
+                          )}
+                          {stageName !== "offer" && <span className="text-muted-foreground">→</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">

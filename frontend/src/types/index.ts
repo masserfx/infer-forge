@@ -141,6 +141,7 @@ export interface InboxMessage {
   confidence: number | null;
   status: InboxStatus;
   assigned_order_id: string | null;
+  processing_status?: "pending" | "processing" | "completed" | "error" | null;
   created_at: string;
 }
 
@@ -552,4 +553,149 @@ export interface SubcontractorCreate {
   rating?: number;
   is_active?: boolean;
   notes?: string;
+}
+
+// --- Recommendations ---
+
+export type RecommendationSeverity = "critical" | "warning" | "info";
+
+export interface Recommendation {
+  type: string;
+  severity: RecommendationSeverity;
+  title: string;
+  description: string;
+  action_url: string;
+  entity_id: string;
+}
+
+// --- AI Estimate ---
+
+export interface AIEstimateItem {
+  name: string;
+  material_cost_czk: number;
+  labor_hours: number;
+  notes: string;
+}
+
+export interface AIEstimate {
+  order_id: string;
+  order_number: string;
+  material_cost_czk: number;
+  labor_hours: number;
+  labor_cost_czk: number;
+  overhead_czk: number;
+  margin_percent: number;
+  total_czk: number;
+  reasoning: string;
+  items: AIEstimateItem[];
+}
+
+// --- Feature Flags ---
+
+export interface FeatureFlags {
+  ORCHESTRATION_ENABLED: boolean;
+  ORCHESTRATION_AUTO_CREATE_ORDERS: boolean;
+  ORCHESTRATION_AUTO_CALCULATE: boolean;
+  ORCHESTRATION_AUTO_OFFER: boolean;
+  POHODA_AUTO_SYNC: boolean;
+}
+
+export interface IntegrationStatus {
+  name: string;
+  status: "connected" | "disconnected" | "configured";
+  details: string | null;
+}
+
+// --- Anomaly ---
+
+export interface CalculationAnomaly {
+  type: string;
+  severity: "warning" | "info";
+  message: string;
+  expected: number;
+  actual: number;
+}
+
+// --- Prediction ---
+
+export interface DueDatePrediction {
+  predicted_days: number;
+  predicted_range_low?: number;
+  predicted_range_high?: number;
+  confidence: number;
+  method: string;
+  message: string;
+  sample_size?: number;
+}
+
+// --- Assignment ---
+
+export interface AssignmentSuggestion {
+  user_id: string;
+  user_name: string;
+  role: string;
+  active_orders: number;
+  reason: string;
+}
+
+export interface AssignmentResponse {
+  suggestion: AssignmentSuggestion | null;
+  alternatives: AssignmentSuggestion[];
+  reason?: string;
+}
+
+// --- Insights ---
+
+export interface Insight {
+  type: "warning" | "info" | "success";
+  text: string;
+  icon: string;
+}
+
+export interface InsightsResponse {
+  insights: Insight[];
+  generated_at: string;
+}
+
+// --- Calculation Feedback ---
+
+export interface CalculationFeedback {
+  original_items: Record<string, unknown>[];
+  corrected_items: Record<string, unknown>[];
+  correction_type: "price" | "quantity" | "added" | "removed" | "margin";
+}
+
+// --- Drawing Analysis ---
+
+export interface DrawingAnalysisResult {
+  document_id: string;
+  dimensions: { type: string; value: number; unit: string; tolerance?: string }[];
+  materials: { grade: string; standard?: string; type?: string }[];
+  tolerances: { type: string; value: string; standard?: string }[];
+  surface_treatments: string[];
+  welding_requirements: {
+    wps?: string[];
+    wpqr?: string[];
+    ndt_methods?: string[];
+    acceptance_criteria?: string[];
+  };
+  notes: string[];
+  analyzed_at: string | null;
+}
+
+// --- Bulk Actions ---
+
+export interface BulkStatusUpdate {
+  order_ids: string[];
+  status: OrderStatus;
+}
+
+export interface BulkAssignUpdate {
+  order_ids: string[];
+  assignee_id: string;
+}
+
+export interface BulkResult {
+  updated: number;
+  errors: string[];
 }

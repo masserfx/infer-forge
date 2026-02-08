@@ -3,9 +3,12 @@
 from .audit import AuditAction, AuditLog
 from .base import Base, TimestampMixin, UUIDPKMixin
 from .calculation import Calculation, CalculationItem, CalculationStatus, CostType
+from .calculation_feedback import CalculationFeedback, CorrectionType
+from .classification_feedback import ClassificationFeedback
 from .customer import Customer
 from .dead_letter import DeadLetterEntry
 from .document import Document, DocumentCategory
+from .document_embedding import DocumentEmbedding
 from .drawing_analysis import DrawingAnalysis
 from .email_attachment import EmailAttachment, OCRStatus
 from .inbox import InboxClassification, InboxMessage, InboxStatus
@@ -88,4 +91,9 @@ __all__ = [
     "Subcontractor",
     "Subcontract",
     "SubcontractStatus",
+    # F3 models
+    "CalculationFeedback",
+    "CorrectionType",
+    "ClassificationFeedback",
+    "DocumentEmbedding",
 ]

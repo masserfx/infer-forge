@@ -212,3 +212,95 @@ class TestHeuristicClassifier:
         )
         assert result is not None
         assert result.category == "faktura"
+
+    # ── dotaz patterns ──
+
+    def test_dotaz_informace_o(self):
+        """Classify 'informace o' as dotaz."""
+        result = self.classifier.classify(
+            subject="Dotaz",
+            body="Prosím o informace o možnostech výroby.",
+            has_attachments=False,
+            body_length=50,
+        )
+        assert result is not None
+        assert result.category == "dotaz"
+
+    def test_dotaz_muzete_sdelit(self):
+        """Classify 'můžete sdělit' as dotaz."""
+        result = self.classifier.classify(
+            subject="Prosba o info",
+            body="Můžete sdělit termín dodání?",
+            has_attachments=False,
+            body_length=40,
+        )
+        assert result is not None
+        assert result.category == "dotaz"
+
+    def test_dotaz_jaky_je_stav(self):
+        """Classify 'jaký je stav' as dotaz."""
+        result = self.classifier.classify(
+            subject="Stav",
+            body="Dobrý den, jaký je stav naší objednávky?",
+            has_attachments=False,
+            body_length=50,
+        )
+        assert result is not None
+        assert result.category == "dotaz"
+
+    def test_dotaz_rad_bych_se_zeptal(self):
+        """Classify 'rád bych se zeptal' as dotaz."""
+        result = self.classifier.classify(
+            subject="Dotaz",
+            body="Rád bych se zeptal na ceny materiálu.",
+            has_attachments=False,
+            body_length=50,
+        )
+        assert result is not None
+        assert result.category == "dotaz"
+
+    # ── informace_zakazka patterns ──
+
+    def test_informace_zakazka_stav_zakazky(self):
+        """Classify 'stav zakázky' as informace_zakazka."""
+        result = self.classifier.classify(
+            subject="Stav zakázky",
+            body="Jaký je aktuální stav zakázky č. 2025/042?",
+            has_attachments=False,
+            body_length=55,
+        )
+        assert result is not None
+        assert result.category == "informace_zakazka"
+
+    def test_informace_zakazka_termin_dodani(self):
+        """Classify 'termín dodání' as informace_zakazka."""
+        result = self.classifier.classify(
+            subject="Termín",
+            body="Prosím o sdělení předpokládaného termínu dodání zakázky.",
+            has_attachments=False,
+            body_length=60,
+        )
+        assert result is not None
+        assert result.category == "informace_zakazka"
+
+    def test_informace_zakazka_kde_je_objednavka(self):
+        """Classify 'kde je objednávka' as informace_zakazka."""
+        result = self.classifier.classify(
+            subject="Objednávka",
+            body="Kde je objednávka, kterou jsme poslali minulý týden?",
+            has_attachments=False,
+            body_length=55,
+        )
+        assert result is not None
+        assert result.category == "informace_zakazka"
+
+    def test_informace_zakazka_postup_vyroby(self):
+        """Classify 'postup výroby' as informace_zakazka."""
+        result = self.classifier.classify(
+            subject="Výroba",
+            body="Můžete nás informovat o postupu výroby na zakázce 2025/100?",
+            has_attachments=False,
+            body_length=65,
+        )
+        assert result is not None
+        assert result.category == "informace_zakazka"

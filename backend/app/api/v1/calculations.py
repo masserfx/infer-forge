@@ -44,6 +44,88 @@ async def create_calculation(
         ) from e
 
 
+@router.post("/ai-estimate/{order_id}")
+async def ai_estimate(
+    order_id: UUID,
+    _user: User = Depends(require_role(UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Get AI cost estimation for an order's items.
+
+    Uses CalculationAgent to estimate material costs, labor hours,
+    overhead and margin based on order items.
+    """
+    from app.core.config import get_settings
+    settings = get_settings()
+
+    if not settings.ANTHROPIC_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Anthropic API key not configured. Set ANTHROPIC_API_KEY.",
+        )
+
+    # Load order with items
+    from app.services import OrderService
+    order_service = OrderService(db)
+    order = await order_service.get_by_id(order_id)
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Order {order_id} not found",
+        )
+
+    # Build items list for agent
+    items = []
+    for item in order.items:
+        items.append({
+            "name": item.name,
+            "material": item.material or "Nespecifikováno",
+            "dimension": f"DN{item.dn}" if item.dn else "",
+            "quantity": item.quantity,
+            "unit": item.unit,
+        })
+
+    if not items:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Order has no items to estimate",
+        )
+
+    # Run estimation
+    from app.agents.calculation_agent import CalculationAgent
+    agent = CalculationAgent(
+        api_key=settings.ANTHROPIC_API_KEY,
+        db_session=db,
+    )
+
+    description = f"Zakázka {order.number}"
+    if order.note:
+        description += f" - {order.note}"
+
+    estimate = await agent.estimate(description=description, items=items)
+
+    return {
+        "order_id": str(order_id),
+        "order_number": order.number,
+        "material_cost_czk": estimate.material_cost_czk,
+        "labor_hours": estimate.labor_hours,
+        "labor_cost_czk": estimate.labor_cost_czk,
+        "overhead_czk": estimate.overhead_czk,
+        "margin_percent": estimate.margin_percent,
+        "total_czk": estimate.total_czk,
+        "reasoning": estimate.reasoning,
+        "items": [
+            {
+                "name": item.name,
+                "material_cost_czk": item.material_cost_czk,
+                "labor_hours": item.labor_hours,
+                "notes": item.notes,
+            }
+            for item in estimate.breakdown
+        ],
+    }
+
+
 @router.get("", response_model=list[CalculationResponse])
 async def list_calculations(
     status_filter: CalculationStatus | None = Query(
@@ -236,3 +318,39 @@ async def generate_offer(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         ) from e
+
+
+@router.post("/{calculation_id}/feedback")
+async def submit_calculation_feedback(
+    calculation_id: UUID,
+    feedback: dict,
+    user: User = Depends(require_role(UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Submit feedback on AI calculation for learning loop."""
+    import json
+    from app.models.calculation_feedback import CalculationFeedback, CorrectionType
+
+    fb = CalculationFeedback(
+        calculation_id=calculation_id,
+        original_items=json.dumps(feedback.get("original_items", [])),
+        corrected_items=json.dumps(feedback.get("corrected_items", [])),
+        correction_type=CorrectionType(feedback.get("correction_type", "price")),
+        user_id=user.id,
+    )
+    db.add(fb)
+    await db.commit()
+    return {"id": str(fb.id), "status": "saved"}
+
+
+@router.get("/{calculation_id}/anomalies")
+async def get_calculation_anomalies(
+    calculation_id: UUID,
+    _user: User = Depends(require_role(UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Check calculation for anomalies compared to historical data."""
+    from app.services.anomaly import AnomalyService
+    service = AnomalyService(db)
+    anomalies = await service.check_calculation(calculation_id)
+    return {"calculation_id": str(calculation_id), "anomalies": anomalies}

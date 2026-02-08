@@ -140,6 +140,8 @@ def _serialize_raw_email(raw_email: RawEmail) -> dict:
             }
             for att in raw_email.attachments
         ],
+        "references_header": raw_email.references_header,
+        "in_reply_to_header": raw_email.in_reply_to_header,
     }
 
 

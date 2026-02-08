@@ -2,7 +2,10 @@
 
 import { useAuth } from "@/lib/auth-provider";
 import { Badge } from "@/components/ui/badge";
-import { User, Shield, Mail, Phone, Server, Database } from "lucide-react";
+import { User, Shield, Mail, Phone, Server, Settings2, ToggleLeft } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getFeatureFlags, updateFeatureFlags, getIntegrationStatus } from "@/lib/api";
+import type { FeatureFlags } from "@/types";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Administrátor",
@@ -22,6 +25,30 @@ const ROLE_COLORS: Record<string, string> = {
 
 export default function NastaveniPage() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const { data: flags } = useQuery({
+    queryKey: ["feature-flags"],
+    queryFn: getFeatureFlags,
+  });
+
+  const { data: integrations } = useQuery({
+    queryKey: ["integration-status"],
+    queryFn: getIntegrationStatus,
+  });
+
+  const flagMutation = useMutation({
+    mutationFn: (update: Partial<FeatureFlags>) => updateFeatureFlags(update),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feature-flags"] });
+    },
+  });
+
+  const toggleFlag = (key: keyof FeatureFlags) => {
+    if (flags) {
+      flagMutation.mutate({ [key]: !flags[key] });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -119,35 +146,86 @@ export default function NastaveniPage() {
           </div>
         </div>
 
-        {/* Integrations */}
-        <div className="rounded-lg border bg-card">
+        {/* Automation Flags */}
+        <div className="rounded-lg border bg-card lg:col-span-2">
           <div className="border-b p-4">
             <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <Database className="h-5 w-5" />
-              Integrace
+              <Settings2 className="h-5 w-5" />
+              Automatizace
             </h2>
+            <p className="text-xs text-muted-foreground mt-1">Nastavení automatických procesů</p>
           </div>
-          <div className="space-y-3 p-4">
-            <div className="flex items-center justify-between text-sm">
-              <span>Pohoda XML API</span>
-              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                Konfigurace
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span>E-mail (IMAP/SMTP)</span>
-              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                Konfigurace
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span>AI klasifikace</span>
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                Aktivní
-              </Badge>
-            </div>
+          <div className="p-4 space-y-4">
+            {flags ? (
+              <>
+                {([
+                  { key: "ORCHESTRATION_ENABLED" as const, label: "Orchestrace pipeline", desc: "Master přepínač pro automatické zpracování emailů" },
+                  { key: "ORCHESTRATION_AUTO_CREATE_ORDERS" as const, label: "Auto-vytváření zakázek", desc: "Automaticky vytvořit zakázku z parsovaného emailu" },
+                  { key: "ORCHESTRATION_AUTO_CALCULATE" as const, label: "Auto-kalkulace", desc: "Automaticky spustit AI kalkulaci u poptávek" },
+                  { key: "ORCHESTRATION_AUTO_OFFER" as const, label: "Auto-nabídky", desc: "Automaticky generovat nabídky po schválení kalkulace" },
+                  { key: "POHODA_AUTO_SYNC" as const, label: "Auto-sync Pohoda", desc: "Automaticky synchronizovat při změně stavu na fakturace" },
+                ]).map(({ key, label, desc }) => (
+                  <div key={key} className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="text-sm font-medium">{label}</p>
+                      <p className="text-xs text-muted-foreground">{desc}</p>
+                    </div>
+                    <button
+                      onClick={() => toggleFlag(key)}
+                      disabled={flagMutation.isPending}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        flags[key] ? "bg-primary" : "bg-muted"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          flags[key] ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Načítání...</p>
+            )}
           </div>
         </div>
+
+        {/* Integration Status - Live */}
+        {integrations && (
+          <div className="rounded-lg border bg-card">
+            <div className="border-b p-4">
+              <h2 className="flex items-center gap-2 text-lg font-semibold">
+                <ToggleLeft className="h-5 w-5" />
+                Stav integrací (live)
+              </h2>
+            </div>
+            <div className="space-y-3 p-4">
+              {integrations.map((integration) => (
+                <div key={integration.name} className="flex items-center justify-between text-sm">
+                  <span>{integration.name}</span>
+                  <Badge
+                    variant="secondary"
+                    className={
+                      integration.status === "connected"
+                        ? "bg-green-100 text-green-800"
+                        : integration.status === "configured"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-red-100 text-red-800"
+                    }
+                  >
+                    {integration.status === "connected"
+                      ? "Připojeno"
+                      : integration.status === "configured"
+                        ? "Konfigurováno"
+                        : "Odpojeno"}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Permissions */}
         <div className="rounded-lg border bg-card">

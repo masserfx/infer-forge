@@ -4,7 +4,14 @@
  */
 
 import type {
+  AIEstimate,
+  AssignmentResponse,
+  BulkAssignUpdate,
+  BulkResult,
+  BulkStatusUpdate,
   Calculation,
+  CalculationAnomaly,
+  CalculationFeedback,
   CalculationItem,
   CalculationStatus,
   CostType,
@@ -13,7 +20,12 @@ import type {
   DashboardStats,
   Document,
   DocumentCategory,
+  DrawingAnalysisResult,
+  DueDatePrediction,
+  FeatureFlags,
   InboxMessage,
+  InsightsResponse,
+  IntegrationStatus,
   LeaderboardResponse,
   LoginResponse,
   MaterialPrice,
@@ -27,6 +39,7 @@ import type {
   PohodaSyncResult,
   PointsEntry,
   ProductionReport,
+  Recommendation,
   RevenueReport,
   Subcontractor,
   SubcontractorCreate,
@@ -650,4 +663,103 @@ export async function syncPohodaInventory(): Promise<{
   errors: number;
 }> {
   return fetchApi("/pohoda/sync-inventory", { method: "POST" });
+}
+
+// --- Dashboard Recommendations ---
+
+export async function getRecommendations(limit = 5): Promise<Recommendation[]> {
+  return fetchApi<Recommendation[]>(`/dashboard/recommendations?limit=${limit}`);
+}
+
+// --- AI Estimate ---
+
+export async function getAIEstimate(orderId: string): Promise<AIEstimate> {
+  return fetchApi<AIEstimate>(`/kalkulace/ai-estimate/${orderId}`, {
+    method: "POST",
+  });
+}
+
+// --- Feature Flags ---
+
+export async function getFeatureFlags(): Promise<FeatureFlags> {
+  return fetchApi<FeatureFlags>("/nastaveni/flags");
+}
+
+export async function updateFeatureFlags(flags: Partial<FeatureFlags>): Promise<FeatureFlags> {
+  return fetchApi<FeatureFlags>("/nastaveni/flags", {
+    method: "PATCH",
+    body: JSON.stringify(flags),
+  });
+}
+
+export async function getIntegrationStatus(): Promise<IntegrationStatus[]> {
+  return fetchApi<IntegrationStatus[]>("/nastaveni/integrations");
+}
+
+// --- Anomalies ---
+
+export async function getCalculationAnomalies(
+  calculationId: string,
+): Promise<{ calculation_id: string; anomalies: CalculationAnomaly[] }> {
+  return fetchApi(`/kalkulace/${calculationId}/anomalies`);
+}
+
+// --- Prediction ---
+
+export async function getPredictedDueDate(orderId: string): Promise<DueDatePrediction> {
+  return fetchApi<DueDatePrediction>(`/zakazky/${orderId}/predict-due-date`);
+}
+
+// --- Assignment ---
+
+export async function getSuggestedAssignee(orderId: string): Promise<AssignmentResponse> {
+  return fetchApi<AssignmentResponse>(`/zakazky/${orderId}/suggest-assignee`);
+}
+
+// --- Insights ---
+
+export async function getInsights(): Promise<InsightsResponse> {
+  return fetchApi<InsightsResponse>("/reporting/insights");
+}
+
+// --- Calculation Feedback ---
+
+export async function submitCalculationFeedback(
+  calculationId: string,
+  feedback: CalculationFeedback,
+): Promise<{ id: string; status: string }> {
+  return fetchApi(`/kalkulace/${calculationId}/feedback`, {
+    method: "POST",
+    body: JSON.stringify(feedback),
+  });
+}
+
+// --- Drawing Analysis ---
+
+export async function getDrawingAnalysis(documentId: string): Promise<DrawingAnalysisResult> {
+  return fetchApi<DrawingAnalysisResult>(`/dokumenty/${documentId}/analysis`);
+}
+
+// --- Bulk Actions ---
+
+export async function bulkUpdateOrderStatus(
+  data: BulkStatusUpdate,
+): Promise<BulkResult> {
+  return fetchApi<BulkResult>("/zakazky/bulk/status", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function bulkAssignOrders(
+  data: BulkAssignUpdate,
+): Promise<BulkResult> {
+  return fetchApi<BulkResult>("/zakazky/bulk/assign", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getNextOrderNumber(): Promise<{ next_number: string }> {
+  return fetchApi<{ next_number: string }>("/zakazky/next-number");
 }

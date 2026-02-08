@@ -39,6 +39,8 @@ class RawEmail:
     body_text: str
     received_at: datetime
     attachments: list[Attachment]
+    references_header: str | None = None
+    in_reply_to_header: str | None = None
 
 
 class IMAPClient:
@@ -251,6 +253,8 @@ class IMAPClient:
         message_id = msg.get("Message-ID", "")
         from_email = self._decode_header_value(msg.get("From", ""))
         subject = self._decode_header_value(msg.get("Subject", ""))
+        references_header = msg.get("References")
+        in_reply_to_header = msg.get("In-Reply-To")
 
         # Parse date
         date_str = msg.get("Date", "")
@@ -304,6 +308,8 @@ class IMAPClient:
             body_text=body_text.strip(),
             received_at=received_at,
             attachments=attachments,
+            references_header=references_header,
+            in_reply_to_header=in_reply_to_header,
         )
 
     def _get_text_from_part(self, part: Message) -> str:

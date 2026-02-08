@@ -98,6 +98,11 @@ class EmailIngestionAgent:
                 status=InboxStatus.NEW,
             )
             session.add(inbox_msg)
+
+            # Persist thread_id if available
+            if thread_id:
+                inbox_msg.thread_id = thread_id
+
             await session.flush()  # Get inbox_msg.id
             inbox_message_id = inbox_msg.id
 

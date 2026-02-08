@@ -1,0 +1,96 @@
+groups:
+  - name: infer_forge_critical
+    interval: 30s
+    rules:
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend služba je nedostupná"
+          description: "Backend API na {{ $labels.instance }} neodpovídá po dobu 3 minut."
+
+      - alert: CeleryWorkerDown
+        expr: celery_workers_total == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Žádný Celery worker není aktivní"
+          description: "Všichni Celery workři jsou offline po dobu 5 minut. Asynchronní úlohy nejsou zpracovávány."
+
+      - alert: DatabaseDown
+        expr: pg_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL databáze je nedostupná"
+          description: "PostgreSQL instance na {{ $labels.instance }} neodpovídá po dobu 2 minut."
+
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis je nedostupný"
+          description: "Redis instance na {{ $labels.instance }} neodpovídá po dobu 2 minut."
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Vysoký podíl HTTP 5xx chyb"
+          description: "Backend má {{ $value | humanizePercentage }} 5xx odpovědí v posledních 5 minutách na {{ $labels.instance }}."
+
+  - name: infer_forge_warnings
+    interval: 1m
+    rules:
+      - alert: CeleryQueueBacklog
+        expr: celery_task_queue_length > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Velká fronta Celery úloh"
+          description: "Fronta {{ $labels.queue_name }} obsahuje {{ $value }} čekajících úloh po dobu 10 minut."
+
+      - alert: DiskUsageHigh
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Nízké místo na disku"
+          description: "Filesystem {{ $labels.mountpoint }} má pouze {{ $value | humanizePercentage }} volného místa na {{ $labels.instance }}."
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Vysoké využití Redis paměti"
+          description: "Redis využívá {{ $value | humanizePercentage }} maximální paměti na {{ $labels.instance }}."
+
+      - alert: PostgresConnectionsHigh
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Vysoký počet databázových spojení"
+          description: "PostgreSQL má {{ $value }} aktivních spojení na {{ $labels.instance }}."
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Vysoká latence HTTP požadavků"
+          description: "95. percentil response time je {{ $value | humanizeDuration }} na {{ $labels.instance }} {{ $labels.endpoint }}."

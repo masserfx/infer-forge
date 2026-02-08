@@ -65,3 +65,32 @@ class TestRouteClassification:
         stages = route_classification("informace_zakazka", 0.85, has_attachments=False)
         assert "parse_email" in stages
         assert "orchestrate_order" in stages
+
+    def test_poptavka_includes_generate_offer(self):
+        stages = route_classification("poptavka", 0.9, has_attachments=False)
+        assert "auto_calculate" in stages
+        assert "generate_offer" in stages
+        # generate_offer must come after auto_calculate
+        assert stages.index("auto_calculate") < stages.index("generate_offer")
+
+    def test_objednavka_no_generate_offer(self):
+        stages = route_classification("objednavka", 0.85, has_attachments=False)
+        assert "generate_offer" not in stages
+
+    def test_custom_confidence_threshold(self):
+        """Test that ORCHESTRATION_REVIEW_THRESHOLD from config is used."""
+        from unittest.mock import patch
+        # With threshold=0.8, confidence 0.7 should trigger review
+        with patch("app.orchestration.router.get_settings") as mock_settings:
+            mock_settings.return_value.ORCHESTRATION_REVIEW_THRESHOLD = 0.8
+            stages = route_classification("poptavka", 0.7, has_attachments=False)
+            assert stages == ["review"]
+
+    def test_confidence_above_custom_threshold(self):
+        """Test that confidence above custom threshold passes."""
+        from unittest.mock import patch
+        with patch("app.orchestration.router.get_settings") as mock_settings:
+            mock_settings.return_value.ORCHESTRATION_REVIEW_THRESHOLD = 0.5
+            stages = route_classification("poptavka", 0.55, has_attachments=False)
+            assert "parse_email" in stages
+            assert "review" not in stages

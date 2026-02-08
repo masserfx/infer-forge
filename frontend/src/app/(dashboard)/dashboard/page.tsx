@@ -5,6 +5,7 @@ import { getOrders, getInboxMessages } from "@/lib/api";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { PipelineChart } from "@/components/dashboard/pipeline-chart";
 import { RecentOrders } from "@/components/dashboard/recent-orders";
+import { Recommendations } from "@/components/dashboard/recommendations";
 import type { OrderStatus } from "@/types";
 
 export default function DashboardPage() {
@@ -63,6 +64,8 @@ export default function DashboardPage() {
         newMessages={newMessages}
         pendingInvoices={pendingInvoices}
       />
+
+      <Recommendations />
 
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
         <PipelineChart statusCounts={statusCounts} />

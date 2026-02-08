@@ -163,6 +163,14 @@ class Settings(BaseSettings):
         default=3,
         description="Maximum concurrent Claude API calls",
     )
+    ORCHESTRATION_REVIEW_THRESHOLD: float = Field(
+        default=0.6,
+        description="Confidence threshold below which emails are sent for manual review",
+    )
+    POHODA_AUTO_SYNC: bool = Field(
+        default=False,
+        description="Auto-sync orders to Pohoda on status change to fakturace/dokoncena",
+    )
 
 
 @lru_cache
