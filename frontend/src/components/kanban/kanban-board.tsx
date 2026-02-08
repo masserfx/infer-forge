@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -16,6 +16,7 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { getOrders, updateOrderStatus } from "@/lib/api";
+import { stringToColor } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/types";
 import { KanbanColumn } from "./kanban-column";
 import { KanbanCard } from "./kanban-card";
@@ -54,6 +55,7 @@ const STATUS_BORDER_COLORS: Record<OrderStatus, string> = {
 export function KanbanBoard() {
   const queryClient = useQueryClient();
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -70,6 +72,32 @@ export function KanbanBoard() {
     queryKey: ["orders"],
     queryFn: () => getOrders({ limit: 1000 }),
   });
+
+  // Extract unique customers for legend
+  const customers = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; color: string; count: number }>();
+    for (const order of orders) {
+      const id = order.customer_id;
+      const existing = map.get(id);
+      if (existing) {
+        existing.count++;
+      } else {
+        map.set(id, {
+          id,
+          name: order.customer?.company_name || "—",
+          color: stringToColor(id),
+          count: 1,
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  }, [orders]);
+
+  // Filter orders by selected customer
+  const filteredOrders = useMemo(() => {
+    if (!selectedCustomerId) return orders;
+    return orders.filter((o) => o.customer_id === selectedCustomerId);
+  }, [orders, selectedCustomerId]);
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: OrderStatus }) =>
@@ -133,7 +161,7 @@ export function KanbanBoard() {
 
   const groupedOrders = ORDER_STATUSES.reduce(
     (acc, status) => {
-      acc[status] = orders.filter((order) => order.status === status);
+      acc[status] = filteredOrders.filter((order) => order.status === status);
       return acc;
     },
     {} as Record<OrderStatus, Order[]>
@@ -148,40 +176,83 @@ export function KanbanBoard() {
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      {/* Mobile: vertical stacking */}
-      <div className="md:hidden space-y-4">
-        {ORDER_STATUSES.map((status) => (
-          <KanbanColumn
-            key={status}
-            status={status}
-            orders={groupedOrders[status]}
-            borderColor={STATUS_BORDER_COLORS[status]}
-          />
-        ))}
-      </div>
+    <div className="space-y-4">
+      {/* Customer filter legend */}
+      {customers.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setSelectedCustomerId(null)}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors border ${
+              selectedCustomerId === null
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background text-muted-foreground border-border hover:bg-muted"
+            }`}
+          >
+            Vše ({orders.length})
+          </button>
+          {customers.map((c) => (
+            <button
+              key={c.id}
+              onClick={() =>
+                setSelectedCustomerId(selectedCustomerId === c.id ? null : c.id)
+              }
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors border ${
+                selectedCustomerId === c.id
+                  ? "text-foreground border-current shadow-sm"
+                  : "bg-background text-muted-foreground border-border hover:bg-muted"
+              }`}
+              style={
+                selectedCustomerId === c.id
+                  ? { borderColor: c.color, backgroundColor: `${c.color}15` }
+                  : undefined
+              }
+            >
+              <span
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: c.color }}
+              />
+              {c.name}
+              <span className="text-muted-foreground">({c.count})</span>
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* Tablet & Desktop: horizontal scroll with snap */}
-      <div className="hidden md:flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
-        {ORDER_STATUSES.map((status) => (
-          <div key={status} className="snap-start">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        {/* Mobile: vertical stacking */}
+        <div className="md:hidden space-y-4">
+          {ORDER_STATUSES.map((status) => (
             <KanbanColumn
+              key={status}
               status={status}
               orders={groupedOrders[status]}
               borderColor={STATUS_BORDER_COLORS[status]}
             />
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      <DragOverlay>
-        {activeOrder ? <KanbanCard order={activeOrder} /> : null}
-      </DragOverlay>
-    </DndContext>
+        {/* Tablet & Desktop: horizontal scroll with snap */}
+        <div className="hidden md:flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
+          {ORDER_STATUSES.map((status) => (
+            <div key={status} className="snap-start">
+              <KanbanColumn
+                status={status}
+                orders={groupedOrders[status]}
+                borderColor={STATUS_BORDER_COLORS[status]}
+              />
+            </div>
+          ))}
+        </div>
+
+        <DragOverlay>
+          {activeOrder ? <KanbanCard order={activeOrder} /> : null}
+        </DragOverlay>
+      </DndContext>
+    </div>
   );
 }

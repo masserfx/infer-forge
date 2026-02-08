@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { assignOrder } from "@/lib/api";
 import { useAuth } from "@/lib/auth-provider";
+import { stringToColor } from "@/lib/utils";
 import type { Order } from "@/types";
 import { PRIORITY_LABELS, PRIORITY_COLORS } from "@/types";
 
@@ -58,6 +59,9 @@ export function KanbanCard({ order }: KanbanCardProps) {
 
   const isAssignedToMe = order.assigned_to === user?.id;
 
+  const customerName = order.customer?.company_name || "—";
+  const customerColor = stringToColor(order.customer_id);
+
   return (
     <div
       ref={setNodeRef}
@@ -67,79 +71,92 @@ export function KanbanCard({ order }: KanbanCardProps) {
       className="touch-manipulation"
     >
       <Card
-        className="mb-3 cursor-pointer transition-all hover:shadow-md min-h-[44px]"
+        className="mb-3 cursor-pointer transition-all hover:shadow-md min-h-[44px] overflow-hidden"
         onClick={handleClick}
       >
-        <CardContent className="p-3 sm:p-4">
-          <div className="space-y-2 sm:space-y-3">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{order.number}</p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {order.customer?.company_name || "—"}
-                </p>
-              </div>
-              <Badge
-                variant="secondary"
-                className={PRIORITY_COLORS[order.priority]}
-              >
-                {PRIORITY_LABELS[order.priority]}
-              </Badge>
-            </div>
-
-            <div className="flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Package className="h-3 w-3" />
-                <span>{order.items.length}</span>
-              </div>
-              {dueDate && (
-                <div
-                  className={`flex items-center gap-1 ${isOverdue ? "text-destructive font-medium" : ""}`}
-                >
-                  <Calendar className="h-3 w-3" />
-                  <span>
-                    {dueDate.toLocaleDateString("cs-CZ", {
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </span>
+        <div className="flex">
+          {/* Customer color stripe */}
+          <div
+            className="w-1.5 shrink-0 rounded-l-lg"
+            style={{ backgroundColor: customerColor }}
+          />
+          <CardContent className="flex-1 p-3 sm:p-4">
+            <div className="space-y-2 sm:space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">{order.number}</p>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: customerColor }}
+                    />
+                    <p className="text-xs text-muted-foreground truncate">
+                      {customerName}
+                    </p>
+                  </div>
                 </div>
-              )}
-            </div>
-
-            {/* Assignment status */}
-            {order.assigned_to_name ? (
-              <div className="flex items-center gap-1.5">
-                <div
-                  className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${
-                    isAssignedToMe
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}
+                <Badge
+                  variant="secondary"
+                  className={PRIORITY_COLORS[order.priority]}
                 >
-                  {order.assigned_to_name.charAt(0).toUpperCase()}
+                  {PRIORITY_LABELS[order.priority]}
+                </Badge>
+              </div>
+
+              <div className="flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Package className="h-3 w-3" />
+                  <span>{order.items.length}</span>
                 </div>
-                <span className="text-xs text-muted-foreground truncate">
-                  {isAssignedToMe ? "Vy" : order.assigned_to_name}
-                </span>
-                {isAssignedToMe && (
-                  <UserCheck className="h-3 w-3 text-primary ml-auto" />
+                {dueDate && (
+                  <div
+                    className={`flex items-center gap-1 ${isOverdue ? "text-destructive font-medium" : ""}`}
+                  >
+                    <Calendar className="h-3 w-3" />
+                    <span>
+                      {dueDate.toLocaleDateString("cs-CZ", {
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </span>
+                  </div>
                 )}
               </div>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-full text-xs text-muted-foreground hover:text-primary"
-                onClick={handleAssign}
-                disabled={assignMutation.isPending}
-              >
-                <UserPlus className="h-3 w-3 mr-1" />
-                {assignMutation.isPending ? "Přiřazuji..." : "Převzít"}
-              </Button>
-            )}
-          </div>
-        </CardContent>
+
+              {/* Assignment status */}
+              {order.assigned_to_name ? (
+                <div className="flex items-center gap-1.5">
+                  <div
+                    className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${
+                      isAssignedToMe
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {order.assigned_to_name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-xs text-muted-foreground truncate">
+                    {isAssignedToMe ? "Vy" : order.assigned_to_name}
+                  </span>
+                  {isAssignedToMe && (
+                    <UserCheck className="h-3 w-3 text-primary ml-auto" />
+                  )}
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-full text-xs text-muted-foreground hover:text-primary"
+                  onClick={handleAssign}
+                  disabled={assignMutation.isPending}
+                >
+                  <UserPlus className="h-3 w-3 mr-1" />
+                  {assignMutation.isPending ? "Přiřazuji..." : "Převzít"}
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </div>
       </Card>
     </div>
   );
