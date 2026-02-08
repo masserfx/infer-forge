@@ -19,22 +19,30 @@ INFER FORGE — automatizační platforma pro strojírenskou firmu Infer s.r.o. 
 
 ```
 infer-forge/
-├── backend/app/
-│   ├── api/v1/          # REST endpointy (/zakazky, /nabidky, /dokumenty, /pohoda, /email)
-│   ├── agents/          # AI agenti (email klasifikace, parser, kalkulace)
-│   ├── integrations/    # Pohoda XML, IMAP/SMTP, Excel, OCR
-│   ├── models/          # SQLAlchemy modely
-│   ├── schemas/         # Pydantic request/response schémata
-│   ├── services/        # Business logika
-│   └── core/            # Config, security, DB, Celery
-├── frontend/src/
-│   ├── app/             # App Router: /dashboard, /zakazky/[id], /inbox, /kalkulace, /nastaveni
-│   ├── components/      # React komponenty (ui, layout, zakazky, inbox)
-│   ├── lib/             # API client, utils
-│   └── types/           # TypeScript typy
-├── docker/              # Docker konfigurace
-├── docs/                # PRD (INFER_FORGE_PRD_v1.0.md) a dokumentace
-└── docker-compose.yml   # PostgreSQL (pgvector), Redis, backend, Celery worker, frontend
+├── backend/
+│   ├── app/
+│   │   ├── api/v1/          # REST endpointy (/zakazky, /kalkulace, /dokumenty, /pohoda, /inbox, /gamifikace)
+│   │   ├── agents/          # AI agenti (email klasifikace, parser, kalkulace)
+│   │   ├── integrations/    # Pohoda XML, IMAP/SMTP, Excel, OCR
+│   │   ├── models/          # SQLAlchemy modely (12 tabulek)
+│   │   ├── schemas/         # Pydantic request/response schémata
+│   │   ├── services/        # Business logika (order, calculation, gamification, reporting...)
+│   │   └── core/            # Config, security, DB, Celery, logging, health, metrics
+│   ├── alembic/             # Migrace (3 revize: init → embeddings → user_points)
+│   └── tests/unit/          # 381 testů, 68% coverage
+├── frontend/
+│   ├── src/
+│   │   ├── app/             # 15 routes: /dashboard, /zakazky/[id], /kalkulace/[id], /kanban, /zebricek...
+│   │   ├── components/      # React komponenty (ui, layout, zakazky, inbox, kanban, gamification)
+│   │   ├── lib/             # API client, utils, providers
+│   │   └── types/           # TypeScript typy
+│   └── e2e/                 # 8 Playwright E2E testů (auth, dashboard, orders, kanban, leaderboard, navigation)
+├── docker/                  # Nginx, Prometheus, Grafana konfigurace
+├── docs/                    # PRD (INFER_FORGE_PRD_v1.0.md)
+├── screenshots/             # Browser screenshoty všech 12 stránek
+├── scripts/                 # Backup, restore, health-check, CORS test
+├── docker-compose.prod.yml  # 8 služeb: db, redis, backend, celery-worker, celery-beat, frontend, prometheus, grafana
+└── docker-compose.yml       # Dev stack
 ```
 
 ## Příkazy pro vývoj
