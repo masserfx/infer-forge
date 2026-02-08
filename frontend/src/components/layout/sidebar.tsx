@@ -50,8 +50,8 @@ const navItems: NavItem[] = [
     icon: Kanban,
   },
   {
-    href: "/zebricek",
-    label: "Žebříček",
+    href: "/trziste-ukolu",
+    label: "Tržiště úkolů",
     icon: Trophy,
   },
   {

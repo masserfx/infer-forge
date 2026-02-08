@@ -87,7 +87,7 @@ export default function LeaderboardPage() {
         <div className="flex items-center gap-3">
           <Trophy className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-3xl font-bold">Žebříček</h1>
+            <h1 className="text-3xl font-bold">Tržiště úkolů</h1>
             <p className="text-muted-foreground">Výkonnost týmu a motivační body</p>
           </div>
         </div>
@@ -173,7 +173,7 @@ export default function LeaderboardPage() {
           {/* Leaderboard Entries */}
           <Card>
             <CardHeader>
-              <CardTitle>Žebříček ({PERIOD_LABELS[period]})</CardTitle>
+              <CardTitle>Tržiště úkolů ({PERIOD_LABELS[period]})</CardTitle>
               <CardDescription>
                 Celkem {data.total_users} {data.total_users === 1 ? "uživatel" : "uživatelů"}
               </CardDescription>

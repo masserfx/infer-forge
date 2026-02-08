@@ -1,12 +1,11 @@
 "use client";
 
+import { NewOrderDialog } from "@/components/zakazky/new-order-dialog";
 import { OrderFilters } from "@/components/zakazky/order-filters";
 import { OrdersTable } from "@/components/zakazky/orders-table";
-import { Button } from "@/components/ui/button";
 import { getOrders } from "@/lib/api";
 import type { OrderStatus } from "@/types";
 import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
 import { useState } from "react";
 
 export default function ZakazkyPage() {
@@ -45,10 +44,7 @@ export default function ZakazkyPage() {
             Přehled všech zakázek a objednávek
           </p>
         </div>
-        <Button disabled className="w-full sm:w-auto min-h-[44px]">
-          <Plus className="mr-2 h-4 w-4" />
-          Nová zakázka
-        </Button>
+        <NewOrderDialog />
       </div>
 
       <OrderFilters

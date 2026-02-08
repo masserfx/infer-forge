@@ -182,6 +182,16 @@ export async function getInboxMessages(params?: {
   return fetchApi<InboxMessage[]>(`/inbox${qs ? `?${qs}` : ""}`);
 }
 
+export async function reclassifyInboxMessage(
+  messageId: string,
+  classification: string,
+): Promise<InboxMessage> {
+  return fetchApi<InboxMessage>(`/inbox/${messageId}/reclassify`, {
+    method: "PATCH",
+    body: JSON.stringify({ classification }),
+  });
+}
+
 // --- Pohoda ---
 
 export async function syncEntity(
