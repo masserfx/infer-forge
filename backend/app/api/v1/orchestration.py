@@ -434,7 +434,6 @@ async def test_email_pipeline(body: TestEmailRequest):
                     ai_result = await classifier.classify(
                         subject=body.subject,
                         body=body.body_text,
-                        from_email=body.from_email,
                     )
                     classification = ai_result.category
                     confidence = ai_result.confidence
