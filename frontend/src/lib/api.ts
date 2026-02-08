@@ -438,12 +438,11 @@ export async function getNotifications(params?: {
 }
 
 export async function markNotificationRead(id: string): Promise<void> {
-  await fetchApi("/notifikace/read", {
-    method: "POST",
-    body: JSON.stringify([id]),
+  await fetchApi(`/notifikace/${id}/read`, {
+    method: "PATCH",
   });
 }
 
 export async function markAllNotificationsRead(): Promise<void> {
-  await fetchApi("/notifikace/read-all", { method: "POST" });
+  await fetchApi("/notifikace/read-all", { method: "PATCH" });
 }

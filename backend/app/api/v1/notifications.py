@@ -10,7 +10,7 @@ from app.models.user import User
 from app.schemas.notification import NotificationList, NotificationResponse
 from app.services.notification import NotificationService
 
-router = APIRouter(prefix="/api/v1/notifikace", tags=["Notifikace"])
+router = APIRouter(prefix="/notifikace", tags=["Notifikace"])
 
 
 @router.get("", response_model=NotificationList)
