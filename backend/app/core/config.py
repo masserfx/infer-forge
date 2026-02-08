@@ -121,6 +121,10 @@ class Settings(BaseSettings):
         default=50,
         description="Maximum file upload size in megabytes",
     )
+    DOCUMENT_ENCRYPTION_KEY: str = Field(
+        default="",
+        description="Base64-encoded 32-byte AES-256 key for document encryption at rest",
+    )
 
     # CORS
     CORS_ORIGINS: str = Field(

@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.encryption import decrypt_data, encrypt_data
 from app.models import AuditAction, AuditLog, Document, DocumentCategory
 from app.schemas import DocumentUpdate, DocumentUpload
 
@@ -107,8 +108,9 @@ class DocumentService:
         stored_name = f"{uuid4().hex}{file_ext}"
         file_path = upload_dir / stored_name
 
-        # Write file to disk
-        file_path.write_bytes(file_content)
+        # Encrypt and write file to disk
+        encrypted_content = encrypt_data(file_content)
+        file_path.write_bytes(encrypted_content)
 
         # Check existing version
         existing = await self._get_latest_version(
@@ -199,7 +201,8 @@ class DocumentService:
             )
             return None
 
-        file_content = file_path.read_bytes()
+        encrypted_content = file_path.read_bytes()
+        file_content = decrypt_data(encrypted_content)
         return document, file_content
 
     async def get_by_entity(

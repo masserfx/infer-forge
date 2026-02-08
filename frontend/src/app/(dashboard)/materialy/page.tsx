@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Package, Plus, Upload, Pencil, Trash2, Search } from "lucide-react";
+import { Package, Plus, Upload, Pencil, Trash2, Search, RefreshCw } from "lucide-react";
 import {
   getMaterialPrices,
   createMaterialPrice,
   updateMaterialPrice,
   deleteMaterialPrice,
   importMaterialPrices,
+  syncPohodaInventory,
 } from "@/lib/api";
 import type { MaterialPrice } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -135,6 +136,19 @@ export default function MaterialyPage() {
     },
   });
 
+  const syncMutation = useMutation({
+    mutationFn: syncPohodaInventory,
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["materials"] });
+      toast.success(
+        `Synchronizace dokončena: ${result.synced} záznamů (${result.created} nových, ${result.updated} aktualizovaných${result.errors > 0 ? `, ${result.errors} chyb` : ""})`
+      );
+    },
+    onError: (error: Error) => {
+      toast.error(`Chyba synchronizace: ${error.message}`);
+    },
+  });
+
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -216,6 +230,15 @@ export default function MaterialyPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => syncMutation.mutate()}
+            disabled={syncMutation.isPending}
+            className="w-full sm:w-auto"
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${syncMutation.isPending ? "animate-spin" : ""}`} />
+            {syncMutation.isPending ? "Synchronizuji..." : "Sync z Pohody"}
+          </Button>
           <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="w-full sm:w-auto">

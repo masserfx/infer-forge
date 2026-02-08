@@ -524,3 +524,30 @@ export interface OperationCreate {
   planned_end?: string;
   notes?: string;
 }
+
+// --- Subcontractors ---
+
+export interface Subcontractor {
+  id: string;
+  name: string;
+  ico: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  specialization: string | null;
+  rating: number | null;
+  is_active: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SubcontractorCreate {
+  name: string;
+  ico?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  specialization?: string;
+  rating?: number;
+  is_active?: boolean;
+  notes?: string;
+}

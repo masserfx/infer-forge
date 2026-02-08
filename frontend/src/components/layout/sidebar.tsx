@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Settings,
   Package,
+  Handshake,
   LogOut,
   User,
   ChevronLeft,
@@ -75,6 +76,11 @@ const navItems: NavItem[] = [
     href: "/materialy",
     label: "Ceník materiálů",
     icon: Package,
+  },
+  {
+    href: "/subdodavatele",
+    label: "Subdodavatelé",
+    icon: Handshake,
   },
   {
     href: "/pohoda",

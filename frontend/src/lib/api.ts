@@ -28,6 +28,8 @@ import type {
   PointsEntry,
   ProductionReport,
   RevenueReport,
+  Subcontractor,
+  SubcontractorCreate,
   User,
   UserStats,
 } from "@/types";
@@ -589,4 +591,47 @@ export async function updateOperation(
 
 export async function deleteOperation(orderId: string, operationId: string): Promise<void> {
   await fetchApi(`/zakazky/${orderId}/operace/${operationId}`, { method: "DELETE" });
+}
+
+// --- Subcontractors ---
+
+export async function getSubcontractors(params?: {
+  is_active?: boolean;
+  specialization?: string;
+}): Promise<Subcontractor[]> {
+  const searchParams = new URLSearchParams();
+  if (params?.is_active !== undefined) searchParams.set("is_active", String(params.is_active));
+  if (params?.specialization) searchParams.set("specialization", params.specialization);
+  const qs = searchParams.toString();
+  const res = await fetchApi<{ items: Subcontractor[]; total: number }>(`/subdodavatele${qs ? `?${qs}` : ""}`);
+  return res.items;
+}
+
+export async function createSubcontractor(data: SubcontractorCreate): Promise<Subcontractor> {
+  return fetchApi<Subcontractor>("/subdodavatele", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateSubcontractor(id: string, data: Partial<SubcontractorCreate>): Promise<Subcontractor> {
+  return fetchApi<Subcontractor>(`/subdodavatele/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteSubcontractor(id: string): Promise<void> {
+  await fetchApi<void>(`/subdodavatele/${id}`, { method: "DELETE" });
+}
+
+// --- Pohoda Inventory Sync ---
+
+export async function syncPohodaInventory(): Promise<{
+  synced: number;
+  created: number;
+  updated: number;
+  errors: number;
+}> {
+  return fetchApi("/pohoda/sync-inventory", { method: "POST" });
 }
