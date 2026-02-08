@@ -396,3 +396,58 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   ORDER_STATUS_CHANGED: "Změna stavu zakázky",
   DOCUMENT_UPLOADED: "Nový dokument",
 };
+
+// --- Gamification ---
+
+export type PointsAction = "order_status_change" | "calculation_complete" | "document_upload" | "order_complete";
+export type PointsPeriod = "daily" | "weekly" | "monthly" | "all_time";
+
+export interface LeaderboardEntry {
+  rank: number;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  points_earned: number;
+  tasks_completed: number;
+  bonus_points: number;
+  total_points: number;
+}
+
+export interface LeaderboardResponse {
+  period: string;
+  entries: LeaderboardEntry[];
+  total_users: number;
+}
+
+export interface PointsEntry {
+  id: string;
+  action: PointsAction;
+  points: number;
+  description: string | null;
+  earned_at: string;
+}
+
+export interface UserStats {
+  user_id: string;
+  user_name: string;
+  total_points: number;
+  rank: number;
+  orders_completed: number;
+  calculations_done: number;
+  documents_uploaded: number;
+  recent_points: PointsEntry[];
+}
+
+export const POINTS_ACTION_LABELS: Record<PointsAction, string> = {
+  order_status_change: "Změna stavu zakázky",
+  calculation_complete: "Dokončení kalkulace",
+  document_upload: "Nahrání dokumentu",
+  order_complete: "Dokončení zakázky",
+};
+
+export const PERIOD_LABELS: Record<PointsPeriod, string> = {
+  daily: "Dnes",
+  weekly: "Tento týden",
+  monthly: "Tento měsíc",
+  all_time: "Celkem",
+};

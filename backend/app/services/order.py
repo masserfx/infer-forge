@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.metrics import orders_created_total
-from app.models import AuditAction, AuditLog, Order, OrderItem, OrderStatus
+from app.models import AuditAction, AuditLog, Order, OrderItem, OrderStatus, PointsAction
 from app.schemas import OrderCreate, OrderUpdate
 
 logger = logging.getLogger(__name__)
@@ -269,6 +269,24 @@ class OrderService:
                 }
             },
         )
+
+        # Award gamification points
+        try:
+            from app.services.gamification import GamificationService
+
+            gamification = GamificationService(self.db)
+            points = gamification.calculate_order_points(old_status, new_status)
+            if points > 0 and self.user_id:
+                await gamification.award_points(
+                    user_id=self.user_id,
+                    action=PointsAction.ORDER_STATUS_CHANGE,
+                    points=points,
+                    description=f"Zakázka {order.number}: {old_status.value} → {new_status.value}",
+                    entity_type="order",
+                    entity_id=order.id,
+                )
+        except Exception:
+            logger.warning("Failed to award points for order %s", str(order.id))
 
         return order
 

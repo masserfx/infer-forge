@@ -166,6 +166,7 @@ from app.api.v1 import (
     calculations,
     customers,
     documents,
+    gamification,
     inbox,
     notifications,
     orders,
@@ -183,6 +184,7 @@ app.include_router(inbox.router, prefix="/api/v1")
 app.include_router(pohoda.router, prefix="/api/v1")
 app.include_router(reporting.router, prefix="/api/v1")
 app.include_router(notifications.router, prefix="/api/v1")
+app.include_router(gamification.router, prefix="/api/v1")
 app.include_router(websocket.router)
 
 if __name__ == "__main__":

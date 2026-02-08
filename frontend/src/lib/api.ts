@@ -14,6 +14,7 @@ import type {
   Document,
   DocumentCategory,
   InboxMessage,
+  LeaderboardResponse,
   LoginResponse,
   Notification,
   Order,
@@ -21,9 +22,11 @@ import type {
   PipelineReport,
   PohodaSyncLog,
   PohodaSyncResult,
+  PointsEntry,
   ProductionReport,
   RevenueReport,
   User,
+  UserStats,
 } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -445,4 +448,32 @@ export async function markNotificationRead(id: string): Promise<void> {
 
 export async function markAllNotificationsRead(): Promise<void> {
   await fetchApi("/notifikace/read-all", { method: "PATCH" });
+}
+
+// --- Gamification ---
+
+export async function getLeaderboard(params?: {
+  period?: string;
+  limit?: number;
+}): Promise<LeaderboardResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.period) searchParams.set("period", params.period);
+  if (params?.limit) searchParams.set("limit", String(params.limit));
+  const qs = searchParams.toString();
+  return fetchApi<LeaderboardResponse>(`/gamifikace/leaderboard${qs ? `?${qs}` : ""}`);
+}
+
+export async function getMyStats(): Promise<UserStats> {
+  return fetchApi<UserStats>("/gamifikace/me");
+}
+
+export async function getMyPointsHistory(params?: {
+  skip?: number;
+  limit?: number;
+}): Promise<PointsEntry[]> {
+  const searchParams = new URLSearchParams();
+  if (params?.skip) searchParams.set("skip", String(params.skip));
+  if (params?.limit) searchParams.set("limit", String(params.limit));
+  const qs = searchParams.toString();
+  return fetchApi<PointsEntry[]>(`/gamifikace/me/history${qs ? `?${qs}` : ""}`);
 }

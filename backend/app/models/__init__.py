@@ -12,6 +12,7 @@ from .order import Order, OrderItem, OrderPriority, OrderStatus
 from .order_embedding import OrderEmbedding
 from .pohoda_sync import PohodaSyncLog, SyncDirection, SyncStatus
 from .user import User, UserRole
+from .user_points import PointsAction, PointsPeriod, UserPoints
 
 __all__ = [
     # Base
@@ -55,4 +56,8 @@ __all__ = [
     # User
     "User",
     "UserRole",
+    # Gamification
+    "UserPoints",
+    "PointsAction",
+    "PointsPeriod",
 ]
