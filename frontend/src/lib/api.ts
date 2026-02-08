@@ -16,6 +16,7 @@ import type {
   InboxMessage,
   LeaderboardResponse,
   LoginResponse,
+  MaterialPrice,
   Notification,
   Order,
   OrderStatus,
@@ -492,4 +493,68 @@ export async function getMyPointsHistory(params?: {
   if (params?.limit) searchParams.set("limit", String(params.limit));
   const qs = searchParams.toString();
   return fetchApi<PointsEntry[]>(`/gamifikace/me/history${qs ? `?${qs}` : ""}`);
+}
+
+// --- Material Prices ---
+
+export async function getMaterialPrices(params?: {
+  search?: string;
+  material_grade?: string;
+  form?: string;
+  is_active?: boolean;
+  skip?: number;
+  limit?: number;
+}): Promise<MaterialPrice[]> {
+  const searchParams = new URLSearchParams();
+  if (params?.search) searchParams.set("search", params.search);
+  if (params?.material_grade) searchParams.set("material_grade", params.material_grade);
+  if (params?.form) searchParams.set("form", params.form);
+  if (params?.is_active !== undefined) searchParams.set("is_active", String(params.is_active));
+  if (params?.skip) searchParams.set("skip", String(params.skip));
+  if (params?.limit) searchParams.set("limit", String(params.limit));
+  const qs = searchParams.toString();
+  return fetchApi<MaterialPrice[]>(`/materialy${qs ? `?${qs}` : ""}`);
+}
+
+export async function createMaterialPrice(data: Partial<MaterialPrice>): Promise<MaterialPrice> {
+  return fetchApi<MaterialPrice>("/materialy", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateMaterialPrice(id: string, data: Partial<MaterialPrice>): Promise<MaterialPrice> {
+  return fetchApi<MaterialPrice>(`/materialy/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteMaterialPrice(id: string): Promise<void> {
+  await fetchApi<void>(`/materialy/${id}`, { method: "DELETE" });
+}
+
+export async function importMaterialPrices(file: File): Promise<{ imported: number; errors: string[] }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const url = `${API_BASE}/materialy/import`;
+  const token = getAuthToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new ApiError(res.status, body || res.statusText);
+  }
+
+  return res.json() as Promise<{ imported: number; errors: string[] }>;
 }

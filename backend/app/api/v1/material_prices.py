@@ -6,8 +6,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_db
+from app.api.deps import get_db, require_role
 from app.models import User
+from app.models.user import UserRole
 from app.schemas import (
     MaterialPriceCreate,
     MaterialPriceImportResult,
@@ -23,7 +24,7 @@ router = APIRouter(prefix="/materialy", tags=["materialy"])
 @router.get("", response_model=MaterialPriceListResponse)
 async def list_material_prices(
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_role(UserRole.TECHNOLOG, UserRole.OBCHODNIK, UserRole.VEDENI))],
     skip: int = Query(0, ge=0, description="Počet záznamů k přeskočení"),
     limit: int = Query(100, ge=1, le=500, description="Maximální počet záznamů"),
     search: str | None = Query(None, description="Vyhledávání v názvu a specifikaci"),
@@ -73,7 +74,7 @@ async def list_material_prices(
 async def get_material_price(
     price_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_role(UserRole.TECHNOLOG, UserRole.OBCHODNIK, UserRole.VEDENI))],
 ) -> MaterialPriceResponse:
     """Detail materiálové ceny."""
     service = MaterialPriceService(db, user_id=current_user.id)
@@ -108,7 +109,7 @@ async def get_material_price(
 async def create_material_price(
     data: MaterialPriceCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_role(UserRole.TECHNOLOG, UserRole.VEDENI))],
 ) -> MaterialPriceResponse:
     """Vytvoření nové materiálové ceny."""
     service = MaterialPriceService(db, user_id=current_user.id)
@@ -139,7 +140,7 @@ async def update_material_price(
     price_id: UUID,
     data: MaterialPriceUpdate,
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_role(UserRole.TECHNOLOG, UserRole.VEDENI))],
 ) -> MaterialPriceResponse:
     """Úprava existující materiálové ceny."""
     service = MaterialPriceService(db, user_id=current_user.id)
@@ -176,7 +177,7 @@ async def update_material_price(
 async def delete_material_price(
     price_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_role(UserRole.TECHNOLOG, UserRole.VEDENI))],
 ) -> None:
     """Smazání materiálové ceny."""
     service = MaterialPriceService(db, user_id=current_user.id)
@@ -195,7 +196,7 @@ async def delete_material_price(
 async def import_material_prices(
     file: Annotated[UploadFile, File(description="Excel soubor s cenami materiálů")],
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_role(UserRole.TECHNOLOG, UserRole.VEDENI))],
 ) -> MaterialPriceImportResult:
     """Import materiálových cen z Excel souboru.
 
@@ -231,7 +232,7 @@ async def import_material_prices(
 @router.get("/search/best-price", response_model=MaterialPriceResponse | None)
 async def search_best_price(
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(require_role(UserRole.TECHNOLOG, UserRole.OBCHODNIK, UserRole.VEDENI))],
     material_name: str | None = Query(None, description="Název materiálu"),
     material_grade: str | None = Query(None, description="Třída materiálu"),
     dimension: str | None = Query(None, description="Rozměry"),

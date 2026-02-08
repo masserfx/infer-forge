@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_db, require_role
+from app.api.deps import get_db, require_role
 from app.models import OrderStatus
 from app.models.user import User, UserRole
 from app.schemas import OrderCreate, OrderResponse, OrderStatusUpdate, OrderUpdate
@@ -20,7 +20,7 @@ async def get_orders(
     skip: int = Query(default=0, ge=0, description="Number of records to skip"),
     limit: int = Query(default=100, ge=1, le=1000, description="Maximum number of records"),
     status: OrderStatus | None = Query(default=None, description="Filter by status"),
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> list[OrderResponse]:
     """Get all orders with pagination and optional filtering."""
@@ -58,7 +58,7 @@ async def create_order(
 @router.get("/{order_id}", response_model=OrderResponse)
 async def get_order(
     order_id: UUID,
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> OrderResponse:
     """Get order by ID."""
@@ -121,7 +121,7 @@ async def update_order_status(
 async def get_similar_orders(
     order_id: UUID,
     limit: int = Query(default=5, ge=1, le=20, description="Max similar orders"),
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> SimilarOrdersResponse:
     """Find similar orders using vector similarity search."""
@@ -137,7 +137,7 @@ async def get_similar_orders(
 @router.post("/search/similar", response_model=list[SimilarOrderResult])
 async def search_similar_orders(
     request: SimilarSearchRequest,
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> list[SimilarOrderResult]:
     """Search orders by text similarity."""

@@ -473,3 +473,23 @@ export const PERIOD_LABELS: Record<PointsPeriod, string> = {
   monthly: "Tento měsíc",
   all_time: "Celkem",
 };
+
+// --- Material Prices ---
+
+export interface MaterialPrice {
+  id: string;
+  name: string;
+  specification: string | null;
+  material_grade: string | null;
+  form: string | null;
+  dimension: string | null;
+  unit: string;
+  unit_price: number;
+  supplier: string | null;
+  valid_from: string;
+  valid_to: string | null;
+  is_active: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}

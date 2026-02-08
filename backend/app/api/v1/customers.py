@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_db, require_role
+from app.api.deps import get_db, require_role
 from app.models.user import User, UserRole
 from app.schemas import CustomerCategoryUpdate, CustomerCreate, CustomerResponse, CustomerUpdate
 from app.services import CustomerService
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/zakaznici", tags=["Zákazníci"])
 async def get_customers(
     skip: int = Query(default=0, ge=0, description="Number of records to skip"),
     limit: int = Query(default=100, ge=1, le=1000, description="Maximum number of records"),
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> list[CustomerResponse]:
     """Get all customers with pagination."""
@@ -55,7 +55,7 @@ async def create_customer(
 @router.get("/{customer_id}", response_model=CustomerResponse)
 async def get_customer(
     customer_id: UUID,
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> CustomerResponse:
     """Get customer by ID."""

@@ -14,6 +14,7 @@ import {
   FileText,
   RefreshCw,
   Settings,
+  Package,
   LogOut,
   User,
   ChevronLeft,
@@ -69,6 +70,11 @@ const navItems: NavItem[] = [
     href: "/dokumenty",
     label: "Dokumenty",
     icon: FileText,
+  },
+  {
+    href: "/materialy",
+    label: "Ceník materiálů",
+    icon: Package,
   },
   {
     href: "/pohoda",

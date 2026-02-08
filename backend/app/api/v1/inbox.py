@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_db, require_role
+from app.api.deps import get_db, require_role
 from app.models import InboxClassification, InboxStatus
 from app.models.user import User, UserRole
 from app.schemas import InboxAssign, InboxMessageResponse, InboxReclassify
@@ -22,7 +22,7 @@ async def get_inbox_messages(
     classification: InboxClassification | None = Query(
         default=None, description="Filter by classification"
     ),
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> list[InboxMessageResponse]:
     """Get all inbox messages with pagination and filtering."""
@@ -39,7 +39,7 @@ async def get_inbox_messages(
 @router.get("/{message_id}", response_model=InboxMessageResponse)
 async def get_inbox_message(
     message_id: UUID,
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> InboxMessageResponse:
     """Get inbox message by ID."""
