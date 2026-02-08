@@ -45,6 +45,13 @@ def _run_async(coro):
     return asyncio.run(_wrapper())
 
 
+def _make_json_safe(data: dict | None) -> dict | None:
+    """Convert UUID objects to strings for JSON serialization."""
+    if data is None:
+        return None
+    return {k: str(v) if isinstance(v, UUID) else v for k, v in data.items()}
+
+
 async def _record_processing_task(
     inbox_message_id: str | None,
     celery_task_id: str | None,
@@ -65,8 +72,8 @@ async def _record_processing_task(
             celery_task_id=celery_task_id,
             stage=ProcessingStage(stage),
             status=ProcessingStatus(status),
-            input_data=input_data,
-            output_data=output_data,
+            input_data=_make_json_safe(input_data),
+            output_data=_make_json_safe(output_data),
             error_message=error_message,
             tokens_used=tokens_used,
             processing_time_ms=processing_time_ms,
