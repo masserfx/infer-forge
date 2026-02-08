@@ -17,6 +17,7 @@ import {
   Package,
   Handshake,
   Presentation,
+  Cpu,
   LogOut,
   User,
   ChevronLeft,
@@ -82,6 +83,11 @@ const navItems: NavItem[] = [
     href: "/subdodavatele",
     label: "Subdodavatelé",
     icon: Handshake,
+  },
+  {
+    href: "/automatizace",
+    label: "Automatizace",
+    icon: Cpu,
   },
   {
     href: "/pohoda",

@@ -5,7 +5,8 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Index, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin, UUIDPKMixin
 
@@ -18,6 +19,9 @@ class InboxClassification(str, enum.Enum):
     REKLAMACE = "reklamace"
     DOTAZ = "dotaz"
     PRILOHA = "priloha"
+    INFORMACE_ZAKAZKA = "informace_zakazka"
+    FAKTURA = "faktura"
+    OBCHODNI_SDELENI = "obchodni_sdeleni"
 
 
 class InboxStatus(str, enum.Enum):
@@ -27,6 +31,9 @@ class InboxStatus(str, enum.Enum):
     PROCESSING = "processing"
     PROCESSED = "processed"
     ESCALATED = "escalated"
+    CLASSIFIED = "classified"
+    REVIEW = "review"
+    ARCHIVED = "archived"
 
 
 class InboxMessage(Base, UUIDPKMixin, TimestampMixin):
@@ -45,7 +52,7 @@ class InboxMessage(Base, UUIDPKMixin, TimestampMixin):
     body_text: Mapped[str] = mapped_column(Text, nullable=False)
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     classification: Mapped[InboxClassification | None] = mapped_column(
-        Enum(InboxClassification, native_enum=False, length=20),
+        Enum(InboxClassification, native_enum=False, length=30),
         nullable=True,
     )
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -72,9 +79,27 @@ class InboxMessage(Base, UUIDPKMixin, TimestampMixin):
         server_default="false",
     )
 
+    # Orchestration fields
+    parsed_data: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    thread_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    references_header: Mapped[str | None] = mapped_column(Text, nullable=True)
+    processing_started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    processing_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    needs_review: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+
+    # Relationships
+    attachments = relationship("EmailAttachment", backref="inbox_message", lazy="selectin")
+
     __table_args__ = (
         Index("ix_inbox_messages_status_received", "status", "received_at"),
         Index("ix_inbox_messages_classification", "classification"),
+        Index("ix_inbox_messages_thread_id", "thread_id"),
     )
 
     def __repr__(self) -> str:

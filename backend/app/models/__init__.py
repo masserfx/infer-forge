@@ -4,7 +4,10 @@ from .audit import AuditAction, AuditLog
 from .base import Base, TimestampMixin, UUIDPKMixin
 from .calculation import Calculation, CalculationItem, CalculationStatus, CostType
 from .customer import Customer
+from .dead_letter import DeadLetterEntry
 from .document import Document, DocumentCategory
+from .drawing_analysis import DrawingAnalysis
+from .email_attachment import EmailAttachment, OCRStatus
 from .inbox import InboxClassification, InboxMessage, InboxStatus
 from .material_price import MaterialPrice
 from .notification import Notification, NotificationType
@@ -13,6 +16,7 @@ from .operation import Operation, OperationStatus
 from .order import Order, OrderItem, OrderPriority, OrderStatus
 from .order_embedding import OrderEmbedding
 from .pohoda_sync import PohodaSyncLog, SyncDirection, SyncStatus
+from .processing_task import ProcessingStage, ProcessingStatus, ProcessingTask
 from .subcontract import Subcontract, SubcontractStatus
 from .subcontractor import Subcontractor
 from .user import User, UserRole
@@ -48,6 +52,17 @@ __all__ = [
     "InboxMessage",
     "InboxClassification",
     "InboxStatus",
+    # EmailAttachment
+    "EmailAttachment",
+    "OCRStatus",
+    # DrawingAnalysis
+    "DrawingAnalysis",
+    # ProcessingTask
+    "ProcessingTask",
+    "ProcessingStage",
+    "ProcessingStatus",
+    # DeadLetterEntry
+    "DeadLetterEntry",
     # MaterialPrice
     "MaterialPrice",
     # Notification

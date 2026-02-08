@@ -113,8 +113,39 @@ _PARSE_TOOL: dict[str, object] = {
                     "nebo jakekoli dalsi specificke pozadavky."
                 ),
             },
+            "order_reference": {
+                "type": ["string", "null"],
+                "description": (
+                    "Cislo objednavky, cislo zakazky, nebo reference na existujici "
+                    "nabidku ci objednavku (napr. OBJ-2025/123, NAB-2025/456)."
+                ),
+            },
+            "invoice_number": {
+                "type": ["string", "null"],
+                "description": "Cislo faktury nebo danoveho dokladu (pokud jde o fakturu).",
+            },
+            "invoice_amount": {
+                "type": ["number", "null"],
+                "description": "Castka faktury v CZK (pokud jde o fakturu).",
+            },
+            "urgency": {
+                "type": ["string", "null"],
+                "enum": ["low", "normal", "high", "critical", None],
+                "description": (
+                    "Naleehavost: low (zadny termin), normal (standardni), "
+                    "high (kratky termin, zdurazneni), critical (co nejdrive, urgentni)."
+                ),
+            },
+            "ico": {
+                "type": ["string", "null"],
+                "description": "ICO firmy zakaznika (8-mistne cislo, pokud je uvedeno).",
+            },
         },
-        "required": ["company_name", "contact_name", "email", "phone", "items", "deadline", "note"],
+        "required": [
+            "company_name", "contact_name", "email", "phone", "items",
+            "deadline", "note", "order_reference", "invoice_number",
+            "invoice_amount", "urgency", "ico",
+        ],
     },
 }
 
@@ -178,6 +209,11 @@ class ParsedInquiry:
         items: List of requested items with specifications.
         deadline: Requested delivery deadline (original wording).
         note: Additional notes (certificates, NDT, surface treatment, etc.).
+        order_reference: Reference to existing order/offer number.
+        invoice_number: Invoice number (for faktura emails).
+        invoice_amount: Invoice amount in CZK (for faktura emails).
+        urgency: Urgency level (low/normal/high/critical).
+        ico: Customer ICO (8-digit company ID).
     """
 
     company_name: str | None = None
@@ -187,6 +223,11 @@ class ParsedInquiry:
     items: list[ParsedItem] = field(default_factory=list)
     deadline: str | None = None
     note: str | None = None
+    order_reference: str | None = None
+    invoice_number: str | None = None
+    invoice_amount: float | None = None
+    urgency: str | None = None
+    ico: str | None = None
 
 
 class EmailParser:
@@ -333,6 +374,15 @@ class EmailParser:
                     )
                 )
 
+        # Parse invoice_amount
+        invoice_amount: float | None = None
+        raw_invoice_amount = tool_input.get("invoice_amount")
+        if raw_invoice_amount is not None:
+            try:
+                invoice_amount = float(raw_invoice_amount)  # type: ignore[arg-type]
+            except (TypeError, ValueError):
+                invoice_amount = None
+
         result = ParsedInquiry(
             company_name=_str_or_none(tool_input.get("company_name")),
             contact_name=_str_or_none(tool_input.get("contact_name")),
@@ -341,6 +391,11 @@ class EmailParser:
             items=items,
             deadline=_str_or_none(tool_input.get("deadline")),
             note=_str_or_none(tool_input.get("note")),
+            order_reference=_str_or_none(tool_input.get("order_reference")),
+            invoice_number=_str_or_none(tool_input.get("invoice_number")),
+            invoice_amount=invoice_amount,
+            urgency=_str_or_none(tool_input.get("urgency")),
+            ico=_str_or_none(tool_input.get("ico")),
         )
 
         log.info(

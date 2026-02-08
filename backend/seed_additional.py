@@ -36,14 +36,12 @@ async def seed_additional() -> None:
     async with AsyncSessionLocal() as db:
         # --- Load existing entities ---
         users = (await db.execute(select(User).order_by(User.email))).scalars().all()
-        customers = (await db.execute(select(Customer).order_by(Customer.company_name))).scalars().all()
+        (await db.execute(select(Customer).order_by(Customer.company_name))).scalars().all()
         orders = (await db.execute(select(Order).order_by(Order.number))).scalars().all()
 
         if not users or not orders:
-            print("No existing data found. Run seed_demo.py first.")
             return
 
-        print(f"Found {len(users)} users, {len(customers)} customers, {len(orders)} orders")
         today = date.today()
         now = datetime.now(UTC)
 
@@ -59,7 +57,7 @@ async def seed_additional() -> None:
         # =====================================================================
         count = (await db.execute(select(func.count()).select_from(MaterialPrice))).scalar()
         if count and count > 0:
-            print(f"  material_prices: already has {count} rows, skipping")
+            pass
         else:
             materials = [
                 # Plechy
@@ -209,14 +207,12 @@ async def seed_additional() -> None:
             ]
             db.add_all(materials)
             await db.flush()
-            print(f"  material_prices: seeded {len(materials)} items")
 
         # =====================================================================
         # 2. SUBCONTRACTORS (subdodavatelé)
         # =====================================================================
         count = (await db.execute(select(func.count()).select_from(Subcontractor))).scalar()
         if count and count > 0:
-            print(f"  subcontractors: already has {count} rows, skipping")
             subcontractors = (await db.execute(select(Subcontractor))).scalars().all()
         else:
             subcontractors = [
@@ -271,14 +267,13 @@ async def seed_additional() -> None:
             ]
             db.add_all(subcontractors)
             await db.flush()
-            print(f"  subcontractors: seeded {len(subcontractors)} items")
 
         # =====================================================================
         # 3. SUBCONTRACTS (kooperace — vazba subdodavatel × zakázka)
         # =====================================================================
         count = (await db.execute(select(func.count()).select_from(Subcontract))).scalar()
         if count and count > 0:
-            print(f"  subcontracts: already has {count} rows, skipping")
+            pass
         else:
             active_subs = [s for s in subcontractors if s.is_active]
             subcontracts = [
@@ -333,14 +328,13 @@ async def seed_additional() -> None:
             ]
             db.add_all(subcontracts)
             await db.flush()
-            print(f"  subcontracts: seeded {len(subcontracts)} items")
 
         # =====================================================================
         # 4. OPERATIONS (výrobní operace)
         # =====================================================================
         count = (await db.execute(select(func.count()).select_from(Operation))).scalar()
         if count and count > 0:
-            print(f"  operations: already has {count} rows, skipping")
+            pass
         else:
             operations = [
                 # ZAK-2026-001 (VYROBA) — 6 operací
@@ -494,14 +488,13 @@ async def seed_additional() -> None:
             ]
             db.add_all(operations)
             await db.flush()
-            print(f"  operations: seeded {len(operations)} items")
 
         # =====================================================================
         # 5. OFFERS (nabídky)
         # =====================================================================
         count = (await db.execute(select(func.count()).select_from(Offer))).scalar()
         if count and count > 0:
-            print(f"  offers: already has {count} rows, skipping")
+            pass
         else:
             offers = [
                 Offer(
@@ -542,14 +535,13 @@ async def seed_additional() -> None:
             ]
             db.add_all(offers)
             await db.flush()
-            print(f"  offers: seeded {len(offers)} items")
 
         # =====================================================================
         # 6. USER POINTS (gamifikace)
         # =====================================================================
         count = (await db.execute(select(func.count()).select_from(UserPoints))).scalar()
         if count and count > 0:
-            print(f"  user_points: already has {count} rows, skipping")
+            pass
         else:
             points = [
                 # Obchodník — body za nabídky a zakázky
@@ -643,14 +635,13 @@ async def seed_additional() -> None:
             ]
             db.add_all(points)
             await db.flush()
-            print(f"  user_points: seeded {len(points)} items")
 
         # =====================================================================
         # 7. NOTIFICATIONS (notifikace)
         # =====================================================================
         count = (await db.execute(select(func.count()).select_from(Notification))).scalar()
         if count and count > 0:
-            print(f"  notifications: already has {count} rows, skipping")
+            pass
         else:
             notifications = [
                 Notification(
@@ -712,7 +703,6 @@ async def seed_additional() -> None:
             ]
             db.add_all(notifications)
             await db.flush()
-            print(f"  notifications: seeded {len(notifications)} items")
 
         # =====================================================================
         # 8. UPDATE CUSTOMER CATEGORIES (doplnění A/B/C kategorií)
@@ -734,10 +724,8 @@ async def seed_additional() -> None:
                 cust.discount_percent = discount
                 cust.payment_terms_days = terms
                 cust.credit_limit = limit
-        print("  customers: updated categories/discounts/credit limits")
 
         await db.commit()
-        print("\nDone! All additional data seeded successfully.")
 
 
 if __name__ == "__main__":

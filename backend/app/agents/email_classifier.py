@@ -21,6 +21,9 @@ EmailCategory = Literal[
     "reklamace",
     "dotaz",
     "priloha",
+    "informace_zakazka",
+    "faktura",
+    "obchodni_sdeleni",
 ]
 
 _VALID_CATEGORIES: set[str] = {
@@ -29,6 +32,9 @@ _VALID_CATEGORIES: set[str] = {
     "reklamace",
     "dotaz",
     "priloha",
+    "informace_zakazka",
+    "faktura",
+    "obchodni_sdeleni",
 }
 
 # Confidence threshold below which the result is flagged for human review
@@ -62,13 +68,19 @@ _CLASSIFY_TOOL: dict[str, object] = {
                     "reklamace",
                     "dotaz",
                     "priloha",
+                    "informace_zakazka",
+                    "faktura",
+                    "obchodni_sdeleni",
                 ],
                 "description": (
                     "Kategorie emailu: poptavka (request for quote / novy projekt), "
                     "objednavka (potvrzeni objednavky / objednani materialu), "
                     "reklamace (stiznost / vada / neshoda), "
                     "dotaz (obecny dotaz / informace), "
-                    "priloha (email obsahujici hlavne prilohy - vykresy, specifikace)."
+                    "priloha (email obsahujici hlavne prilohy - vykresy, specifikace), "
+                    "informace_zakazka (informace o stavu existujici zakazky), "
+                    "faktura (danovy doklad / faktura / proforma), "
+                    "obchodni_sdeleni (newsletter / marketing / unsubscribe)."
                 ),
             },
             "confidence": {
@@ -110,6 +122,12 @@ Tvym ukolem je klasifikovat prichozi emaily do jedne z kategorii:
    Neni to poptavka ani objednavka.
 5. **priloha** - Email slouzici predevsim k predani priloh (vykresy DWG/PDF, specifikace,
    atesni listy, fotografie). Telo emailu je kratke, odkazuje na prilohy.
+6. **informace_zakazka** - Informace tykajici se existujici zakazky - stav vyroby,
+   dodaci podminky, zmeny v objednavce, doplnujici specifikace.
+7. **faktura** - Danovy doklad, faktura, proforma faktura, dobropis. Obsahuje castku,
+   datum splatnosti, cislo faktury, ICO/DIC.
+8. **obchodni_sdeleni** - Newsletter, marketingovy email, automaticke notifikace,
+   emaily s moznosti odhlaseni (unsubscribe). Neni to objednavka ani poptavka.
 
 Pouzij nastroj classify_email pro vraceni strukturovaneho vysledku. Bud precizni
 v confidence - pokud si nejsi jisty, nastav nizsi hodnotu."""

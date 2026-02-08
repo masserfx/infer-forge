@@ -3,7 +3,7 @@
 import enum
 from uuid import UUID
 
-from sqlalchemy import BigInteger, Enum, Index, Integer, String, Text
+from sqlalchemy import BigInteger, Enum, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -45,6 +45,21 @@ class Document(Base, UUIDPKMixin, TimestampMixin):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     ocr_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     uploaded_by: Mapped[UUID | None] = mapped_column(nullable=True)
+
+    # Orchestration fields
+    processing_status: Mapped[str | None] = mapped_column(
+        String(20), nullable=True, default=None
+    )
+    source_attachment_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("email_attachments.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    inbox_message_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("inbox_messages.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     __table_args__ = (
         Index("ix_documents_entity", "entity_type", "entity_id"),

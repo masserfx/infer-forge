@@ -197,6 +197,7 @@ from app.api.v1 import (
     material_prices,
     notifications,
     operations,
+    orchestration,
     orders,
     pohoda,
     reporting,
@@ -217,6 +218,7 @@ app.include_router(notifications.router, prefix="/api/v1")
 app.include_router(gamification.router, prefix="/api/v1")
 app.include_router(material_prices.router, prefix="/api/v1")
 app.include_router(subcontractors.router, prefix="/api/v1")
+app.include_router(orchestration.router, prefix="/api/v1")
 app.include_router(websocket.router)
 
 if __name__ == "__main__":

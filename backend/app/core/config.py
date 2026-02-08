@@ -138,6 +138,32 @@ class Settings(BaseSettings):
         description="Sentry DSN for error tracking (optional)",
     )
 
+    # Orchestration feature flags
+    ORCHESTRATION_ENABLED: bool = Field(
+        default=False,
+        description="Master switch for document orchestration pipeline",
+    )
+    ORCHESTRATION_AUTO_CREATE_ORDERS: bool = Field(
+        default=False,
+        description="Auto-create orders from parsed emails",
+    )
+    ORCHESTRATION_AUTO_CALCULATE: bool = Field(
+        default=False,
+        description="Auto-trigger calculation for poptavky",
+    )
+    ORCHESTRATION_AUTO_OFFER: bool = Field(
+        default=False,
+        description="Auto-generate offers after calculation approval",
+    )
+    CLAUDE_MAX_TOKENS_PER_HOUR: int = Field(
+        default=50000,
+        description="Safety limit for Claude API token usage per hour",
+    )
+    CLAUDE_MAX_CONCURRENT_CALLS: int = Field(
+        default=3,
+        description="Maximum concurrent Claude API calls",
+    )
+
 
 @lru_cache
 def get_settings() -> Settings:
