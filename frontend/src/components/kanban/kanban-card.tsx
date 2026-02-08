@@ -39,13 +39,19 @@ export function KanbanCard({ order }: KanbanCardProps) {
     dueDate && dueDate < new Date() && order.status !== "dokonceno";
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="touch-manipulation"
+    >
       <Card
-        className="mb-3 cursor-pointer transition-all hover:shadow-md"
+        className="mb-3 cursor-pointer transition-all hover:shadow-md min-h-[44px]"
         onClick={handleClick}
       >
-        <CardContent className="p-4">
-          <div className="space-y-3">
+        <CardContent className="p-3 sm:p-4">
+          <div className="space-y-2 sm:space-y-3">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate">{order.number}</p>
@@ -61,7 +67,7 @@ export function KanbanCard({ order }: KanbanCardProps) {
               </Badge>
             </div>
 
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <div className="flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Package className="h-3 w-3" />
                 <span>{order.items.length}</span>

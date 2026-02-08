@@ -27,17 +27,17 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Poslední zakázky</CardTitle>
+        <CardTitle className="text-base sm:text-lg">Poslední zakázky</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Číslo</TableHead>
-              <TableHead>Zákazník</TableHead>
-              <TableHead>Stav</TableHead>
-              <TableHead>Priorita</TableHead>
-              <TableHead>Datum</TableHead>
+              <TableHead className="min-w-[100px]">Číslo</TableHead>
+              <TableHead className="min-w-[150px]">Zákazník</TableHead>
+              <TableHead className="min-w-[120px]">Stav</TableHead>
+              <TableHead className="min-w-[100px]">Priorita</TableHead>
+              <TableHead className="min-w-[100px]">Datum</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -49,7 +49,7 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
               </TableRow>
             ) : (
               orders.map((order) => (
-                <TableRow key={order.id}>
+                <TableRow key={order.id} className="min-h-[44px]">
                   <TableCell>
                     <Link
                       href={`/zakazky/${order.id}`}
@@ -58,7 +58,7 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
                       {order.number}
                     </Link>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-xs sm:text-sm">
                     {order.customer?.company_name || "—"}
                   </TableCell>
                   <TableCell>
@@ -77,7 +77,7 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
                       {PRIORITY_LABELS[order.priority]}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-xs sm:text-sm text-muted-foreground">
                     {new Date(order.created_at).toLocaleDateString("cs-CZ")}
                   </TableCell>
                 </TableRow>

@@ -37,15 +37,15 @@ export default function ZakazkyPage() {
   });
 
   return (
-    <div className="flex h-full flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
+    <div className="flex h-full flex-col gap-4 sm:gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Zakázky</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Zakázky</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Přehled všech zakázek a objednávek
           </p>
         </div>
-        <Button disabled>
+        <Button disabled className="w-full sm:w-auto min-h-[44px]">
           <Plus className="mr-2 h-4 w-4" />
           Nová zakázka
         </Button>

@@ -33,7 +33,7 @@ export function NotificationBell() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative min-w-[44px] min-h-[44px]">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge
@@ -46,8 +46,8 @@ export function NotificationBell() {
           <span className="sr-only">Notifikace</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
-        <div className="flex items-center justify-between border-b px-4 py-3">
+      <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80 p-0" align="end">
+        <div className="flex items-center justify-between border-b px-3 sm:px-4 py-3">
           <h3 className="font-semibold text-sm">Notifikace</h3>
           {unreadCount > 0 && (
             <Button
@@ -56,11 +56,12 @@ export function NotificationBell() {
               className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
               onClick={markAllRead}
             >
-              Označit vše jako přečtené
+              <span className="hidden sm:inline">Označit vše jako přečtené</span>
+              <span className="sm:hidden">Přečíst vše</span>
             </Button>
           )}
         </div>
-        <div className="max-h-[400px] overflow-y-auto">
+        <div className="max-h-[60vh] sm:max-h-[400px] overflow-y-auto">
           {displayedNotifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 px-4 text-center text-muted-foreground">
               <Bell className="h-8 w-8 mb-2 opacity-50" />
@@ -73,7 +74,7 @@ export function NotificationBell() {
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
                   className={cn(
-                    "w-full px-4 py-3 text-left hover:bg-accent transition-colors",
+                    "w-full px-3 sm:px-4 py-3 text-left hover:bg-accent transition-colors min-h-[44px]",
                     !notification.read && "bg-muted/50",
                   )}
                 >
@@ -104,11 +105,11 @@ export function NotificationBell() {
           )}
         </div>
         {notifications.length > 10 && (
-          <div className="border-t px-4 py-3">
+          <div className="border-t px-3 sm:px-4 py-3">
             <Button
               variant="ghost"
               size="sm"
-              className="w-full text-xs"
+              className="w-full text-xs min-h-[44px]"
               onClick={() => router.push("/notifikace")}
             >
               Zobrazit všechny notifikace

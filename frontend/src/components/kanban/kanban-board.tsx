@@ -30,6 +30,17 @@ const ORDER_STATUSES: OrderStatus[] = [
   "dokonceno",
 ];
 
+/** Valid status transitions (mirrors backend OrderService.STATUS_TRANSITIONS) */
+const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  poptavka: ["nabidka", "objednavka"],
+  nabidka: ["objednavka", "poptavka"],
+  objednavka: ["vyroba"],
+  vyroba: ["expedice"],
+  expedice: ["fakturace"],
+  fakturace: ["dokonceno"],
+  dokonceno: [],
+};
+
 const STATUS_BORDER_COLORS: Record<OrderStatus, string> = {
   poptavka: "border-t-blue-500",
   nabidka: "border-t-purple-500",
@@ -102,6 +113,10 @@ export function KanbanBoard() {
     const order = orders.find((o) => o.id === orderId);
     if (!order || order.status === newStatus) return;
 
+    // Validate transition before sending to backend
+    const allowed = STATUS_TRANSITIONS[order.status] || [];
+    if (!allowed.includes(newStatus)) return;
+
     updateStatusMutation.mutate({ id: orderId, status: newStatus });
   };
 
@@ -128,7 +143,8 @@ export function KanbanBoard() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      {/* Mobile: vertical stacking */}
+      <div className="md:hidden space-y-4">
         {ORDER_STATUSES.map((status) => (
           <KanbanColumn
             key={status}
@@ -138,6 +154,20 @@ export function KanbanBoard() {
           />
         ))}
       </div>
+
+      {/* Tablet & Desktop: horizontal scroll with snap */}
+      <div className="hidden md:flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
+        {ORDER_STATUSES.map((status) => (
+          <div key={status} className="snap-start">
+            <KanbanColumn
+              status={status}
+              orders={groupedOrders[status]}
+              borderColor={STATUS_BORDER_COLORS[status]}
+            />
+          </div>
+        ))}
+      </div>
+
       <DragOverlay>
         {activeOrder ? <KanbanCard order={activeOrder} /> : null}
       </DragOverlay>

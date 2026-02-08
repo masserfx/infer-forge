@@ -1,0 +1,6 @@
+# Ignore certbot data (contains private keys and certificates)
+etc/
+log/
+www/*
+!www/.gitkeep
+!.gitignore

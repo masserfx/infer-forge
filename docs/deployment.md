@@ -62,13 +62,51 @@ CORS_ORIGINS=https://infer-forge.example.com,https://www.infer-forge.example.com
 CORS_ORIGINS=https://app.infer-forge.example.com,https://infer-forge.example.com
 ```
 
-## 4. SSL/TLS certifikáty (Let's Encrypt)
+## 4. SSL/TLS certifikáty
+
+INFER FORGE má integrovaný SSL setup script s podporou pro development i production certifikáty.
+
+### Development (Self-Signed Certificate)
+
+Pro lokální vývoj nebo testování:
 
 ```bash
-# Získání certifikátu
-sudo certbot certonly --standalone -d infer-forge.example.com
+./scripts/setup-ssl.sh --self-signed
+```
 
-# Certifikáty budou v /etc/letsencrypt/live/infer-forge.example.com/
+Tento certifikát je platný 365 dní, ale zobrazí varování v prohlížeči (očekávané chování).
+
+### Production (Let's Encrypt)
+
+Pro produkční nasazení s důvěryhodným certifikátem:
+
+```bash
+# PŘED SPUŠTĚNÍM ujisti se, že:
+# 1. Doména směřuje na tento server (DNS A záznam)
+# 2. Port 80 je otevřený a dostupný z internetu
+# 3. Nginx běží a má přístup k /.well-known/acme-challenge/
+
+./scripts/setup-ssl.sh --letsencrypt infer-forge.example.com
+
+# Po získání certifikátu restartuj nginx
+docker compose -f docker-compose.prod.yml restart nginx
+```
+
+### Automatické obnovování certifikátu
+
+Let's Encrypt certifikáty jsou platné 90 dní. Pro automatické obnovování:
+
+```bash
+# V docker-compose.prod.yml odkomentuj certbot service
+# Pak spusť:
+docker compose -f docker-compose.prod.yml up -d certbot
+```
+
+Nebo nastav cron job pro manuální obnovování:
+
+```bash
+# Každé pondělí v 3:00
+0 3 * * 1 cd /opt/infer-forge && ./scripts/setup-ssl.sh --renew && docker compose -f docker-compose.prod.yml restart nginx
 ```
 
 ## 5. Spuštění aplikace

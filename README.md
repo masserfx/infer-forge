@@ -232,11 +232,45 @@ cd backend && uv run uvicorn app.main:app --reload
 # Production (Docker)
 docker compose -f docker-compose.prod.yml logs -f backend
 docker compose -f docker-compose.prod.yml logs -f celery-worker
+
+# Backup logs
+tail -f /var/log/infer-forge-backup.log
 ```
 
 ### Sentry (volitelné)
 
 Nastav `SENTRY_DSN` v `.env.prod` pro error tracking.
+
+## Zálohovací Systém
+
+Automatické denní a týdenní zálohy databáze PostgreSQL a nahraných souborů.
+
+### Quick Start
+
+```bash
+# Instalace automatických záloh (na produkčním serveru)
+sudo ./scripts/backup-cron.sh
+
+# Manuální záloha
+./scripts/backup_db.sh              # denní záloha
+./scripts/backup_db.sh --weekly     # týdenní záloha
+
+# Obnovení ze zálohy
+./scripts/restore_db.sh /opt/infer-forge/backups/infer-forge-backup-*.sql.gz
+```
+
+### Retention Policy
+
+- **Denní zálohy:** Každý den v 2:00 (retention 7 dní)
+- **Týdenní zálohy:** Každou neděli ve 3:00 (retention 90 dní)
+- **Umístění:** `/opt/infer-forge/backups/`
+- **Logy:** `/var/log/infer-forge-backup.log`
+
+### Dokumentace
+
+- **[docs/BACKUP_SYSTEM.md](./docs/BACKUP_SYSTEM.md)** - Kompletní dokumentace backup systému
+- **[docs/DEPLOYMENT_BACKUP.md](./docs/DEPLOYMENT_BACKUP.md)** - Instalační návod pro produkční server
+- **[scripts/README.md](./scripts/README.md)** - Přehled utility skriptů
 
 ## Pohoda XML integrace
 

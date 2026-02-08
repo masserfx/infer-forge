@@ -7,6 +7,73 @@ verzování podle [Semantic Versioning](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 
+### Added (2026-02-08)
+
+#### Automatický zálohovací systém
+- **scripts/backup_db.sh** - Hlavní zálohovací skript
+  - Záloha PostgreSQL přes `docker compose exec db pg_dump`
+  - Komprese gzip
+  - Záloha uploads volume (docker cp + tar.gz)
+  - Pojmenování: `infer-forge-backup-YYYY-MM-DD-HHMMSS.sql.gz`
+  - Exit code kontrola + error reporting
+  - Logování do `/var/log/infer-forge-backup.log`
+- **scripts/backup-rotation.sh** - Retention policy management
+  - 7 denních záloh (smaže starší)
+  - 4 týdenní zálohy (smaže starší než 28 dní)
+  - 3 měsíční zálohy (smaže starší než 90 dní)
+  - Statistiky (počet záloh, celková velikost)
+- **scripts/backup-cron.sh** - Instalace automatických cron jobs
+  - Denní záloha každý den v 2:00
+  - Týdenní záloha každou neděli ve 3:00
+  - Nastavení oprávnění (755 pro adresář, 644 pro log)
+- **scripts/restore_db.sh** - Vylepšené obnovení ze zálohy
+  - Safety backup před restore (rollback při chybě)
+  - Potvrzení uživatelem (yes/no prompt)
+  - Podporuje `.sql.gz` (gzip) i `.sql` (plain)
+  - Restore přes `docker compose exec db psql`
+  - Restore uploads volume (pokud zadáno)
+  - Spustí `alembic upgrade head` po restore
+- **scripts/test-backup-system.sh** - Test zálohovacího systému
+  - Kontrola existence skriptů
+  - Kontrola oprávnění (executable)
+  - Kontrola Docker Compose konfigurace
+  - Kontrola .env.prod
+  - Kontrola Docker daemon status
+  - Kontrola backup directory
+  - Kontrola cron jobs
+
+#### Dokumentace zálohovacího systému
+- **docs/BACKUP_SYSTEM.md** - Kompletní dokumentace backup systému
+  - Přehled (denní/týdenní zálohy, retention policy)
+  - Instalace a konfigurace
+  - Manuální použití (backup, restore, monitoring)
+  - Popis všech skriptů
+  - Bezpečnostní doporučení (off-site, šifrování)
+  - Monitoring a alerting
+  - Testování (dry run, disaster recovery test)
+  - Troubleshooting
+  - ISO 9001 compliance checklist
+- **docs/DEPLOYMENT_BACKUP.md** - Instalační návod pro produkční server
+  - Krok-za-krokem instalace na serveru 91.99.126.53
+  - Test manuální zálohy
+  - Test týdenní zálohy
+  - Test restore
+  - Monitoring (live logy, kontrola chyb)
+  - Troubleshooting
+  - Bezpečnostní doporučení (off-site, šifrování, alerting)
+  - Quarterly Disaster Recovery test
+  - Checklist po instalaci
+- **scripts/README.md** - Přehled utility skriptů
+  - Quick start pro zálohy
+  - Tabulka všech skriptů
+  - Environment variables
+
+### Changed (2026-02-08)
+- **README.md** - Přidána sekce o zálohovacím systému
+  - Quick start pro backup/restore
+  - Retention policy přehled
+  - Odkazy na kompletní dokumentaci
+
 ### Added (2026-02-07)
 
 #### Produkční deployment stack

@@ -1,0 +1,18 @@
+# INFER FORGE Fail2ban Configuration
+# Protects Nginx from HTTP auth bruteforce and rate limit violations
+
+[nginx-http-auth]
+enabled = true
+filter = nginx-http-auth
+port = http,https
+logpath = /var/log/nginx/error.log
+maxretry = 5
+bantime = 3600
+
+[nginx-limit-req]
+enabled = true
+filter = nginx-limit-req
+port = http,https
+logpath = /var/log/nginx/error.log
+maxretry = 10
+bantime = 600

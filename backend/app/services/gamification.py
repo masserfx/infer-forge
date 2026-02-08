@@ -128,19 +128,24 @@ class GamificationService:
         result = await self.db.execute(query.limit(limit))
         rows = result.all()
 
-        # Get user details
+        # Batch-load user details (avoid N+1)
+        user_ids = [row.user_id for row in rows]
+        if user_ids:
+            users_result = await self.db.execute(
+                select(User).where(User.id.in_(user_ids))
+            )
+            users_map = {u.id: u for u in users_result.scalars().all()}
+        else:
+            users_map = {}
+
         entries = []
         for rank, row in enumerate(rows, start=1):
             user_id = row.user_id
             total_points = row.total_points or 0
             tasks_completed = row.tasks_completed or 0
 
-            # Fetch user details
-            user_result = await self.db.execute(select(User).where(User.id == user_id))
-            user = user_result.scalar_one_or_none()
-
+            user = users_map.get(user_id)
             if user:
-                # Calculate bonus points (for now, 0; can be extended later)
                 bonus_points = 0
                 points_earned = total_points - bonus_points
 
@@ -149,7 +154,6 @@ class GamificationService:
                         rank=rank,
                         user_id=str(user_id),
                         user_name=user.full_name,
-                        user_email=user.email,
                         points_earned=points_earned,
                         tasks_completed=tasks_completed,
                         bonus_points=bonus_points,

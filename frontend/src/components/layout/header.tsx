@@ -21,6 +21,8 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   ClipboardList,
+  Kanban,
+  Trophy,
   Calculator,
   BarChart3,
   Inbox,
@@ -49,6 +51,16 @@ const navItems: NavItem[] = [
     href: "/zakazky",
     label: "Zakázky",
     icon: ClipboardList,
+  },
+  {
+    href: "/kanban",
+    label: "Pipeline",
+    icon: Kanban,
+  },
+  {
+    href: "/zebricek",
+    label: "Žebříček",
+    icon: Trophy,
   },
   {
     href: "/kalkulace",
@@ -87,11 +99,11 @@ export function Header() {
   const { user, logout } = useAuth();
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 lg:px-6">
+    <header className="sticky top-0 z-10 flex h-16 items-center gap-2 sm:gap-4 border-b bg-background px-2 sm:px-4 lg:px-6">
       {/* Mobile menu */}
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="outline" size="icon" className="lg:hidden">
+          <Button variant="outline" size="icon" className="md:hidden min-w-[44px] min-h-[44px]">
             <Menu className="h-5 w-5" />
             <span className="sr-only">Otevřít menu</span>
           </Button>
@@ -112,7 +124,7 @@ export function Header() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors min-h-[44px]",
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -128,18 +140,18 @@ export function Header() {
       </Sheet>
 
       {/* Desktop breadcrumbs placeholder */}
-      <div className="flex-1">
-        <h1 className="text-lg font-semibold">
+      <div className="flex-1 min-w-0">
+        <h1 className="text-base sm:text-lg font-semibold truncate">
           {navItems.find((item) => pathname?.startsWith(item.href))?.label || "INFER FORGE"}
         </h1>
       </div>
 
       {/* User menu */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1 sm:gap-2">
         <NotificationBell />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2">
+            <Button variant="ghost" className="flex items-center gap-2 min-w-[44px] min-h-[44px]">
               <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
                 {user?.full_name.charAt(0).toUpperCase() || "U"}
               </div>

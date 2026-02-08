@@ -210,7 +210,7 @@ export default function LeaderboardPage() {
                           )}
                         </div>
                         <div className="text-sm text-muted-foreground truncate">
-                          {entry.user_email}
+                          {entry.tasks_completed} {entry.tasks_completed === 1 ? "úkol" : "úkolů"}
                         </div>
                       </div>
 

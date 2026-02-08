@@ -406,7 +406,6 @@ export interface LeaderboardEntry {
   rank: number;
   user_id: string;
   user_name: string;
-  user_email: string;
   points_earned: number;
   tasks_completed: number;
   bonus_points: number;

@@ -27,6 +27,8 @@ backups/
 *.pem
 *.crt
 *.key
+*.csr
+docker/certbot/
 
 # Logs
 *.log

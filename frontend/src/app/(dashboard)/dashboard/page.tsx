@@ -49,10 +49,10 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Přehled aktivních zakázek a zpráv
         </p>
       </div>
@@ -64,7 +64,7 @@ export default function DashboardPage() {
         pendingInvoices={pendingInvoices}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
         <PipelineChart statusCounts={statusCounts} />
         <div className="lg:col-span-2">
           <RecentOrders orders={recentOrders} />

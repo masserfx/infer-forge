@@ -24,26 +24,26 @@ export function KanbanColumn({ status, orders, borderColor }: KanbanColumnProps)
 
   return (
     <div
-      className={`flex flex-col h-full w-80 flex-shrink-0 rounded-lg border-2 bg-muted/20 ${borderColor} ${
+      className={`flex flex-col h-full w-full md:w-80 flex-shrink-0 rounded-lg border-2 bg-muted/20 ${borderColor} ${
         isOver ? "bg-accent/50" : ""
       }`}
     >
-      <div className="flex items-center justify-between gap-2 p-4 border-b bg-background/95">
-        <h3 className="font-semibold text-sm">{ORDER_STATUS_LABELS[status]}</h3>
+      <div className="flex items-center justify-between gap-2 p-3 sm:p-4 border-b bg-background/95">
+        <h3 className="font-semibold text-sm sm:text-base">{ORDER_STATUS_LABELS[status]}</h3>
         <Badge variant="secondary" className="rounded-full">
           {orders.length}
         </Badge>
       </div>
 
       <ScrollArea className="flex-1">
-        <div ref={setNodeRef} className="p-4 min-h-[500px]">
+        <div ref={setNodeRef} className="p-3 sm:p-4 min-h-[300px] md:min-h-[500px]">
           <SortableContext
             items={orders.map((o) => o.id)}
             strategy={verticalListSortingStrategy}
           >
             {orders.length === 0 ? (
-              <div className="flex h-40 items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25">
-                <p className="text-sm text-muted-foreground">
+              <div className="flex h-32 md:h-40 items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Přetáhněte sem
                 </p>
               </div>

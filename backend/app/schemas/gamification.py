@@ -19,7 +19,6 @@ class LeaderboardEntry(BaseModel):
     rank: int
     user_id: str
     user_name: str
-    user_email: str
     points_earned: int
     tasks_completed: int
     bonus_points: int

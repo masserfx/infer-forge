@@ -38,17 +38,17 @@ export function PipelineChart({ statusCounts }: PipelineChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Pipeline přehled</CardTitle>
+        <CardTitle className="text-base sm:text-lg">Pipeline přehled</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {statuses.map((status) => {
             const count = statusCounts[status] || 0;
             const percentage = total > 0 ? (count / total) * 100 : 0;
 
             return (
               <div key={status} className="space-y-1">
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between text-xs sm:text-sm">
                   <div className="flex items-center gap-2">
                     <Badge
                       variant="secondary"

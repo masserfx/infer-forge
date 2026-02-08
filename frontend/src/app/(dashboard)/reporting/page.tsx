@@ -4,13 +4,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getDashboardStats, getRevenueReport, getProductionReport, getCustomerReport } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { Loader2, FileDown, Printer } from "lucide-react";
 import Link from "next/link";
 import { ORDER_STATUS_COLORS, ORDER_STATUS_LABELS, PRIORITY_COLORS, PRIORITY_LABELS } from "@/types";
 import type { OrderStatus, OrderPriority } from "@/types";
+import { PrintHeader } from "@/components/reporting/print-header";
 
 function StatCard({ title, value, description }: { title: string; value: string | number; description?: string }) {
   return (
@@ -302,37 +304,134 @@ function CustomersTab() {
 }
 
 export default function ReportingPage() {
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExportPDF = () => {
+    // Browser's print dialog includes "Save as PDF" option
+    window.print();
+  };
+
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Reporting</h1>
-        <p className="text-muted-foreground mt-2">Analytika a přehledy zakázek, obratu a výroby</p>
+    <>
+      {/* Print-only styles */}
+      <style jsx global>{`
+        @media print {
+          /* Hide interactive elements */
+          aside,
+          nav,
+          header,
+          .print\\:hidden,
+          button,
+          [role="tablist"],
+          .no-print {
+            display: none !important;
+          }
+
+          /* Show all tab content */
+          [role="tabpanel"] {
+            display: block !important;
+          }
+
+          /* Page setup */
+          @page {
+            size: A4 landscape;
+            margin: 1.5cm;
+          }
+
+          body {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+
+          /* Break pages between sections */
+          .print-section {
+            break-before: page;
+          }
+
+          .print-section:first-of-type {
+            break-before: auto;
+          }
+
+          /* Ensure content fits */
+          table {
+            font-size: 0.85rem;
+          }
+
+          /* Convert colored badges to grayscale for better printing */
+          .print-grayscale {
+            filter: grayscale(100%);
+          }
+
+          /* Hide overflow */
+          * {
+            overflow: visible !important;
+          }
+
+          /* Container adjustments */
+          .container {
+            max-width: 100% !important;
+            padding: 0 !important;
+          }
+        }
+
+        @media screen {
+          .print\\:block {
+            display: none;
+          }
+        }
+      `}</style>
+
+      <div className="container mx-auto p-6 max-w-7xl">
+        <PrintHeader />
+
+        <div className="mb-6 flex items-center justify-between print:hidden">
+          <div>
+            <h1 className="text-3xl font-bold">Reporting</h1>
+            <p className="text-muted-foreground mt-2">Analytika a přehledy zakázek, obratu a výroby</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handlePrint}>
+              <Printer className="h-4 w-4 mr-2" />
+              Tisk
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportPDF}>
+              <FileDown className="h-4 w-4 mr-2" />
+              Exportovat PDF
+            </Button>
+          </div>
+        </div>
+
+        <Tabs defaultValue="prehled" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+            <TabsTrigger value="prehled">Přehled</TabsTrigger>
+            <TabsTrigger value="obrat">Obrat</TabsTrigger>
+            <TabsTrigger value="vyroba">Výroba</TabsTrigger>
+            <TabsTrigger value="zakaznici">Zákazníci</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="prehled" className="print-section">
+            <h2 className="hidden print:block text-2xl font-bold mb-4">Přehled</h2>
+            <DashboardTab />
+          </TabsContent>
+
+          <TabsContent value="obrat" className="print-section">
+            <h2 className="hidden print:block text-2xl font-bold mb-4">Obrat</h2>
+            <RevenueTab />
+          </TabsContent>
+
+          <TabsContent value="vyroba" className="print-section">
+            <h2 className="hidden print:block text-2xl font-bold mb-4">Výroba</h2>
+            <ProductionTab />
+          </TabsContent>
+
+          <TabsContent value="zakaznici" className="print-section">
+            <h2 className="hidden print:block text-2xl font-bold mb-4">Zákazníci</h2>
+            <CustomersTab />
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <Tabs defaultValue="prehled" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="prehled">Přehled</TabsTrigger>
-          <TabsTrigger value="obrat">Obrat</TabsTrigger>
-          <TabsTrigger value="vyroba">Výroba</TabsTrigger>
-          <TabsTrigger value="zakaznici">Zákazníci</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="prehled">
-          <DashboardTab />
-        </TabsContent>
-
-        <TabsContent value="obrat">
-          <RevenueTab />
-        </TabsContent>
-
-        <TabsContent value="vyroba">
-          <ProductionTab />
-        </TabsContent>
-
-        <TabsContent value="zakaznici">
-          <CustomersTab />
-        </TabsContent>
-      </Tabs>
-    </div>
+    </>
   );
 }

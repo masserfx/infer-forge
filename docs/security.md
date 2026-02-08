@@ -94,32 +94,100 @@ docker compose -f docker-compose.prod.yml up -d
 
 ## 3. SSL/TLS certifikáty
 
-### Let's Encrypt (doporučeno)
+INFER FORGE má integrovaný SSL setup script s podporou pro development i production certifikáty.
+
+### Development (Self-Signed)
+
+Pro lokální vývoj nebo testování:
 
 ```bash
-# Instalace certbot
-sudo apt install certbot python3-certbot-nginx
-
-# Získání certifikátu
-sudo certbot certonly --standalone -d infer-forge.example.com
-
-# Automatická obnova (cron)
-0 0 1 * * certbot renew --quiet && systemctl reload nginx
+./scripts/setup-ssl.sh --self-signed
 ```
 
-### Nginx SSL konfigurace
+Certifikát je platný 365 dní s podporou pro `localhost`, `127.0.0.1` a `91.99.126.53` (dev server).
+
+### Production (Let's Encrypt)
+
+Pro produkční nasazení s důvěryhodným certifikátem:
+
+```bash
+# PŘED SPUŠTĚNÍM ujisti se, že:
+# 1. Doména směřuje na tento server (DNS A záznam)
+# 2. Port 80 je otevřený a dostupný z internetu
+# 3. Nginx běží a má přístup k /.well-known/acme-challenge/
+
+./scripts/setup-ssl.sh --letsencrypt infer-forge.example.com
+
+# Po získání certifikátu restartuj nginx
+docker compose -f docker-compose.prod.yml restart nginx
+```
+
+### Automatická obnova certifikátu
+
+Let's Encrypt certifikáty jsou platné 90 dní. Máš dvě možnosti:
+
+**Možnost 1: Certbot service v Docker Compose (doporučeno)**
+
+```bash
+# V docker-compose.prod.yml odkomentuj certbot service
+# Pak spusť:
+docker compose -f docker-compose.prod.yml up -d certbot
+```
+
+Certbot service automaticky kontroluje a obnovuje certifikát každých 12 hodin.
+
+**Možnost 2: Cron job**
+
+```bash
+# Každé pondělí v 3:00
+0 3 * * 1 cd /opt/infer-forge && ./scripts/setup-ssl.sh --renew && docker compose -f docker-compose.prod.yml restart nginx
+```
+
+### Nginx SSL konfigurace (již implementováno)
+
+Konfigurace v `docker/nginx/nginx.conf`:
 
 ```nginx
-ssl_certificate /etc/letsencrypt/live/infer-forge.example.com/fullchain.pem;
-ssl_certificate_key /etc/letsencrypt/live/infer-forge.example.com/privkey.pem;
+# HTTP → HTTPS redirect
+server {
+    listen 80;
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / { return 301 https://$host$request_uri; }
+}
 
-# Modern SSL konfigurace
-ssl_protocols TLSv1.2 TLSv1.3;
-ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
-ssl_prefer_server_ciphers off;
+# HTTPS server
+server {
+    listen 443 ssl http2;
+    ssl_certificate /etc/nginx/ssl/cert.pem;
+    ssl_certificate_key /etc/nginx/ssl/key.pem;
 
-# HSTS
-add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    # Modern SSL konfigurace
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+}
+```
+
+### Ověření SSL konfigurace
+
+```bash
+# Test SSL konfigurace
+openssl s_client -connect infer-forge.example.com:443 -servername infer-forge.example.com
+
+# Zkontroluj platnost certifikátu
+openssl x509 -in docker/nginx/ssl/cert.pem -text -noout | grep -A2 "Validity"
+
+# Online test (po nasazení)
+# https://www.ssllabs.com/ssltest/analyze.html?d=infer-forge.example.com
 ```
 
 ## 4. Rate limiting
