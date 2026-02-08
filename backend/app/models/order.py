@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from .offer import Offer
     from .operation import Operation
     from .order_embedding import OrderEmbedding
+    from .subcontract import Subcontract
 
 
 class OrderStatus(str, enum.Enum):
@@ -118,6 +119,11 @@ class Order(Base, UUIDPKMixin, TimestampMixin):
         "Operation",
         back_populates="order",
         order_by="Operation.sequence",
+        cascade="all, delete-orphan",
+    )
+    subcontracts: Mapped[list["Subcontract"]] = relationship(
+        "Subcontract",
+        back_populates="order",
         cascade="all, delete-orphan",
     )
 

@@ -227,3 +227,61 @@ class CustomerService:
         await self.db.flush()
 
         return True
+
+    async def gdpr_anonymize(self, customer_id: UUID) -> Customer | None:
+        """Anonymize customer personal data per GDPR request.
+
+        Keeps order history for accounting, but anonymizes PII:
+        - company_name → "GDPR Anonymizováno"
+        - email → None
+        - phone → None
+        - address → None
+        - contact_name → "GDPR Anonymizováno"
+        - ico, dic → None
+
+        Args:
+            customer_id: Customer UUID
+
+        Returns:
+            Anonymized customer instance or None if not found
+        """
+        customer = await self.get_by_id(customer_id)
+        if not customer:
+            return None
+
+        # Track anonymized fields for audit
+        anonymized_fields = [
+            "company_name",
+            "email",
+            "phone",
+            "address",
+            "contact_name",
+            "ico",
+            "dic",
+        ]
+
+        # Anonymize PII fields
+        customer.company_name = "GDPR Anonymizováno"
+        customer.email = "gdpr-anonymized@invalid.local"
+        customer.phone = None
+        customer.address = None
+        customer.contact_name = "GDPR Anonymizováno"
+        customer.ico = "00000000"
+        customer.dic = None
+
+        await self.db.flush()
+        await self.db.refresh(customer)
+
+        # Audit trail
+        await self._create_audit_log(
+            action=AuditAction.UPDATE,
+            entity_id=customer.id,
+            changes={
+                "gdpr_anonymization": {
+                    "anonymized_fields": anonymized_fields,
+                    "timestamp": datetime.now(UTC).isoformat(),
+                }
+            },
+        )
+
+        return customer

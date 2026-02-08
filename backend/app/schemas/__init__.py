@@ -22,6 +22,7 @@ from .customer import (
     CustomerCreate,
     CustomerResponse,
     CustomerUpdate,
+    GDPRDeleteResponse,
 )
 from .document import DocumentResponse, DocumentUpdate, DocumentUpload
 from .drawing import (
@@ -96,6 +97,7 @@ __all__ = [
     "CustomerUpdate",
     "CustomerCategoryUpdate",
     "CustomerResponse",
+    "GDPRDeleteResponse",
     # Order
     "OrderCreate",
     "OrderUpdate",

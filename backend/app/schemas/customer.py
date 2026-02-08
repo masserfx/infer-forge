@@ -108,3 +108,11 @@ class CustomerResponse(CustomerBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class GDPRDeleteResponse(BaseModel):
+    """Schema for GDPR data deletion response."""
+
+    customer_id: UUID
+    anonymized_fields: list[str]
+    message: str

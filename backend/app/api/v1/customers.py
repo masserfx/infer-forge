@@ -7,7 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_role
 from app.models.user import User, UserRole
-from app.schemas import CustomerCategoryUpdate, CustomerCreate, CustomerResponse, CustomerUpdate
+from app.schemas import (
+    CustomerCategoryUpdate,
+    CustomerCreate,
+    CustomerResponse,
+    CustomerUpdate,
+    GDPRDeleteResponse,
+)
 from app.services import CustomerService
 
 router = APIRouter(prefix="/zakaznici", tags=["Zákazníci"])
@@ -111,3 +117,46 @@ async def update_customer_category(
         )
     await db.commit()
     return CustomerResponse.model_validate(customer)
+
+
+@router.post("/{customer_id}/gdpr-delete", response_model=GDPRDeleteResponse)
+async def gdpr_delete_customer(
+    customer_id: UUID,
+    user: User = Depends(require_role(UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> GDPRDeleteResponse:
+    """Anonymize customer personal data per GDPR request.
+
+    Keeps order history for accounting, but anonymizes PII:
+    - company_name → "GDPR Anonymizováno"
+    - email → "gdpr-anonymized@invalid.local"
+    - phone → None
+    - address → None
+    - contact_name → "GDPR Anonymizováno"
+    - ico → "00000000"
+    - dic → None
+
+    Requires VEDENI role.
+    """
+    service = CustomerService(db, user_id=user.id)
+    customer = await service.gdpr_anonymize(customer_id)
+    if not customer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Customer {customer_id} not found",
+        )
+    await db.commit()
+
+    return GDPRDeleteResponse(
+        customer_id=customer.id,
+        anonymized_fields=[
+            "company_name",
+            "email",
+            "phone",
+            "address",
+            "contact_name",
+            "ico",
+            "dic",
+        ],
+        message="Osobní údaje zákazníka byly anonymizovány v souladu s GDPR. Historie zakázek zachována pro účetní trasovatelnost.",
+    )

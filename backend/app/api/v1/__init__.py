@@ -1,6 +1,16 @@
 """API v1 routers."""
 
-from app.api.v1 import auth, calculations, customers, documents, inbox, orders, pohoda, reporting
+from app.api.v1 import (
+    auth,
+    calculations,
+    customers,
+    documents,
+    inbox,
+    orders,
+    pohoda,
+    reporting,
+    subcontractors,
+)
 
 __all__ = [
     "auth",
@@ -11,4 +21,5 @@ __all__ = [
     "orders",
     "pohoda",
     "reporting",
+    "subcontractors",
 ]

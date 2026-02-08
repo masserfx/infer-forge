@@ -13,6 +13,8 @@ from .operation import Operation, OperationStatus
 from .order import Order, OrderItem, OrderPriority, OrderStatus
 from .order_embedding import OrderEmbedding
 from .pohoda_sync import PohodaSyncLog, SyncDirection, SyncStatus
+from .subcontract import Subcontract, SubcontractStatus
+from .subcontractor import Subcontractor
 from .user import User, UserRole
 from .user_points import PointsAction, PointsPeriod, UserPoints
 
@@ -67,4 +69,8 @@ __all__ = [
     "UserPoints",
     "PointsAction",
     "PointsPeriod",
+    # Subcontractor
+    "Subcontractor",
+    "Subcontract",
+    "SubcontractStatus",
 ]
