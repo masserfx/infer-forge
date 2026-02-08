@@ -155,3 +155,60 @@ class TestHeuristicClassifier:
         )
         assert result is not None
         assert result.needs_escalation is False
+
+    # ── ASCII variants (without diacritics) ──
+
+    def test_poptavka_ascii_poptavame(self):
+        """Classify 'poptavame' (without háčky) as poptavka."""
+        result = self.classifier.classify(
+            subject="Poptavame potrubni dily",
+            body="Dobry den, poptavame kolena DN200 PN16.",
+            has_attachments=False,
+            body_length=50,
+        )
+        assert result is not None
+        assert result.category == "poptavka"
+
+    def test_poptavka_ascii_cenovou_nabidku(self):
+        """Classify 'cenovou nabidku' (ASCII) as poptavka."""
+        result = self.classifier.classify(
+            subject="Prosba",
+            body="Prosim o cenovou nabidku na svarence dle vykresu.",
+            has_attachments=False,
+            body_length=60,
+        )
+        assert result is not None
+        assert result.category == "poptavka"
+
+    def test_objednavka_ascii_objednavame(self):
+        """Classify 'objednavame' (ASCII) as objednavka."""
+        result = self.classifier.classify(
+            subject="Objednavame material",
+            body="Dobry den, objednavame 50ks kolen.",
+            has_attachments=False,
+            body_length=50,
+        )
+        assert result is not None
+        assert result.category == "objednavka"
+
+    def test_reklamace_ascii_stiznost(self):
+        """Classify 'stiznost' (ASCII) as reklamace."""
+        result = self.classifier.classify(
+            subject="Stiznost na dodavku",
+            body="Mame stiznost ohledne kvality vyrobku.",
+            has_attachments=False,
+            body_length=50,
+        )
+        assert result is not None
+        assert result.category == "reklamace"
+
+    def test_faktura_ascii_danovy_doklad(self):
+        """Classify 'danovy doklad' (ASCII) as faktura."""
+        result = self.classifier.classify(
+            subject="Danovy doklad 2026/001",
+            body="V priloze zasilame danovy doklad na castku 150 000 Kc se splatnosti 30 dnu.",
+            has_attachments=True,
+            body_length=120,
+        )
+        assert result is not None
+        assert result.category == "faktura"

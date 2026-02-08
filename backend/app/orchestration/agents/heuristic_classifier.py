@@ -14,22 +14,24 @@ from app.agents.email_classifier import ClassificationResult
 
 logger = structlog.get_logger(__name__)
 
-# Compiled regex patterns for Czech email classification (case-insensitive)
+# Compiled regex patterns for Czech email classification (case-insensitive).
+# Each pattern includes both diacritics and ASCII variants so that emails
+# written without háčky/čárky are also matched correctly.
 _OBJEDNAVKA_PATTERNS = [
-    re.compile(r"objednáváme", re.IGNORECASE),
+    re.compile(r"objedn[aá]v[aá]me", re.IGNORECASE),
     re.compile(r"potvrzujeme\s+objedn", re.IGNORECASE),
-    re.compile(r"objednávka\s+číslo", re.IGNORECASE),
-    re.compile(r"objednávka\s+č\.", re.IGNORECASE),
-    re.compile(r"objednací\s+list", re.IGNORECASE),
+    re.compile(r"objedn[aá]vka\s+[cč][ií]slo", re.IGNORECASE),
+    re.compile(r"objedn[aá]vka\s+[cč]\.", re.IGNORECASE),
+    re.compile(r"objedn[aá]c[ií]\s+list", re.IGNORECASE),
 ]
 
 _POPTAVKA_PATTERNS = [
-    re.compile(r"poptáváme", re.IGNORECASE),
-    re.compile(r"cenovou\s+nabídku", re.IGNORECASE),
-    re.compile(r"prosím\s+o\s+nabídku", re.IGNORECASE),
-    re.compile(r"žádáme\s+o\s+cenovou", re.IGNORECASE),
-    re.compile(r"žádost\s+o\s+nabídku", re.IGNORECASE),
-    re.compile(r"poptávka\s+(č|číslo)", re.IGNORECASE),
+    re.compile(r"popt[aá]v[aá]me", re.IGNORECASE),
+    re.compile(r"cenovou\s+nab[ií]dku", re.IGNORECASE),
+    re.compile(r"pros[ií]m\s+o\s+nab[ií]dku", re.IGNORECASE),
+    re.compile(r"[zž][aá]d[aá]me\s+o\s+cenovou", re.IGNORECASE),
+    re.compile(r"[zž][aá]dost\s+o\s+nab[ií]dku", re.IGNORECASE),
+    re.compile(r"popt[aá]vka\s+([cč]|[cč][ií]slo)", re.IGNORECASE),
     re.compile(r"ocenit", re.IGNORECASE),
 ]
 
@@ -37,21 +39,22 @@ _REKLAMACE_PATTERNS = [
     re.compile(r"reklamac", re.IGNORECASE),
     re.compile(r"neshod", re.IGNORECASE),
     re.compile(r"vad[ay]", re.IGNORECASE),
-    re.compile(r"stížnost", re.IGNORECASE),
-    re.compile(r"vrácení\s+zboží", re.IGNORECASE),
+    re.compile(r"st[ií][zž]nost", re.IGNORECASE),
+    re.compile(r"vr[aá]cen[ií]\s+zbo[zž][ií]", re.IGNORECASE),
+    re.compile(r"nekvalitni", re.IGNORECASE),
     re.compile(r"nekvalitní", re.IGNORECASE),
 ]
 
 _OBCHODNI_SDELENI_PATTERNS = [
     re.compile(r"newsletter", re.IGNORECASE),
     re.compile(r"unsubscribe", re.IGNORECASE),
-    re.compile(r"odhlásit\s+se", re.IGNORECASE),
-    re.compile(r"zasílání\s+novinek", re.IGNORECASE),
+    re.compile(r"odhl[aá]sit\s+se", re.IGNORECASE),
+    re.compile(r"zas[ií]l[aá]n[ií]\s+novinek", re.IGNORECASE),
 ]
 
 _FAKTURA_PATTERNS = [
-    re.compile(r"faktura\s+(č|číslo)", re.IGNORECASE),
-    re.compile(r"daňový\s+doklad", re.IGNORECASE),
+    re.compile(r"faktura\s+([cč]|[cč][ií]slo)", re.IGNORECASE),
+    re.compile(r"da[nň]ov[yý]\s+doklad", re.IGNORECASE),
     re.compile(r"splatnost.*\d+.*dn", re.IGNORECASE),
 ]
 
