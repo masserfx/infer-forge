@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import time
 from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 
 from app.core.database import AsyncSessionLocal
@@ -17,6 +18,36 @@ router = APIRouter(prefix="/orchestrace", tags=["orchestrace"])
 
 
 # ─── Schemas ───────────────────────────────────────────────────
+
+class TestEmailAttachment(BaseModel):
+    filename: str
+    content_type: str = "application/octet-stream"
+    data_base64: str = Field(description="Base64-encoded file content")
+
+
+class TestEmailRequest(BaseModel):
+    from_email: str = Field(description="Sender email address")
+    subject: str = Field(description="Email subject")
+    body_text: str = Field(description="Email body text")
+    attachments: list[TestEmailAttachment] = Field(default_factory=list)
+    references_header: str | None = None
+    in_reply_to_header: str | None = None
+
+
+class TestEmailResponse(BaseModel):
+    pipeline_stages: list[dict]
+    inbox_message_id: str | None = None
+    classification: str | None = None
+    classification_confidence: float | None = None
+    classification_method: str | None = None
+    routed_stages: list[str] = Field(default_factory=list)
+    customer_id: str | None = None
+    order_id: str | None = None
+    order_number: str | None = None
+    attachment_count: int = 0
+    total_time_ms: int = 0
+    errors: list[str] = Field(default_factory=list)
+
 
 class DLQEntryResponse(BaseModel):
     id: str
@@ -310,3 +341,270 @@ async def get_pipeline_stats():
             error_rate=error_rate,
             dlq_unresolved=dlq_unresolved,
         )
+
+
+# ─── Test Email Endpoint ─────────────────────────────────────
+
+
+@router.post("/test-email", response_model=TestEmailResponse)
+async def test_email_pipeline(body: TestEmailRequest):
+    """Simulate email arrival and run the full orchestration pipeline.
+
+    Runs all stages synchronously (no Celery) so the result is immediate.
+    Useful for testing the pipeline without IMAP configuration.
+    """
+    from uuid import uuid4
+
+    start = time.time()
+    stages: list[dict] = []
+    errors: list[str] = []
+    result = TestEmailResponse(pipeline_stages=[], attachment_count=len(body.attachments))
+
+    # ── Stage 1: Ingestion ──────────────────────────────────
+    try:
+        t0 = time.time()
+        from app.orchestration.agents.email_ingestion import EmailIngestionAgent
+
+        agent = EmailIngestionAgent()
+        raw_email_data = {
+            "message_id": f"<test-{uuid4()}@infer-forge-test>",
+            "from_email": body.from_email,
+            "subject": body.subject,
+            "body_text": body.body_text,
+            "received_at": datetime.now(UTC).isoformat(),
+            "attachments": [
+                {
+                    "filename": att.filename,
+                    "content_type": att.content_type,
+                    "data_b64": att.data_base64,
+                }
+                for att in body.attachments
+            ],
+            "references_header": body.references_header,
+            "in_reply_to_header": body.in_reply_to_header,
+        }
+
+        ingest_result = await agent.process_from_dict(raw_email_data)
+        elapsed = int((time.time() - t0) * 1000)
+        stages.append({
+            "stage": "ingest",
+            "status": "success",
+            "time_ms": elapsed,
+            "inbox_message_id": ingest_result["inbox_message_id"],
+            "attachments": len(ingest_result.get("attachment_ids", [])),
+            "thread_id": ingest_result.get("thread_id"),
+        })
+        result.inbox_message_id = ingest_result["inbox_message_id"]
+
+    except Exception as e:
+        errors.append(f"Ingestion failed: {e}")
+        stages.append({"stage": "ingest", "status": "failed", "error": str(e)})
+        result.pipeline_stages = stages
+        result.errors = errors
+        result.total_time_ms = int((time.time() - start) * 1000)
+        return result
+
+    # ── Stage 2: Classification ─────────────────────────────
+    try:
+        t0 = time.time()
+        from app.orchestration.agents.heuristic_classifier import HeuristicClassifier
+
+        hc = HeuristicClassifier()
+        hc_result = hc.classify(
+            subject=body.subject,
+            body=body.body_text,
+            has_attachments=len(body.attachments) > 0,
+            body_length=len(body.body_text),
+        )
+
+        if hc_result:
+            classification = hc_result.category
+            confidence = hc_result.confidence
+            method = "heuristic"
+        else:
+            # Fallback: try AI classifier if available
+            try:
+                from app.core.config import get_settings
+
+                settings = get_settings()
+                if settings.ANTHROPIC_API_KEY:
+                    from app.agents.email_classifier import EmailClassifier
+
+                    classifier = EmailClassifier()
+                    ai_result = await classifier.classify(
+                        subject=body.subject,
+                        body=body.body_text,
+                        from_email=body.from_email,
+                    )
+                    classification = ai_result.category
+                    confidence = ai_result.confidence
+                    method = "ai_claude"
+                else:
+                    classification = "dotaz"
+                    confidence = 0.5
+                    method = "default_fallback"
+            except Exception:
+                classification = "dotaz"
+                confidence = 0.5
+                method = "default_fallback"
+
+        elapsed = int((time.time() - t0) * 1000)
+        stages.append({
+            "stage": "classify",
+            "status": "success",
+            "time_ms": elapsed,
+            "category": classification,
+            "confidence": confidence,
+            "method": method,
+        })
+        result.classification = classification
+        result.classification_confidence = confidence
+        result.classification_method = method
+
+    except Exception as e:
+        errors.append(f"Classification failed: {e}")
+        stages.append({"stage": "classify", "status": "failed", "error": str(e)})
+        result.pipeline_stages = stages
+        result.errors = errors
+        result.total_time_ms = int((time.time() - start) * 1000)
+        return result
+
+    # ── Stage 3: Routing ────────────────────────────────────
+    try:
+        from app.orchestration.router import route_classification
+
+        routed_stages = route_classification(
+            classification=classification,
+            confidence=confidence,
+            has_attachments=len(body.attachments) > 0,
+        )
+        stages.append({
+            "stage": "route",
+            "status": "success",
+            "routed_to": routed_stages,
+        })
+        result.routed_stages = routed_stages
+
+    except Exception as e:
+        errors.append(f"Routing failed: {e}")
+        stages.append({"stage": "route", "status": "failed", "error": str(e)})
+        routed_stages = []
+
+    # ── Stage 4: Attachment Processing ──────────────────────
+    if "process_attachments" in routed_stages and ingest_result.get("attachment_ids"):
+        try:
+            t0 = time.time()
+            from app.models.email_attachment import EmailAttachment
+            from app.orchestration.agents.attachment_processor import AttachmentProcessor
+
+            ap = AttachmentProcessor()
+            att_results = []
+            for att_id_str in ingest_result["attachment_ids"]:
+                async with AsyncSessionLocal() as session:
+                    att_row = (await session.execute(
+                        select(EmailAttachment).where(
+                            EmailAttachment.id == UUID(att_id_str)
+                        )
+                    )).scalar_one()
+
+                try:
+                    att_result = await ap.process(
+                        attachment_id=UUID(att_id_str),
+                        file_path=att_row.file_path,
+                        content_type=att_row.content_type,
+                        filename=att_row.filename,
+                    )
+                    att_results.append(att_result)
+                except Exception as att_err:
+                    att_results.append({"error": str(att_err), "filename": att_row.filename})
+
+            elapsed = int((time.time() - t0) * 1000)
+            stages.append({
+                "stage": "process_attachments",
+                "status": "success",
+                "time_ms": elapsed,
+                "results": att_results,
+            })
+        except Exception as e:
+            errors.append(f"Attachment processing failed: {e}")
+            stages.append({"stage": "process_attachments", "status": "failed", "error": str(e)})
+
+    # ── Stage 5: Order Orchestration ────────────────────────
+    if "orchestrate_order" in routed_stages:
+        try:
+            t0 = time.time()
+            from app.orchestration.agents.order_orchestrator import OrderOrchestrator
+
+            oo = OrderOrchestrator()
+            orch_result = await oo.process(
+                inbox_message_id=UUID(ingest_result["inbox_message_id"]),
+                parsed_data={
+                    "classification": classification,
+                    "company_name": None,
+                    "contact_email": body.from_email,
+                    "ico": None,
+                },
+            )
+            elapsed = int((time.time() - t0) * 1000)
+            stages.append({
+                "stage": "orchestrate_order",
+                "status": "success",
+                "time_ms": elapsed,
+                "customer_id": orch_result.get("customer_id"),
+                "order_id": orch_result.get("order_id"),
+                "order_number": orch_result.get("order_number"),
+                "customer_created": orch_result.get("customer_created"),
+                "order_created": orch_result.get("order_created"),
+                "next_stage": orch_result.get("next_stage"),
+            })
+            result.customer_id = orch_result.get("customer_id")
+            result.order_id = orch_result.get("order_id")
+            result.order_number = orch_result.get("order_number")
+
+        except Exception as e:
+            errors.append(f"Order orchestration failed: {e}")
+            stages.append({"stage": "orchestrate_order", "status": "failed", "error": str(e)})
+
+    # ── Stage 6: Archive ────────────────────────────────────
+    if "archive" in routed_stages:
+        try:
+            from app.models.inbox import InboxMessage, InboxStatus
+
+            async with AsyncSessionLocal() as session:
+                msg = (await session.execute(
+                    select(InboxMessage).where(
+                        InboxMessage.id == UUID(ingest_result["inbox_message_id"])
+                    )
+                )).scalar_one()
+                msg.status = InboxStatus.ARCHIVED
+                await session.commit()
+
+            stages.append({"stage": "archive", "status": "success"})
+        except Exception as e:
+            errors.append(f"Archive failed: {e}")
+            stages.append({"stage": "archive", "status": "failed", "error": str(e)})
+
+    # ── Stage 7: Escalate ───────────────────────────────────
+    if "escalate" in routed_stages:
+        try:
+            from app.models.inbox import InboxMessage, InboxStatus
+
+            async with AsyncSessionLocal() as session:
+                msg = (await session.execute(
+                    select(InboxMessage).where(
+                        InboxMessage.id == UUID(ingest_result["inbox_message_id"])
+                    )
+                )).scalar_one()
+                msg.status = InboxStatus.ESCALATED
+                msg.needs_review = True
+                await session.commit()
+
+            stages.append({"stage": "escalate", "status": "success"})
+        except Exception as e:
+            errors.append(f"Escalate failed: {e}")
+            stages.append({"stage": "escalate", "status": "failed", "error": str(e)})
+
+    result.pipeline_stages = stages
+    result.errors = errors
+    result.total_time_ms = int((time.time() - start) * 1000)
+    return result
