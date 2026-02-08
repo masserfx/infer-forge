@@ -430,7 +430,7 @@ async def test_email_pipeline(body: TestEmailRequest):
                 if settings.ANTHROPIC_API_KEY:
                     from app.agents.email_classifier import EmailClassifier
 
-                    classifier = EmailClassifier()
+                    classifier = EmailClassifier(api_key=settings.ANTHROPIC_API_KEY)
                     ai_result = await classifier.classify(
                         subject=body.subject,
                         body=body.body_text,
