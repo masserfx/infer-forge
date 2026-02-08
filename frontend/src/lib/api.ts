@@ -15,6 +15,7 @@ import type {
   DocumentCategory,
   InboxMessage,
   LoginResponse,
+  Notification,
   Order,
   OrderStatus,
   PipelineReport,
@@ -397,4 +398,52 @@ export async function getCustomerReport(limit?: number): Promise<CustomerReport>
   if (limit) searchParams.set("limit", String(limit));
   const qs = searchParams.toString();
   return fetchApi<CustomerReport>(`/reporting/customers${qs ? `?${qs}` : ""}`);
+}
+
+// --- Similar Orders (RAG) ---
+
+export interface SimilarOrderResult {
+  order_id: string;
+  order_number: string;
+  status: string;
+  priority: string;
+  customer_name: string | null;
+  similarity: number;
+  note: string | null;
+}
+
+export interface SimilarOrdersResponse {
+  order_id: string;
+  similar_orders: SimilarOrderResult[];
+  total: number;
+}
+
+export async function getSimilarOrders(orderId: string): Promise<SimilarOrdersResponse> {
+  return fetchApi<SimilarOrdersResponse>(`/zakazky/${orderId}/similar`);
+}
+
+// --- Notifications ---
+
+export async function getNotifications(params?: {
+  unread_only?: boolean;
+  skip?: number;
+  limit?: number;
+}): Promise<{ items: Notification[]; unread_count: number }> {
+  const searchParams = new URLSearchParams();
+  if (params?.unread_only) searchParams.set("unread_only", "true");
+  if (params?.skip) searchParams.set("skip", String(params.skip));
+  if (params?.limit) searchParams.set("limit", String(params.limit));
+  const qs = searchParams.toString();
+  return fetchApi(`/notifikace${qs ? `?${qs}` : ""}`);
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  await fetchApi("/notifikace/read", {
+    method: "POST",
+    body: JSON.stringify([id]),
+  });
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  await fetchApi("/notifikace/read-all", { method: "POST" });
 }

@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from .calculation import Calculation
     from .customer import Customer
     from .offer import Offer
+    from .order_embedding import OrderEmbedding
 
 
 class OrderStatus(str, enum.Enum):
@@ -92,6 +93,12 @@ class Order(Base, UUIDPKMixin, TimestampMixin):
     calculations: Mapped[list["Calculation"]] = relationship(
         "Calculation",
         back_populates="order",
+        cascade="all, delete-orphan",
+    )
+    embedding: Mapped["OrderEmbedding | None"] = relationship(
+        "OrderEmbedding",
+        back_populates="order",
+        uselist=False,
         cascade="all, delete-orphan",
     )
 

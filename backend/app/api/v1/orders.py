@@ -9,7 +9,8 @@ from app.api.deps import get_current_user, get_db, require_role
 from app.models import OrderStatus
 from app.models.user import User, UserRole
 from app.schemas import OrderCreate, OrderResponse, OrderStatusUpdate, OrderUpdate
-from app.services import OrderService
+from app.schemas.embedding import SimilarOrderResult, SimilarOrdersResponse, SimilarSearchRequest
+from app.services import EmbeddingService, OrderService
 
 router = APIRouter(prefix="/zakazky", tags=["Zakázky"])
 
@@ -114,3 +115,31 @@ async def update_order_status(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         ) from e
+
+
+@router.get("/{order_id}/similar", response_model=SimilarOrdersResponse)
+async def get_similar_orders(
+    order_id: UUID,
+    limit: int = Query(default=5, ge=1, le=20, description="Max similar orders"),
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SimilarOrdersResponse:
+    """Find similar orders using vector similarity search."""
+    service = EmbeddingService(db)
+    similar = await service.find_similar(order_id, limit=limit)
+    return SimilarOrdersResponse(
+        order_id=str(order_id),
+        similar_orders=similar,
+        total=len(similar),
+    )
+
+
+@router.post("/search/similar", response_model=list[SimilarOrderResult])
+async def search_similar_orders(
+    request: SimilarSearchRequest,
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[SimilarOrderResult]:
+    """Search orders by text similarity."""
+    service = EmbeddingService(db)
+    return await service.search_by_text(request.query, limit=request.limit)

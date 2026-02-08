@@ -10,7 +10,8 @@ from app.api.deps import get_current_user, get_db, require_role
 from app.models import DocumentCategory
 from app.models.user import User, UserRole
 from app.schemas import DocumentResponse, DocumentUpdate, DocumentUpload
-from app.services import DocumentService
+from app.schemas.document_generator import GenerateOfferRequest, GenerateProductionSheetRequest
+from app.services import DocumentGeneratorService, DocumentService
 
 router = APIRouter(prefix="/dokumenty", tags=["Dokumenty"])
 
@@ -185,3 +186,63 @@ async def delete_document(
             detail=f"Document {document_id} not found",
         )
     await db.commit()
+
+
+@router.post("/generate/offer/{order_id}")
+async def generate_offer(
+    order_id: UUID,
+    request: GenerateOfferRequest | None = None,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Generate offer PDF for an order."""
+    service = DocumentGeneratorService(db)
+    req = request or GenerateOfferRequest()
+    try:
+        pdf_bytes = await service.generate_offer_pdf(
+            order_id=order_id,
+            valid_days=req.valid_days,
+            note=req.note,
+        )
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="nabidka_{order_id}.pdf"',
+            },
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
+
+
+@router.post("/generate/production-sheet/{order_id}")
+async def generate_production_sheet(
+    order_id: UUID,
+    request: GenerateProductionSheetRequest | None = None,
+    _user: User = Depends(require_role(UserRole.TECHNOLOG, UserRole.VEDENI)),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Generate production sheet PDF for an order."""
+    service = DocumentGeneratorService(db)
+    req = request or GenerateProductionSheetRequest()
+    try:
+        pdf_bytes = await service.generate_production_sheet_pdf(
+            order_id=order_id,
+            include_controls=req.include_controls,
+            note=req.note,
+        )
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="pruvodka_{order_id}.pdf"',
+            },
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e

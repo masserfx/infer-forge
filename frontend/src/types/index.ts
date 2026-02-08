@@ -366,3 +366,33 @@ export interface DashboardStats {
   overdue_orders: number;
   pipeline: PipelineReport;
 }
+
+// --- Notifications ---
+
+export type NotificationType =
+  | "EMAIL_NEW"
+  | "EMAIL_CLASSIFIED"
+  | "POHODA_SYNC_COMPLETE"
+  | "CALCULATION_COMPLETE"
+  | "ORDER_STATUS_CHANGED"
+  | "DOCUMENT_UPLOADED";
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  link: string | null;
+  read: boolean;
+  created_at: string;
+}
+
+export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
+  EMAIL_NEW: "Nový email",
+  EMAIL_CLASSIFIED: "Email klasifikován",
+  POHODA_SYNC_COMPLETE: "Synchronizace Pohoda",
+  CALCULATION_COMPLETE: "Kalkulace dokončena",
+  ORDER_STATUS_CHANGED: "Změna stavu zakázky",
+  DOCUMENT_UPLOADED: "Nový dokument",
+};

@@ -6,8 +6,10 @@ from .calculation import Calculation, CalculationItem, CalculationStatus, CostTy
 from .customer import Customer
 from .document import Document, DocumentCategory
 from .inbox import InboxClassification, InboxMessage, InboxStatus
+from .notification import Notification, NotificationType
 from .offer import Offer, OfferStatus
 from .order import Order, OrderItem, OrderPriority, OrderStatus
+from .order_embedding import OrderEmbedding
 from .pohoda_sync import PohodaSyncLog, SyncDirection, SyncStatus
 from .user import User, UserRole
 
@@ -38,6 +40,11 @@ __all__ = [
     "InboxMessage",
     "InboxClassification",
     "InboxStatus",
+    # Notification
+    "Notification",
+    "NotificationType",
+    # OrderEmbedding
+    "OrderEmbedding",
     # Audit
     "AuditLog",
     "AuditAction",

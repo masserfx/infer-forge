@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Cenová nabídka - {{ order.number }}{% endblock %}
+
+{% block content %}
+<h2 class="doc-title">Cenová nabídka č. {{ order.number }}</h2>
+
+<div class="info-grid">
+    <div class="info-box">
+        <h3>Dodavatel</h3>
+        <p><strong>{{ company.name }}</strong></p>
+        <p>{{ company.address }}</p>
+        <p><span class="label">IČO:</span> {{ company.ico }}</p>
+        <p><span class="label">DIČ:</span> {{ company.dic }}</p>
+        <p><span class="label">Tel:</span> {{ company.phone }}</p>
+        <p><span class="label">Email:</span> {{ company.email }}</p>
+        <p><span class="label">Účet:</span> {{ company.bank }}</p>
+    </div>
+    <div class="info-box">
+        <h3>Odběratel</h3>
+        <p><strong>{{ customer.company_name }}</strong></p>
+        {% if customer.address %}
+        <p>{{ customer.address }}</p>
+        {% endif %}
+        <p><span class="label">IČO:</span> {{ customer.ico }}</p>
+        {% if customer.dic %}
+        <p><span class="label">DIČ:</span> {{ customer.dic }}</p>
+        {% endif %}
+        <p><span class="label">Kontakt:</span> {{ customer.contact_name }}</p>
+        <p><span class="label">Email:</span> {{ customer.email }}</p>
+        {% if customer.phone %}
+        <p><span class="label">Tel:</span> {{ customer.phone }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="info-box" style="margin: 15px 0;">
+    <h3>Údaje nabídky</h3>
+    <p><span class="label">Datum:</span> {{ today }}</p>
+    <p><span class="label">Platnost do:</span> {{ valid_until }} ({{ valid_days }} dní)</p>
+    {% if order.due_date %}
+    <p><span class="label">Termín:</span> {{ order.due_date.strftime('%d.%m.%Y') if order.due_date else 'Dle dohody' }}</p>
+    {% endif %}
+</div>
+
+<h3 style="color: #1e3a5f; margin: 20px 0 10px;">Specifikace položek</h3>
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Název</th>
+            <th>Materiál</th>
+            <th>DN/PN</th>
+            <th>Množství</th>
+            <th>Jednotka</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.material or '-' }}</td>
+            <td>{{ item.dn or '-' }}/{{ item.pn or '-' }}</td>
+            <td style="text-align: right;">{{ item.quantity }}</td>
+            <td>{{ item.unit }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if calculation %}
+<h3 style="color: #1e3a5f; margin: 20px 0 10px;">Kalkulace</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Typ nákladu</th>
+            <th style="text-align: right;">Částka (Kč)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Materiál</td>
+            <td style="text-align: right;">{{ format_price(calculation.material_total) }}</td>
+        </tr>
+        <tr>
+            <td>Práce</td>
+            <td style="text-align: right;">{{ format_price(calculation.labor_total) }}</td>
+        </tr>
+        <tr>
+            <td>Kooperace</td>
+            <td style="text-align: right;">{{ format_price(calculation.cooperation_total) }}</td>
+        </tr>
+        <tr>
+            <td>Režie</td>
+            <td style="text-align: right;">{{ format_price(calculation.overhead_total) }}</td>
+        </tr>
+        <tr>
+            <td>Marže ({{ calculation.margin_percent }}%)</td>
+            <td style="text-align: right;">{{ format_price(calculation.margin_amount) }}</td>
+        </tr>
+        <tr class="total-row">
+            <td>Celková cena bez DPH</td>
+            <td style="text-align: right;">{{ format_price(calculation.total_price) }} Kč</td>
+        </tr>
+    </tbody>
+</table>
+{% else %}
+<div class="note">
+    <strong>Cena:</strong> {{ total_price }}
+</div>
+{% endif %}
+
+{% if note %}
+<div class="note">
+    <strong>Poznámka:</strong> {{ note }}
+</div>
+{% endif %}
+
+<h3 style="color: #1e3a5f; margin: 20px 0 10px;">Obchodní podmínky</h3>
+<div style="font-size: 9pt;">
+    <p>1. Ceny jsou uvedeny bez DPH.</p>
+    <p>2. Platební podmínky: 14 dní od data fakturace.</p>
+    <p>3. Dodací podmínky: Dle vzájemné dohody, obvykle 4-6 týdnů od potvrzení objednávky.</p>
+    <p>4. Záruční podmínky: 24 měsíců od data předání.</p>
+    <p>5. Nabídka je platná {{ valid_days }} dní od data vystavení.</p>
+    <p>6. Součástí dodávky jsou materiálové atestace dle EN 10204 3.1.</p>
+</div>
+
+<div class="signature-grid">
+    <div class="signature-box">
+        <div class="signature-line">Za dodavatele</div>
+    </div>
+    <div class="signature-box">
+        <div class="signature-line">Za odběratele</div>
+    </div>
+</div>
+{% endblock %}

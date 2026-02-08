@@ -31,6 +31,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-provider";
 import { ROLE_LABELS } from "@/types";
+import { NotificationBell } from "@/components/layout/notification-bell";
 
 interface NavItem {
   href: string;
@@ -135,6 +136,7 @@ export function Header() {
 
       {/* User menu */}
       <div className="flex items-center gap-4">
+        <NotificationBell />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2">

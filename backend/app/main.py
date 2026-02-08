@@ -37,10 +37,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await init_db()
         logger.info("database_initialized")
 
+    # Initialize WebSocket manager with Redis pub/sub
+    from app.core.websocket import manager
+
+    await manager.initialize()
+    logger.info("websocket_manager_initialized")
+
     yield
 
     # Shutdown
     logger.info("application_shutdown")
+    await manager.close()
     await close_db()
 
 
@@ -68,6 +75,11 @@ app.add_middleware(
 from app.core.middleware import RequestLoggingMiddleware
 
 app.add_middleware(RequestLoggingMiddleware)
+
+# Prometheus metrics middleware
+from app.core.prometheus_middleware import PrometheusMiddleware
+
+app.add_middleware(PrometheusMiddleware)
 
 
 @app.get("/", status_code=status.HTTP_200_OK)
@@ -134,8 +146,33 @@ async def health_check_redis() -> dict[str, Any]:
     return await check_redis()
 
 
+# Prometheus metrics endpoint
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from starlette.responses import Response as StarletteResponse
+
+
+@app.get("/metrics")
+async def metrics() -> StarletteResponse:
+    """Prometheus metrics endpoint."""
+    return StarletteResponse(
+        content=generate_latest(),
+        media_type=CONTENT_TYPE_LATEST,
+    )
+
+
 # API v1 routes
-from app.api.v1 import auth, calculations, customers, documents, inbox, orders, pohoda, reporting
+from app.api.v1 import (
+    auth,
+    calculations,
+    customers,
+    documents,
+    inbox,
+    notifications,
+    orders,
+    pohoda,
+    reporting,
+    websocket,
+)
 
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(customers.router, prefix="/api/v1")
@@ -145,6 +182,8 @@ app.include_router(documents.router, prefix="/api/v1")
 app.include_router(inbox.router, prefix="/api/v1")
 app.include_router(pohoda.router, prefix="/api/v1")
 app.include_router(reporting.router, prefix="/api/v1")
+app.include_router(notifications.router, prefix="/api/v1")
+app.include_router(websocket.router)
 
 if __name__ == "__main__":
     import uvicorn

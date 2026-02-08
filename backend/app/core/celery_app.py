@@ -19,6 +19,7 @@ celery_app = Celery(
         "app.integrations.email.tasks",
         "app.integrations.pohoda.tasks",
         "app.agents.tasks",
+        "app.services.embedding_tasks",
     ],
 )
 

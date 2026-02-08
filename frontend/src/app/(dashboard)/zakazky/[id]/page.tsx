@@ -4,6 +4,8 @@ import { OrderDetail } from "@/components/zakazky/order-detail";
 import { OrderItemsTable } from "@/components/zakazky/order-items-table";
 import { OrderDocuments } from "@/components/zakazky/order-documents";
 import { OrderCalculations } from "@/components/zakazky/order-calculations";
+import { SimilarOrders } from "@/components/zakazky/similar-orders";
+import { DocumentGenerator } from "@/components/zakazky/document-generator";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getOrder } from "@/lib/api";
@@ -99,6 +101,13 @@ export default function OrderDetailPage({ params }: PageProps) {
       <Separator className="my-2" />
 
       <OrderDocuments entityType="order" entityId={order.id} />
+
+      <Separator className="my-2" />
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <DocumentGenerator orderId={order.id} />
+        <SimilarOrders orderId={order.id} />
+      </div>
     </div>
   );
 }

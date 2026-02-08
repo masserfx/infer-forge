@@ -19,7 +19,9 @@ from .calculation import (
 )
 from .customer import CustomerCreate, CustomerResponse, CustomerUpdate
 from .document import DocumentResponse, DocumentUpdate, DocumentUpload
+from .embedding import SimilarOrderResult, SimilarOrdersResponse, SimilarSearchRequest
 from .inbox import InboxAssign, InboxMessageResponse, InboxReclassify
+from .notification import NotificationCreate, NotificationList, NotificationResponse
 from .order import (
     OrderCreate,
     OrderItemCreate,
@@ -88,4 +90,12 @@ __all__ = [
     "RevenueReport",
     "ProductionReport",
     "CustomerReport",
+    # Embedding
+    "SimilarOrderResult",
+    "SimilarOrdersResponse",
+    "SimilarSearchRequest",
+    # Notification
+    "NotificationCreate",
+    "NotificationResponse",
+    "NotificationList",
 ]

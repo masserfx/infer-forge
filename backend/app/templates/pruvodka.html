@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Výrobní průvodka - {{ order.number }}{% endblock %}
+
+{% block extra_styles %}
+.checkpoint {
+    display: grid;
+    grid-template-columns: 30px 1fr 150px 100px 120px;
+    gap: 5px;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    font-size: 9pt;
+}
+.checkpoint:nth-child(even) {
+    background-color: #f8f9fa;
+}
+.checkbox {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid #1e3a5f;
+    border-radius: 2px;
+}
+.checkpoint-header {
+    display: grid;
+    grid-template-columns: 30px 1fr 150px 100px 120px;
+    gap: 5px;
+    background-color: #1e3a5f;
+    color: white;
+    padding: 8px 10px;
+    font-size: 9pt;
+    font-weight: 600;
+}
+{% endblock %}
+
+{% block content %}
+<h2 class="doc-title">Výrobní průvodka č. {{ order.number }}</h2>
+
+<div class="info-grid">
+    <div class="info-box">
+        <h3>Zakázka</h3>
+        <p><span class="label">Číslo:</span> <strong>{{ order.number }}</strong></p>
+        <p><span class="label">Stav:</span> {{ order.status.value }}</p>
+        <p><span class="label">Priorita:</span> {{ order.priority.value }}</p>
+        {% if order.due_date %}
+        <p><span class="label">Termín:</span> {{ order.due_date.strftime('%d.%m.%Y') }}</p>
+        {% endif %}
+        <p><span class="label">Datum:</span> {{ today }}</p>
+    </div>
+    <div class="info-box">
+        <h3>Zákazník</h3>
+        {% if customer %}
+        <p><strong>{{ customer.company_name }}</strong></p>
+        <p><span class="label">IČO:</span> {{ customer.ico }}</p>
+        <p><span class="label">Kontakt:</span> {{ customer.contact_name }}</p>
+        {% else %}
+        <p>Nepřiřazen</p>
+        {% endif %}
+    </div>
+</div>
+
+{% if order.note %}
+<div class="note">
+    <strong>Poznámka k zakázce:</strong> {{ order.note }}
+</div>
+{% endif %}
+
+{% if note %}
+<div class="note">
+    <strong>Poznámka k průvodce:</strong> {{ note }}
+</div>
+{% endif %}
+
+<h3 style="color: #1e3a5f; margin: 20px 0 10px;">Položky zakázky</h3>
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Název</th>
+            <th>Materiál</th>
+            <th>DN/PN</th>
+            <th>Množství</th>
+            <th>Jednotka</th>
+            <th>Poznámka</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.material or '-' }}</td>
+            <td>{{ item.dn or '-' }}/{{ item.pn or '-' }}</td>
+            <td style="text-align: right;">{{ item.quantity }}</td>
+            <td>{{ item.unit }}</td>
+            <td>{{ item.note or '' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if include_controls and control_points %}
+<h3 style="color: #1e3a5f; margin: 20px 0 10px;">Kontrolní body (ISO 9001)</h3>
+
+<div class="checkpoint-header">
+    <span></span>
+    <span>Kontrolní operace</span>
+    <span>Odpovědný</span>
+    <span>Datum</span>
+    <span>Podpis</span>
+</div>
+
+{% for cp in control_points %}
+<div class="checkpoint">
+    <div class="checkbox"></div>
+    <span>{{ cp.name }}</span>
+    <span>{{ cp.responsible }}</span>
+    <span>___/___/______</span>
+    <span>____________</span>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="signature-grid" style="margin-top: 40px;">
+    <div class="signature-box">
+        <div class="signature-line">Vystavil</div>
+    </div>
+    <div class="signature-box">
+        <div class="signature-line">Vedoucí výroby</div>
+    </div>
+</div>
+{% endblock %}
