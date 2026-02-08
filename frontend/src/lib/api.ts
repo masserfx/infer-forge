@@ -513,7 +513,8 @@ export async function getMaterialPrices(params?: {
   if (params?.skip) searchParams.set("skip", String(params.skip));
   if (params?.limit) searchParams.set("limit", String(params.limit));
   const qs = searchParams.toString();
-  return fetchApi<MaterialPrice[]>(`/materialy${qs ? `?${qs}` : ""}`);
+  const res = await fetchApi<{ items: MaterialPrice[]; total: number }>(`/materialy${qs ? `?${qs}` : ""}`);
+  return res.items;
 }
 
 export async function createMaterialPrice(data: Partial<MaterialPrice>): Promise<MaterialPrice> {

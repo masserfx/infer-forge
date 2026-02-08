@@ -70,6 +70,56 @@ async def list_material_prices(
     )
 
 
+@router.get("/search/best-price", response_model=MaterialPriceResponse | None)
+async def search_best_price(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_role(UserRole.TECHNOLOG, UserRole.OBCHODNIK, UserRole.VEDENI))],
+    material_name: str | None = Query(None, description="Název materiálu"),
+    material_grade: str | None = Query(None, description="Třída materiálu"),
+    dimension: str | None = Query(None, description="Rozměry"),
+) -> MaterialPriceResponse | None:
+    """Vyhledání nejlepší (nejlevnější platné) ceny pro materiál.
+
+    Priorita vyhledávání:
+    1. Přesná shoda třídy materiálu (material_grade)
+    2. LIKE shoda názvu (material_name)
+    3. Nejlevnější platná cena mezi shodami
+    """
+    if not material_name and not material_grade:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Zadejte alespoň material_name nebo material_grade",
+        )
+
+    service = MaterialPriceService(db, user_id=current_user.id)
+    price = await service.find_best_price(
+        material_name=material_name,
+        material_grade=material_grade,
+        dimension=dimension,
+    )
+
+    if not price:
+        return None
+
+    return MaterialPriceResponse(
+        id=price.id,
+        name=price.name,
+        specification=price.specification,
+        material_grade=price.material_grade,
+        form=price.form,
+        dimension=price.dimension,
+        unit=price.unit,
+        unit_price=price.unit_price,
+        supplier=price.supplier,
+        valid_from=price.valid_from,
+        valid_to=price.valid_to,
+        is_active=price.is_active,
+        notes=price.notes,
+        created_at=price.created_at.isoformat(),
+        updated_at=price.updated_at.isoformat(),
+    )
+
+
 @router.get("/{price_id}", response_model=MaterialPriceResponse)
 async def get_material_price(
     price_id: UUID,
@@ -227,53 +277,3 @@ async def import_material_prices(
     await db.commit()
 
     return result
-
-
-@router.get("/search/best-price", response_model=MaterialPriceResponse | None)
-async def search_best_price(
-    db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_role(UserRole.TECHNOLOG, UserRole.OBCHODNIK, UserRole.VEDENI))],
-    material_name: str | None = Query(None, description="Název materiálu"),
-    material_grade: str | None = Query(None, description="Třída materiálu"),
-    dimension: str | None = Query(None, description="Rozměry"),
-) -> MaterialPriceResponse | None:
-    """Vyhledání nejlepší (nejlevnější platné) ceny pro materiál.
-
-    Priorita vyhledávání:
-    1. Přesná shoda třídy materiálu (material_grade)
-    2. LIKE shoda názvu (material_name)
-    3. Nejlevnější platná cena mezi shodami
-    """
-    if not material_name and not material_grade:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Zadejte alespoň material_name nebo material_grade",
-        )
-
-    service = MaterialPriceService(db, user_id=current_user.id)
-    price = await service.find_best_price(
-        material_name=material_name,
-        material_grade=material_grade,
-        dimension=dimension,
-    )
-
-    if not price:
-        return None
-
-    return MaterialPriceResponse(
-        id=price.id,
-        name=price.name,
-        specification=price.specification,
-        material_grade=price.material_grade,
-        form=price.form,
-        dimension=price.dimension,
-        unit=price.unit,
-        unit_price=price.unit_price,
-        supplier=price.supplier,
-        valid_from=price.valid_from,
-        valid_to=price.valid_to,
-        is_active=price.is_active,
-        notes=price.notes,
-        created_at=price.created_at.isoformat(),
-        updated_at=price.updated_at.isoformat(),
-    )
