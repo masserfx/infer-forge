@@ -25,14 +25,21 @@ logger = structlog.get_logger(__name__)
 def _run_async(coro):
     """Run async coroutine in sync context (Celery worker).
 
-    Note: Each asyncio.run() creates a new event loop. We dispose
-    the SQLAlchemy connection pool first to avoid 'Future attached
-    to a different loop' errors from stale connections.
+    Each asyncio.run() creates a new event loop, but the module-level
+    SQLAlchemy engine pool may hold connections from a previous loop.
+    We dispose the pool first; if that fails (stale connections from
+    a closed loop), we force-recreate the pool via sync_engine.
     """
     async def _wrapper():
         from app.core.database import engine
 
-        await engine.dispose()
+        try:
+            await engine.dispose()
+        except RuntimeError:
+            # Stale connections from a previous event loop can't be
+            # closed cleanly. Force-recreate the pool synchronously.
+            engine.sync_engine.pool.dispose()
+
         return await coro
 
     return asyncio.run(_wrapper())
@@ -791,13 +798,17 @@ def run_pipeline(self, raw_email_data: dict) -> dict:
 def route_and_execute(self, classify_result: dict) -> dict:
     """Route classified email to appropriate processing stages.
 
+    Dispatches downstream tasks as a Celery chain so each task runs
+    on a fresh worker process with its own event loop (avoids
+    asyncio.run() + stale connection pool issues from .apply()).
+
     Also sends auto-reply email after classification.
 
     Args:
         classify_result: Output from classify_email
 
     Returns:
-        dict with final pipeline result
+        dict with routing decision
     """
     # Send auto-reply right after classification
     _send_pipeline_auto_reply(classify_result)
@@ -808,7 +819,6 @@ def route_and_execute(self, classify_result: dict) -> dict:
         return {**classify_result, "pipeline_status": "no_stages"}
 
     if "review" in stages:
-        # Mark for human review
         _run_async(_mark_for_review(classify_result.get("inbox_message_id")))
         return {**classify_result, "pipeline_status": "needs_review"}
 
@@ -816,13 +826,10 @@ def route_and_execute(self, classify_result: dict) -> dict:
         _run_async(_archive_message(classify_result.get("inbox_message_id")))
         return {**classify_result, "pipeline_status": "archived"}
 
-    # Build task chain dynamically
-
-    # Process attachments in parallel (if any)
+    # Process attachments in parallel (fire-and-forget)
     if "process_attachments" in stages:
         attachment_ids = classify_result.get("attachment_ids", [])
         if attachment_ids:
-            # Launch attachment processing as group (parallel)
             for att_id in attachment_ids:
                 att_data = classify_result.get("attachment_data", {}).get(att_id, {})
                 process_attachment.delay(
@@ -832,27 +839,21 @@ def route_and_execute(self, classify_result: dict) -> dict:
                     att_data.get("filename", ""),
                 )
 
-    # Sequential stages
-    current_result = classify_result
-
+    # Build sequential chain dynamically — each task runs on its own worker
+    chain_tasks = []
     if "parse_email" in stages:
-        current_result = parse_email.apply(args=[current_result]).get(timeout=120)
-
+        chain_tasks.append(parse_email.s())
     if "orchestrate_order" in stages:
-        current_result = orchestrate_order.apply(args=[current_result]).get(timeout=60)
-
+        chain_tasks.append(orchestrate_order.s())
     if "auto_calculate" in stages:
-        current_result = auto_calculate.apply(args=[current_result]).get(timeout=120)
+        chain_tasks.append(auto_calculate.s())
 
-    if "escalate" in stages:
-        _run_async(_escalate_message(classify_result.get("inbox_message_id")))
-        current_result["pipeline_status"] = "escalated"
+    if chain_tasks:
+        # First task in chain gets classify_result as argument
+        pipeline = chain(chain_tasks[0].clone(args=[classify_result]), *chain_tasks[1:])
+        pipeline.apply_async()
 
-    if "notify" in stages:
-        _run_async(_notify_assignment(classify_result.get("inbox_message_id")))
-
-    current_result["pipeline_status"] = "completed"
-    return current_result
+    return {**classify_result, "pipeline_status": "routed", "stages": stages}
 
 
 async def _mark_for_review(inbox_message_id: str | None) -> None:

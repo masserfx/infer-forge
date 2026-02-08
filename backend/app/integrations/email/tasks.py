@@ -160,7 +160,11 @@ async def _poll_inbox_async(settings: object) -> dict[str, object]:
     # (asyncio.run() creates a new loop each time in Celery workers)
     from app.core.database import engine
 
-    await engine.dispose()
+    try:
+        await engine.dispose()
+    except RuntimeError:
+        # Stale connections from previous event loop can't be closed cleanly
+        engine.sync_engine.pool.dispose()
 
     # Type-safe access to settings
     imap_host = str(settings.IMAP_HOST)  # type: ignore[attr-defined]
