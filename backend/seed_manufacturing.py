@@ -230,11 +230,11 @@ async def seed_manufacturing() -> None:
         calc1 = Calculation(
             id=uuid4(),
             order_id=order1.id,
-            version=1,
+            name="Kalkulace ZAK-2025-001 v1",
             status=CalculationStatus.APPROVED,
             margin_percent=Decimal("15.0"),
             total_price=Decimal("97750.00"),
-            notes="Kalkulace schválena vedením 2025-01-15. Materiál P265GH ze skladu.",
+            note="Kalkulace schválena vedením 2025-01-15. Materiál P265GH ze skladu.",
         )
         calc1_items = [
             CalculationItem(id=uuid4(), calculation_id=calc1.id, cost_type=CostType.MATERIAL, name="Plech P265GH tl.12mm", unit="t", quantity=Decimal("0.35"), unit_price=Decimal("28500.00"), total_price=Decimal("9975.00")),
@@ -252,11 +252,11 @@ async def seed_manufacturing() -> None:
         calc2 = Calculation(
             id=uuid4(),
             order_id=order2.id,
-            version=1,
+            name="Kalkulace ZAK-2025-002 v1",
             status=CalculationStatus.APPROVED,
             margin_percent=Decimal("12.0"),
             total_price=Decimal("58240.00"),
-            notes="Sériová výroba, sleva na materiálu.",
+            note="Sériová výroba, sleva na materiálu.",
         )
         calc2_items = [
             CalculationItem(id=uuid4(), calculation_id=calc2.id, cost_type=CostType.MATERIAL, name="Trubka TR 168,3x4,5 P235GH", unit="m", quantity=Decimal("8.0"), unit_price=Decimal("680.00"), total_price=Decimal("5440.00")),
@@ -271,11 +271,11 @@ async def seed_manufacturing() -> None:
         calc5 = Calculation(
             id=uuid4(),
             order_id=order5.id,
-            version=1,
+            name="Kalkulace ZAK-2025-005 v1",
             status=CalculationStatus.APPROVED,
             margin_percent=Decimal("18.0"),
             total_price=Decimal("485100.00"),
-            notes="Kompletní dodávka vč. OK konstrukce a montáže. Cena dle nabídky ČEZ.",
+            note="Kompletní dodávka vč. OK konstrukce a montáže. Cena dle nabídky ČEZ.",
         )
         calc5_items = [
             CalculationItem(id=uuid4(), calculation_id=calc5.id, cost_type=CostType.MATERIAL, name="Profily HEB 200, IPE 200", unit="t", quantity=Decimal("2.8"), unit_price=Decimal("32000.00"), total_price=Decimal("89600.00")),
