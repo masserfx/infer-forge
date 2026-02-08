@@ -1,7 +1,7 @@
 """add subcontractors and subcontracts tables
 
 Revision ID: c3d4e5f6g7h8
-Revises: f1a2b3c4d5e6
+Revises: b2c3d4e5f6a7
 Create Date: 2026-02-08 14:00:00.000000
 
 """
@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "c3d4e5f6g7h8"
-down_revision: str | None = "f1a2b3c4d5e6"
+down_revision: str | None = "b2c3d4e5f6a7"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
