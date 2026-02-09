@@ -1,8 +1,8 @@
 import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 
 const emailTypes = [
-  { type: "Poptavka", color: "#3b82f6", pct: 40 },
-  { type: "Objednavka", color: "#22c55e", pct: 25 },
+  { type: "Poptávka", color: "#3b82f6", pct: 40 },
+  { type: "Objednávka", color: "#22c55e", pct: 25 },
   { type: "Reklamace", color: "#ef4444", pct: 10 },
   { type: "Dotaz", color: "#f59e0b", pct: 15 },
   { type: "Faktura", color: "#a855f7", pct: 10 },
@@ -12,7 +12,7 @@ const flowSteps = [
   { label: "Email", color: "#64748b" },
   { label: "Claude API", color: "#a855f7" },
   { label: "Klasifikace", color: "#3b82f6" },
-  { label: "Prirazeni", color: "#22c55e" },
+  { label: "Přiřazení", color: "#22c55e" },
 ];
 
 export const AiAgentSlide: React.FC = () => {
@@ -128,7 +128,7 @@ export const AiAgentSlide: React.FC = () => {
             opacity: interpolate(frame, [50, 60], [0, 1], { extrapolateRight: "clamp" }),
             fontSize: 14, color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 2,
           }}>
-            Typy zprav
+            Typy zpráv
           </div>
           {emailTypes.map((et, i) => {
             const delay = 55 + i * 10;
@@ -163,7 +163,7 @@ export const AiAgentSlide: React.FC = () => {
           alignItems: "center",
           justifyContent: "space-between",
         }}>
-          <span style={{ fontSize: 14, color: "#94a3b8" }}>Prumerna presnost</span>
+          <span style={{ fontSize: 14, color: "#94a3b8" }}>Průměrná přesnost</span>
           <span style={{ fontSize: 28, fontWeight: 800, color: "#22c55e" }}>94%</span>
         </div>
       </div>

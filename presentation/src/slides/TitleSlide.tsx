@@ -64,7 +64,7 @@ export const TitleSlide: React.FC = () => {
         lineHeight: 1.1,
         maxWidth: 1200,
       }}>
-        Od poptavky po fakturaci
+        Od poptávky po fakturaci
         <br />
         <span style={{ color: "#ef4444" }}>— automaticky</span>
       </div>
@@ -79,7 +79,7 @@ export const TitleSlide: React.FC = () => {
         marginTop: 20,
         fontWeight: 500,
       }}>
-        Automatizacni platforma pro strojirenstvi
+        Automatizační platforma pro strojírenství
       </div>
 
       {/* Divider line */}
@@ -100,7 +100,7 @@ export const TitleSlide: React.FC = () => {
         lineHeight: 1.6,
         maxWidth: 900,
       }}>
-        Infer s.r.o. — potrubni dily, svarence, ocelove konstrukce, montaze
+        Infer s.r.o. — potrubní díly, svařence, ocelové konstrukce, montáže
       </div>
 
       {/* ISO badge + tech */}
@@ -131,7 +131,7 @@ export const TitleSlide: React.FC = () => {
           fontWeight: 500,
           background: "rgba(255,255,255,0.05)",
         }}>
-          ICO: 04856562
+          IČO: 04856562
         </div>
       </div>
     </AbsoluteFill>

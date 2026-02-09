@@ -82,7 +82,7 @@ export const EmailSlide: React.FC = () => {
           <div style={{ fontSize: 36, fontWeight: 800, color: "#ffffff", lineHeight: 1.2 }}>
             Email
             <br />
-            <span style={{ color: "#3b82f6" }}>prichazi</span>
+            <span style={{ color: "#3b82f6" }}>přichází</span>
           </div>
         </div>
 
@@ -95,8 +95,8 @@ export const EmailSlide: React.FC = () => {
           background: "rgba(59,130,246,0.08)",
           border: "1px solid rgba(59,130,246,0.2)",
         }}>
-          <div style={{ fontSize: 14, color: "#3b82f6", fontWeight: 600, marginBottom: 8 }}>Novy email</div>
-          <div style={{ fontSize: 18, color: "#e2e8f0", fontWeight: 600 }}>Poptavka na 50ks koleno DN80</div>
+          <div style={{ fontSize: 14, color: "#3b82f6", fontWeight: 600, marginBottom: 8 }}>Nový email</div>
+          <div style={{ fontSize: 18, color: "#e2e8f0", fontWeight: 600 }}>Poptávka na 50ks koleno DN80</div>
           <div style={{ fontSize: 14, color: "#94a3b8", marginTop: 6 }}>Od: jan.novak@firma.cz</div>
         </div>
 
@@ -146,7 +146,7 @@ export const EmailSlide: React.FC = () => {
           background: "rgba(255,255,255,0.02)",
           border: "1px solid rgba(255,255,255,0.06)",
         }}>
-          AI agent automaticky rozpozna typ zpravy a priradi ji k zakazce
+          AI agent automaticky rozpozná typ zprávy a přiřadí ji k zakázce
         </div>
       </div>
     </AbsoluteFill>

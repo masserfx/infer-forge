@@ -1,8 +1,8 @@
 import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 
 const docTypes = [
-  { type: "Nabidka", tag: "ofr:offer", color: "#3b82f6", icon: "📋" },
-  { type: "Objednavka", tag: "ord:order", color: "#f59e0b", icon: "📦" },
+  { type: "Nabídka", tag: "ofr:offer", color: "#3b82f6", icon: "📋" },
+  { type: "Objednávka", tag: "ord:order", color: "#f59e0b", icon: "📦" },
   { type: "Faktura", tag: "inv:invoice", color: "#22c55e", icon: "💰" },
 ];
 
@@ -204,7 +204,7 @@ export const PohodaSlide: React.FC = () => {
           background: "rgba(255,255,255,0.02)",
           border: "1px solid rgba(255,255,255,0.06)",
         }}>
-          XML export do ucetnictvi — Windows-1250, XSD validace
+          XML export do účetnictví — Windows-1250, XSD validace
         </div>
       </div>
     </AbsoluteFill>

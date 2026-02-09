@@ -1,12 +1,12 @@
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 
 const stats = [
-  { value: 635, label: "Backend testu", color: "#22c55e", suffix: "" },
+  { value: 635, label: "Backend testů", color: "#22c55e", suffix: "" },
   { value: 67, label: "Code coverage", color: "#3b82f6", suffix: "%" },
-  { value: 23, label: "Frontend stranek", color: "#a855f7", suffix: "" },
-  { value: 12, label: "Docker sluzeb", color: "#f59e0b", suffix: "" },
+  { value: 23, label: "Frontend stránek", color: "#a855f7", suffix: "" },
+  { value: 12, label: "Docker služeb", color: "#f59e0b", suffix: "" },
   { value: 23, label: "DB tabulek", color: "#ef4444", suffix: "" },
-  { value: 10, label: "AI agentu", color: "#06b6d4", suffix: "" },
+  { value: 10, label: "AI agentů", color: "#06b6d4", suffix: "" },
   { value: 4, label: "Celery workers", color: "#ec4899", suffix: "" },
   { value: 1, label: "WebSocket real-time", color: "#14b8a6", suffix: "" },
 ];

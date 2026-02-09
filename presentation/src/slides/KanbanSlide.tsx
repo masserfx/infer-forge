@@ -1,13 +1,13 @@
 import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 
 const columns = [
-  { name: "Poptavka", color: "#64748b", count: 2 },
-  { name: "Nabidka", color: "#3b82f6", count: 3 },
-  { name: "Objednavka", color: "#8b5cf6", count: 2 },
-  { name: "Vyroba", color: "#f59e0b", count: 4 },
+  { name: "Poptávka", color: "#64748b", count: 2 },
+  { name: "Nabídka", color: "#3b82f6", count: 3 },
+  { name: "Objednávka", color: "#8b5cf6", count: 2 },
+  { name: "Výroba", color: "#f59e0b", count: 4 },
   { name: "Expedice", color: "#06b6d4", count: 1 },
   { name: "Fakturace", color: "#22c55e", count: 2 },
-  { name: "Dokonceno", color: "#10b981", count: 5 },
+  { name: "Dokončeno", color: "#10b981", count: 5 },
 ];
 
 export const KanbanSlide: React.FC = () => {
@@ -83,7 +83,7 @@ export const KanbanSlide: React.FC = () => {
             opacity: interpolate(frame, [20, 38], [0, 1], { extrapolateRight: "clamp" }),
             fontSize: 18, color: "#94a3b8",
           }}>
-            Prehled cele vyroby na jednom miste
+            Přehled celé výroby na jednom místě
           </div>
         </div>
       </div>

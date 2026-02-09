@@ -1,18 +1,18 @@
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 
 const roles = [
-  { role: "Admin", color: "#ef4444", perms: "Plny pristup" },
-  { role: "Obchodnik", color: "#3b82f6", perms: "Zakazky, nabidky" },
-  { role: "Technolog", color: "#22c55e", perms: "Kalkulace, vyroba" },
-  { role: "Vedeni", color: "#a855f7", perms: "Reporting, analyza" },
-  { role: "Ucetni", color: "#f59e0b", perms: "Pohoda, faktury" },
+  { role: "Admin", color: "#ef4444", perms: "Plný přístup" },
+  { role: "Obchodník", color: "#3b82f6", perms: "Zakázky, nabídky" },
+  { role: "Technolog", color: "#22c55e", perms: "Kalkulace, výroba" },
+  { role: "Vedení", color: "#a855f7", perms: "Reporting, analýza" },
+  { role: "Účetní", color: "#f59e0b", perms: "Pohoda, faktury" },
 ];
 
 const securityFeatures = [
-  { icon: "🔐", title: "AES-256 sifrovani", desc: "Dokumenty sifrovane at-rest", color: "#3b82f6" },
+  { icon: "🔐", title: "AES-256 šifrování", desc: "Dokumenty šifrované at-rest", color: "#3b82f6" },
   { icon: "📋", title: "Audit trail", desc: "ISO 9001 trasovatelnost", color: "#22c55e" },
-  { icon: "🛡", title: "GDPR", desc: "Pravo na vymaz dat", color: "#a855f7" },
-  { icon: "🔑", title: "JWT + bcrypt", desc: "Bezpecna autentizace", color: "#f59e0b" },
+  { icon: "🛡", title: "GDPR", desc: "Právo na výmaz dat", color: "#a855f7" },
+  { icon: "🔑", title: "JWT + bcrypt", desc: "Bezpečná autentizace", color: "#f59e0b" },
 ];
 
 export const SecuritySlide: React.FC = () => {
@@ -49,7 +49,7 @@ export const SecuritySlide: React.FC = () => {
         marginBottom: 50,
         textAlign: "center",
       }}>
-        Bezpecnost a <span style={{ color: "#22c55e" }}>kvalita</span>
+        Bezpečnost a <span style={{ color: "#22c55e" }}>kvalita</span>
       </div>
 
       <div style={{ display: "flex", gap: 60, width: "100%", maxWidth: 1400 }}>
@@ -106,7 +106,7 @@ export const SecuritySlide: React.FC = () => {
             color: "#22c55e",
             marginBottom: 8,
           }}>
-            Enterprise bezpecnost
+            Enterprise bezpečnost
           </div>
           {securityFeatures.map((sf, i) => {
             const delay = 50 + i * 12;
@@ -144,7 +144,7 @@ export const SecuritySlide: React.FC = () => {
         color: "#94a3b8",
         textAlign: "center",
       }}>
-        Enterprise bezpecnost pro citliva zakaznicka data
+        Enterprise bezpečnost pro citlivá zákaznická data
       </div>
     </AbsoluteFill>
   );

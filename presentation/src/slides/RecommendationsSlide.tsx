@@ -1,10 +1,10 @@
 import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 
 const recommendations = [
-  { icon: "🔴", text: "Zakazka ZAK-2025-042 po terminu", severity: "critical", color: "#ef4444" },
-  { icon: "🟡", text: "3 kalkulace cekaji na schvaleni", severity: "warning", color: "#f59e0b" },
-  { icon: "🔵", text: "Nabidka pripravena k odeslani", severity: "info", color: "#3b82f6" },
-  { icon: "🟡", text: "5 emailu bez odpovedi > 24h", severity: "warning", color: "#f59e0b" },
+  { icon: "🔴", text: "Zakázka ZAK-2025-042 po termínu", severity: "critical", color: "#ef4444" },
+  { icon: "🟡", text: "3 kalkulace čekají na schválení", severity: "warning", color: "#f59e0b" },
+  { icon: "🔵", text: "Nabídka připravena k odeslání", severity: "info", color: "#3b82f6" },
+  { icon: "🟡", text: "5 emailů bez odpovědi > 24h", severity: "warning", color: "#f59e0b" },
 ];
 
 export const RecommendationsSlide: React.FC = () => {
@@ -41,7 +41,7 @@ export const RecommendationsSlide: React.FC = () => {
         transform: `translateY(${titleY}px)`,
       }}>
         <div style={{ fontSize: 48, fontWeight: 800, color: "#ffffff" }}>
-          AI doporuceni v <span style={{ color: "#3b82f6" }}>realnem case</span>
+          AI doporučení v <span style={{ color: "#3b82f6" }}>reálném čase</span>
         </div>
         <div style={{
           opacity: interpolate(frame, [15, 35], [0, 1], { extrapolateRight: "clamp" }),
@@ -49,7 +49,7 @@ export const RecommendationsSlide: React.FC = () => {
           color: "#94a3b8",
           marginTop: 12,
         }}>
-          Chytre priority na zaklade dat
+          Chytré priority na základě dat
         </div>
       </div>
 
@@ -120,7 +120,7 @@ export const RecommendationsSlide: React.FC = () => {
           }}>
             <div>
               <div style={{ fontSize: 14, color: "#94a3b8", marginBottom: 6 }}>
-                Prumerna uspora
+                Průměrná úspora
               </div>
               <div style={{ fontSize: 36, fontWeight: 800, color: "#22c55e" }}>
                 45 min/den

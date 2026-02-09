@@ -1,11 +1,11 @@
 import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 
 const leaderboard = [
-  { rank: 1, name: "Jan Novak", points: 2450, badge: "🥇" },
+  { rank: 1, name: "Jan Novák", points: 2450, badge: "🥇" },
   { rank: 2, name: "Petra Svoboda", points: 2180, badge: "🥈" },
-  { rank: 3, name: "Martin Kral", points: 1950, badge: "🥉" },
-  { rank: 4, name: "Eva Machova", points: 1720, badge: "4." },
-  { rank: 5, name: "Tomas Horak", points: 1540, badge: "5." },
+  { rank: 3, name: "Martin Král", points: 1950, badge: "🥉" },
+  { rank: 4, name: "Eva Machová", points: 1720, badge: "4." },
+  { rank: 5, name: "Tomáš Horák", points: 1540, badge: "5." },
 ];
 
 export const GamificationSlide: React.FC = () => {
@@ -109,7 +109,7 @@ export const GamificationSlide: React.FC = () => {
                 }}>
                   {Math.round(countUp)}
                 </div>
-                <span style={{ fontSize: 12, color: "#64748b" }}>bodu</span>
+                <span style={{ fontSize: 12, color: "#64748b" }}>bodů</span>
               </div>
             );
           })}
@@ -126,7 +126,7 @@ export const GamificationSlide: React.FC = () => {
           background: "rgba(255,255,255,0.02)",
           border: "1px solid rgba(255,255,255,0.06)",
         }}>
-          Motivace tymu — body za kazdou akci v systemu
+          Motivace týmu — body za každou akci v systému
         </div>
       </div>
     </AbsoluteFill>

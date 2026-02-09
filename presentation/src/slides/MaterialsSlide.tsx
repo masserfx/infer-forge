@@ -3,14 +3,14 @@ import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame } from "rem
 const materials = [
   { name: "Ocel S235JR", price: "28 500", unit: "Kc/t", trend: "+2.3%" },
   { name: "Trubka DN80", price: "1 240", unit: "Kc/m", trend: "-0.8%" },
-  { name: "Priruba DN100", price: "890", unit: "Kc/ks", trend: "+1.1%" },
-  { name: "Svar. drat", price: "450", unit: "Kc/kg", trend: "0.0%" },
+  { name: "Příruba DN100", price: "890", unit: "Kc/ks", trend: "+1.1%" },
+  { name: "Svař. drát", price: "450", unit: "Kc/kg", trend: "0.0%" },
 ];
 
 const subcontractors = [
   { name: "NDT Inspekce", color: "#3b82f6" },
-  { name: "Tryskani", color: "#f59e0b" },
-  { name: "CNC obrabeni", color: "#a855f7" },
+  { name: "Tryskání", color: "#f59e0b" },
+  { name: "CNC obrábění", color: "#a855f7" },
   { name: "Doprava", color: "#06b6d4" },
 ];
 
@@ -34,10 +34,10 @@ export const MaterialsSlide: React.FC = () => {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 20 }}>
         <div>
           <div style={{ fontSize: 14, color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 3, marginBottom: 8 }}>
-            Databaze
+            Databáze
           </div>
           <div style={{ fontSize: 36, fontWeight: 800, color: "#ffffff", lineHeight: 1.2 }}>
-            Cenik <span style={{ color: "#3b82f6" }}>materialu</span>
+            Ceník <span style={{ color: "#3b82f6" }}>materiálů</span>
           </div>
         </div>
 
@@ -96,10 +96,10 @@ export const MaterialsSlide: React.FC = () => {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 20 }}>
         <div>
           <div style={{ fontSize: 14, color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 3, marginBottom: 8 }}>
-            Partneri
+            Partneři
           </div>
           <div style={{ fontSize: 36, fontWeight: 800, color: "#ffffff", lineHeight: 1.2 }}>
-            <span style={{ color: "#f59e0b" }}>Subdodavatele</span>
+            <span style={{ color: "#f59e0b" }}>Subdodavatelé</span>
           </div>
         </div>
 
@@ -161,7 +161,7 @@ export const MaterialsSlide: React.FC = () => {
           background: "rgba(255,255,255,0.02)",
           border: "1px solid rgba(255,255,255,0.06)",
         }}>
-          Centralni cenik s automatickym vyberem nejlepsi ceny
+          Centrální ceník s automatickým výběrem nejlepší ceny
         </div>
       </div>
     </AbsoluteFill>

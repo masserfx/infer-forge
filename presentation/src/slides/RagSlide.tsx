@@ -71,9 +71,9 @@ export const RagSlide: React.FC = () => {
             Krok 4
           </div>
           <div style={{ fontSize: 36, fontWeight: 800, color: "#ffffff", lineHeight: 1.2 }}>
-            Podobne
+            Podobné
             <br />
-            <span style={{ color: "#a855f7" }}>zakazky</span>
+            <span style={{ color: "#a855f7" }}>zakázky</span>
           </div>
         </div>
 
@@ -138,7 +138,7 @@ export const RagSlide: React.FC = () => {
           background: "rgba(255,255,255,0.02)",
           border: "1px solid rgba(255,255,255,0.06)",
         }}>
-          pgvector embedding nachazi historicky podobne projekty
+          pgvector embedding nachází historicky podobné projekty
         </div>
       </div>
     </AbsoluteFill>

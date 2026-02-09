@@ -1,11 +1,11 @@
 import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 
 const operations = [
-  { name: "Rezani", icon: "✂", color: "#3b82f6", duration: "2h" },
-  { name: "Svarovani", icon: "⚡", color: "#f59e0b", duration: "4h" },
+  { name: "Řezání", icon: "✂", color: "#3b82f6", duration: "2h" },
+  { name: "Svařování", icon: "⚡", color: "#f59e0b", duration: "4h" },
   { name: "NDT", icon: "🔍", color: "#a855f7", duration: "1h" },
   { name: "Povrch", icon: "🎨", color: "#06b6d4", duration: "2h" },
-  { name: "Montaz", icon: "🔧", color: "#22c55e", duration: "3h" },
+  { name: "Montáž", icon: "🔧", color: "#22c55e", duration: "3h" },
 ];
 
 export const OperationsSlide: React.FC = () => {
@@ -73,7 +73,7 @@ export const OperationsSlide: React.FC = () => {
             Krok 7
           </div>
           <div style={{ fontSize: 36, fontWeight: 800, color: "#ffffff", lineHeight: 1.2 }}>
-            Vyrobni
+            Výrobní
             <br />
             <span style={{ color: "#f59e0b" }}>operace</span>
           </div>
@@ -167,7 +167,7 @@ export const OperationsSlide: React.FC = () => {
           background: "rgba(255,255,255,0.02)",
           border: "1px solid rgba(255,255,255,0.06)",
         }}>
-          Planovani a sledovani vyrobnich kroku
+          Plánování a sledování výrobních kroků
         </div>
       </div>
     </AbsoluteFill>

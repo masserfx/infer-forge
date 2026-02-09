@@ -58,7 +58,7 @@ export const EndSlide: React.FC = () => {
           lineHeight: 1.2,
           marginBottom: 10,
         }}>
-          Od poptavky po fakturaci
+          Od poptávky po fakturaci
         </div>
 
         <div style={{
@@ -77,9 +77,9 @@ export const EndSlide: React.FC = () => {
           marginBottom: 50,
           lineHeight: 1.6,
         }}>
-          Kompletni automatizace pro strojirenstvi
+          Kompletní automatizace pro strojírenství
           <br />
-          Vsechny PRD faze F1–F6 dokonceny
+          Všechny PRD fáze F1–F6 dokončeny
         </div>
 
         <div style={{
@@ -126,7 +126,7 @@ export const EndSlide: React.FC = () => {
           fontWeight: 700,
           display: "inline-block",
         }}>
-          Pripraveno k nasazeni
+          Připraveno k nasazení
         </div>
       </div>
     </AbsoluteFill>

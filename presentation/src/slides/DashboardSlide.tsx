@@ -1,9 +1,9 @@
 import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 
 const statCards = [
-  { label: "Aktivni zakazky", value: 24, color: "#3b82f6", suffix: "" },
-  { label: "Mesicni obrat", value: 2800, color: "#22c55e", suffix: " tis." },
-  { label: "Ve vyrobe", value: 8, color: "#f59e0b", suffix: "" },
+  { label: "Aktivní zakázky", value: 24, color: "#3b82f6", suffix: "" },
+  { label: "Měsíční obrat", value: 2800, color: "#22c55e", suffix: " tis." },
+  { label: "Ve výrobě", value: 8, color: "#f59e0b", suffix: "" },
   { label: "K fakturaci", value: 5, color: "#ef4444", suffix: "" },
 ];
 
@@ -76,7 +76,7 @@ export const DashboardSlide: React.FC = () => {
             opacity: interpolate(frame, [20, 38], [0, 1], { extrapolateRight: "clamp" }),
             fontSize: 18, color: "#94a3b8",
           }}>
-            Manazersky prehled v realnem case
+            Manažerský přehled v reálném čase
           </div>
         </div>
       </div>

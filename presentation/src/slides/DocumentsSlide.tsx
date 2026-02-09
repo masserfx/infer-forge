@@ -1,10 +1,10 @@
 import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 
 const categories = [
-  { name: "Vykres", icon: "📐", color: "#3b82f6" },
+  { name: "Výkres", icon: "📐", color: "#3b82f6" },
   { name: "Atestace", icon: "📜", color: "#22c55e" },
   { name: "WPS", icon: "🔥", color: "#f59e0b" },
-  { name: "Pruvodka", icon: "📋", color: "#a855f7" },
+  { name: "Průvodka", icon: "📋", color: "#a855f7" },
   { name: "Faktura", icon: "💰", color: "#ef4444" },
 ];
 
@@ -126,7 +126,7 @@ export const DocumentsSlide: React.FC = () => {
           opacity: interpolate(frame, [50, 60], [0, 1], { extrapolateRight: "clamp" }),
           fontSize: 14, color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 2,
         }}>
-          Kategorie dokumentu
+          Kategorie dokumentů
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
           {categories.map((cat, i) => {
@@ -160,9 +160,9 @@ export const DocumentsSlide: React.FC = () => {
           gap: 8,
         }}>
           {[
-            { feat: "Verzovani dokumentu", icon: "🔄" },
-            { feat: "AES-256 sifrovani", icon: "🔒" },
-            { feat: "Fulltextove vyhledavani", icon: "🔍" },
+            { feat: "Verzování dokumentů", icon: "🔄" },
+            { feat: "AES-256 šifrování", icon: "🔒" },
+            { feat: "Fulltextové vyhledávání", icon: "🔍" },
           ].map((f, i) => {
             const delay = 95 + i * 8;
             const opacity = interpolate(frame, [delay, delay + 10], [0, 1], { extrapolateRight: "clamp" });
@@ -195,7 +195,7 @@ export const DocumentsSlide: React.FC = () => {
           background: "rgba(255,255,255,0.02)",
           border: "1px solid rgba(255,255,255,0.06)",
         }}>
-          Verzovane dokumenty s OCR extrakci textu
+          Verzované dokumenty s OCR extrakcí textu
         </div>
       </div>
     </AbsoluteFill>

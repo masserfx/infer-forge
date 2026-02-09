@@ -3,9 +3,9 @@ import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 const flowSteps = [
   { label: "Email", color: "#3b82f6", icon: "✉" },
   { label: "AI Agent", color: "#a855f7", icon: "🤖" },
-  { label: "Zakazka", color: "#22c55e", icon: "📋" },
+  { label: "Zakázka", color: "#22c55e", icon: "📋" },
   { label: "Kalkulace", color: "#f59e0b", icon: "🔢" },
-  { label: "Vyroba", color: "#06b6d4", icon: "⚙" },
+  { label: "Výroba", color: "#06b6d4", icon: "⚙" },
   { label: "Fakturace", color: "#ef4444", icon: "📄" },
 ];
 
@@ -45,7 +45,7 @@ export const SolutionSlide: React.FC = () => {
         marginBottom: 12,
         textAlign: "center",
       }}>
-        Jedna platforma, <span style={{ color: "#22c55e" }}>cely proces</span>
+        Jedna platforma, <span style={{ color: "#22c55e" }}>celý proces</span>
       </div>
 
       {/* Subtitle */}
@@ -56,7 +56,7 @@ export const SolutionSlide: React.FC = () => {
         marginBottom: 70,
         textAlign: "center",
       }}>
-        INFER FORGE automatizuje kompletni zivotni cyklus zakazky
+        INFER FORGE automatizuje kompletní životní cyklus zakázky
       </div>
 
       {/* Flow diagram */}

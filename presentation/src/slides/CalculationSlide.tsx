@@ -1,10 +1,10 @@
 import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 
 const costs = [
-  { label: "Material", value: 150000, color: "#3b82f6" },
-  { label: "Prace", value: 30000, color: "#22c55e" },
+  { label: "Materiál", value: 150000, color: "#3b82f6" },
+  { label: "Práce", value: 30000, color: "#22c55e" },
   { label: "Kooperace", value: 20000, color: "#f59e0b" },
-  { label: "Rezie", value: 15000, color: "#a855f7" },
+  { label: "Režie", value: 15000, color: "#a855f7" },
 ];
 
 export const CalculationSlide: React.FC = () => {
@@ -93,7 +93,7 @@ export const CalculationSlide: React.FC = () => {
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                   <span style={{ fontSize: 16, color: "#e2e8f0", fontWeight: 500 }}>{cost.label}</span>
                   <span style={{ fontSize: 16, color: cost.color, fontWeight: 700 }}>
-                    {Math.round(countUp).toLocaleString("cs-CZ")} Kc
+                    {Math.round(countUp).toLocaleString("cs-CZ")} Kč
                   </span>
                 </div>
                 <div style={{
@@ -127,9 +127,9 @@ export const CalculationSlide: React.FC = () => {
           background: "rgba(34,197,94,0.06)",
           border: "1px solid rgba(34,197,94,0.15)",
         }}>
-          <span style={{ fontSize: 16, color: "#94a3b8" }}>Marze 20%</span>
+          <span style={{ fontSize: 16, color: "#94a3b8" }}>Marže 20%</span>
           <span style={{ fontSize: 16, color: "#22c55e", fontWeight: 700 }}>
-            {Math.round(interpolate(frame, [90, 110], [0, totalCost * margin], { extrapolateRight: "clamp" })).toLocaleString("cs-CZ")} Kc
+            {Math.round(interpolate(frame, [90, 110], [0, totalCost * margin], { extrapolateRight: "clamp" })).toLocaleString("cs-CZ")} Kč
           </span>
         </div>
 
@@ -143,9 +143,9 @@ export const CalculationSlide: React.FC = () => {
           border: "2px solid rgba(239,68,68,0.25)",
           textAlign: "center",
         }}>
-          <div style={{ fontSize: 14, color: "#94a3b8", marginBottom: 6 }}>Celkova cena</div>
+          <div style={{ fontSize: 14, color: "#94a3b8", marginBottom: 6 }}>Celková cena</div>
           <div style={{ fontSize: 40, fontWeight: 800, color: "#ef4444" }}>
-            {Math.round(interpolate(frame, [105, 125], [0, finalPrice], { extrapolateRight: "clamp" })).toLocaleString("cs-CZ")} Kc
+            {Math.round(interpolate(frame, [105, 125], [0, finalPrice], { extrapolateRight: "clamp" })).toLocaleString("cs-CZ")} Kč
           </div>
         </div>
 
@@ -160,7 +160,7 @@ export const CalculationSlide: React.FC = () => {
           background: "rgba(255,255,255,0.02)",
           border: "1px solid rgba(255,255,255,0.06)",
         }}>
-          Rozpocet s AI doporucenim z podobnych zakazek
+          Rozpočet s AI doporučením z podobných zakázek
         </div>
       </div>
     </AbsoluteFill>

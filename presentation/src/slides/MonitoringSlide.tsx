@@ -20,7 +20,7 @@ const monitoringTools = [
     title: "AlertManager",
     desc: "Email alerts",
     color: "#ef4444",
-    details: "Automaticke notifikace",
+    details: "Automatické notifikace",
   },
   {
     icon: "🌸",
@@ -34,7 +34,7 @@ const monitoringTools = [
     title: "Circuit Breaker",
     desc: "Self-healing",
     color: "#22c55e",
-    details: "Automaticka recovery",
+    details: "Automatická recovery",
   },
   {
     icon: "🔍",
@@ -177,7 +177,7 @@ export const MonitoringSlide: React.FC = () => {
         textAlign: "center",
         fontWeight: 600,
       }}>
-        Proaktivni monitoring s real-time alertingem
+        Proaktivní monitoring s real-time alertingem
       </div>
     </AbsoluteFill>
   );

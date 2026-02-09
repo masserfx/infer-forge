@@ -83,9 +83,9 @@ export const OfferSlide: React.FC = () => {
             Krok 5
           </div>
           <div style={{ fontSize: 36, fontWeight: 800, color: "#ffffff", lineHeight: 1.2 }}>
-            Nabidka
+            Nabídka
             <br />
-            <span style={{ color: "#06b6d4" }}>zakaznikovi</span>
+            <span style={{ color: "#06b6d4" }}>zákazníkovi</span>
           </div>
         </div>
 
@@ -101,7 +101,7 @@ export const OfferSlide: React.FC = () => {
           boxShadow: btnGlow > 0 ? `0 0 ${20 * btnGlow}px rgba(6,182,212,0.3)` : "none",
         }}>
           <span style={{ fontSize: 18, color: "#06b6d4", fontWeight: 700 }}>
-            Generovat PDF nabidku
+            Generovat PDF nabídku
           </span>
         </div>
 
@@ -129,7 +129,7 @@ export const OfferSlide: React.FC = () => {
             position: "absolute",
           }}>
             <div style={{ fontSize: 48, marginBottom: 8 }}>📄</div>
-            <div style={{ fontSize: 14, color: "#e2e8f0", fontWeight: 600 }}>Nabidka_2025.pdf</div>
+            <div style={{ fontSize: 14, color: "#e2e8f0", fontWeight: 600 }}>Nabídka_2025.pdf</div>
             <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Jinja2 + WeasyPrint</div>
           </div>
 
@@ -180,7 +180,7 @@ export const OfferSlide: React.FC = () => {
           background: "rgba(255,255,255,0.02)",
           border: "1px solid rgba(255,255,255,0.06)",
         }}>
-          Jinja2 + WeasyPrint vygeneruje profesionalni PDF nabidku
+          Jinja2 + WeasyPrint vygeneruje profesionální PDF nabídku
         </div>
       </div>
     </AbsoluteFill>

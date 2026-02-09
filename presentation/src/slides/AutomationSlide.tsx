@@ -12,9 +12,9 @@ const pipelineStages = [
 ];
 
 const bottomStats = [
-  { value: "8", label: "fazi", color: "#3b82f6" },
-  { value: "6", label: "AI agentu", color: "#a855f7" },
-  { value: "0", label: "manualnich kroku", color: "#22c55e" },
+  { value: "8", label: "fází", color: "#3b82f6" },
+  { value: "6", label: "AI agentů", color: "#a855f7" },
+  { value: "0", label: "manuálních kroků", color: "#22c55e" },
 ];
 
 export const AutomationSlide: React.FC = () => {
@@ -52,7 +52,7 @@ export const AutomationSlide: React.FC = () => {
         marginBottom: 80,
         textAlign: "center",
       }}>
-        Plne <span style={{ color: "#a855f7" }}>automatizovany</span> pipeline
+        Plně <span style={{ color: "#a855f7" }}>automatizovany</span> pipeline
       </div>
 
       {/* Pipeline flow - 2 rows of 4 */}

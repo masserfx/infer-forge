@@ -29,12 +29,12 @@ const TRANSITION = 15; // 0.5s transition overlap
 
 // Slide definitions with durations in seconds
 const slideConfig: { element: React.ReactNode; durationSec: number }[] = [
-  // ACT 1: Uvod (15s)
+  // ACT 1: Úvod (15s)
   { element: <TitleSlide />, durationSec: 5 },
   { element: <ProblemSlide />, durationSec: 5 },
   { element: <SolutionSlide />, durationSec: 5 },
 
-  // ACT 2: Pribeh zakazky (60s)
+  // ACT 2: Příběh zakázky (60s)
   { element: <EmailSlide />, durationSec: 8 },
   { element: <OrderSlide />, durationSec: 8 },
   { element: <CalculationSlide />, durationSec: 8 },
@@ -44,7 +44,7 @@ const slideConfig: { element: React.ReactNode; durationSec: number }[] = [
   { element: <OperationsSlide />, durationSec: 8 },
   { element: <PohodaSlide />, durationSec: 8 },
 
-  // ACT 3: Inteligentni funkce (56s)
+  // ACT 3: Inteligentní funkce (56s)
   { element: <AiAgentSlide />, durationSec: 7 },
   { element: <AutomationSlide />, durationSec: 8 },
   { element: <DashboardSlide />, durationSec: 7 },
@@ -53,7 +53,7 @@ const slideConfig: { element: React.ReactNode; durationSec: number }[] = [
   { element: <MaterialsSlide />, durationSec: 7 },
   { element: <DocumentsSlide />, durationSec: 7 },
 
-  // ACT 4: Tym a vysledky (26s)
+  // ACT 4: Tým a výsledky (26s)
   { element: <GamificationSlide />, durationSec: 5 },
   { element: <MonitoringSlide />, durationSec: 6 },
   { element: <SecuritySlide />, durationSec: 5 },

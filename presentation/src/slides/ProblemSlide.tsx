@@ -1,14 +1,14 @@
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 
 const problems = [
-  { text: "Emaily se ztraceji v inboxu", icon: "✉" },
-  { text: "Kalkulace v Excelu, kopirovani rucne", icon: "📊" },
-  { text: "Kde je zakazka? Nikdo nevi", icon: "❓" },
+  { text: "Emaily se ztrácejí v inboxu", icon: "✉" },
+  { text: "Kalkulace v Excelu, kopírování ručně", icon: "📊" },
+  { text: "Kde je zakázka? Nikdo neví", icon: "❓" },
   { text: "Pohoda nesynchronizuje", icon: "🔄" },
-  { text: "Dokumenty roztrousene vsude", icon: "📁" },
+  { text: "Dokumenty roztroušené všude", icon: "📁" },
 ];
 
-const oldTools = ["Excel", "Outlook", "Papir", "Telefon"];
+const oldTools = ["Excel", "Outlook", "Papír", "Telefon"];
 
 export const ProblemSlide: React.FC = () => {
   const frame = useCurrentFrame();
@@ -38,7 +38,7 @@ export const ProblemSlide: React.FC = () => {
         marginBottom: 50,
         textAlign: "center",
       }}>
-        S cim se <span style={{ color: "#ef4444" }}>potykame</span>?
+        S čím se <span style={{ color: "#ef4444" }}>potýkáme</span>?
       </div>
 
       <div style={{ display: "flex", gap: 80, alignItems: "flex-start" }}>
@@ -85,7 +85,7 @@ export const ProblemSlide: React.FC = () => {
             letterSpacing: 4,
             marginBottom: 10,
           }}>
-            Stare nastroje
+            Staré nástroje
           </div>
           {oldTools.map((tool, i) => {
             const delay = 60 + i * 10;

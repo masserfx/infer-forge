@@ -21,6 +21,7 @@ export default function PrezentacePage() {
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(0.5);
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
@@ -80,6 +81,8 @@ export default function PrezentacePage() {
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
 
+    video.playbackRate = 0.5;
+
     video.addEventListener("timeupdate", onTimeUpdate);
     video.addEventListener("loadedmetadata", onLoadedMetadata);
     video.addEventListener("ended", onEnded);
@@ -132,6 +135,13 @@ export default function PrezentacePage() {
     { time: 130.5, label: "Statistiky" },
     { time: 135, label: "Závěr" },
   ];
+
+  const changeSpeed = useCallback((rate: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.playbackRate = rate;
+    setPlaybackRate(rate);
+  }, []);
 
   const jumpToSlide = useCallback((time: number) => {
     const video = videoRef.current;
@@ -250,6 +260,24 @@ export default function PrezentacePage() {
                     <Volume2 className="h-5 w-5" />
                   )}
                 </Button>
+                <div className="flex items-center gap-1 ml-2 border rounded-lg px-1">
+                  {[0.5, 0.75, 1, 1.5].map((rate) => (
+                    <button
+                      key={rate}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        changeSpeed(rate);
+                      }}
+                      className={`px-2 py-1 text-xs rounded font-medium transition-colors ${
+                        playbackRate === rate
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {rate}×
+                    </button>
+                  ))}
+                </div>
                 <span className="text-sm text-muted-foreground tabular-nums ml-2">
                   {formatTime(currentTime)} / {formatTime(duration)}
                 </span>

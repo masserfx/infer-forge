@@ -79,9 +79,9 @@ export const OrderSlide: React.FC = () => {
             Krok 2
           </div>
           <div style={{ fontSize: 36, fontWeight: 800, color: "#ffffff", lineHeight: 1.2 }}>
-            Zakazka
+            Zakázka
             <br />
-            <span style={{ color: "#22c55e" }}>vznika</span>
+            <span style={{ color: "#22c55e" }}>vzniká</span>
           </div>
         </div>
 
@@ -143,7 +143,7 @@ export const OrderSlide: React.FC = () => {
             position: "absolute",
             right: 0,
           }}>
-            📋 Zakazka
+            📋 Zakázka
           </div>
         </div>
 
@@ -155,10 +155,10 @@ export const OrderSlide: React.FC = () => {
           gap: 12,
         }}>
           {[
-            { label: "Zakaznik", value: "Firma ABC s.r.o." },
-            { label: "Polozky", value: "50ks koleno DN80 PN16" },
-            { label: "Priorita", value: "Vysoka" },
-            { label: "Termin", value: "15.03.2025" },
+            { label: "Zákazník", value: "Firma ABC s.r.o." },
+            { label: "Položky", value: "50ks koleno DN80 PN16" },
+            { label: "Priorita", value: "Vysoká" },
+            { label: "Termín", value: "15.03.2025" },
           ].map((item, i) => {
             const d = infoDelay + i * 6;
             const o = interpolate(frame, [d, d + 12], [0, 1], { extrapolateRight: "clamp" });
@@ -190,7 +190,7 @@ export const OrderSlide: React.FC = () => {
           background: "rgba(255,255,255,0.02)",
           border: "1px solid rgba(255,255,255,0.06)",
         }}>
-          Automaticke prirazeni k zakaznikovi podle emailu
+          Automatické přiřazení k zákazníkovi podle emailu
         </div>
       </div>
     </AbsoluteFill>

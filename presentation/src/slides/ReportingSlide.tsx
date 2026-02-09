@@ -1,10 +1,10 @@
 import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 
 const tabs = [
-  { name: "Prehled", color: "#3b82f6", desc: "KPI metriky a souhrny" },
-  { name: "Obrat", color: "#22c55e", desc: "Mesicni a rocni trzby" },
-  { name: "Vyroba", color: "#f59e0b", desc: "Vytizenost a efektivita" },
-  { name: "Zakaznici", color: "#a855f7", desc: "Top zakaznici, segmentace" },
+  { name: "Přehled", color: "#3b82f6", desc: "KPI metriky a souhrny" },
+  { name: "Obrat", color: "#22c55e", desc: "Měsíční a roční tržby" },
+  { name: "Vyroba", color: "#f59e0b", desc: "Vytíženost a efektivita" },
+  { name: "Zakaznici", color: "#a855f7", desc: "Top zákazníci, segmentace" },
 ];
 
 export const ReportingSlide: React.FC = () => {
@@ -166,7 +166,7 @@ export const ReportingSlide: React.FC = () => {
           background: "rgba(255,255,255,0.02)",
           border: "1px solid rgba(255,255,255,0.06)",
         }}>
-          Mesicni trendy, top zakaznici, vyrobni vytizeni
+          Měsíční trendy, top zákazníci, výrobní vytížení
         </div>
       </div>
     </AbsoluteFill>
