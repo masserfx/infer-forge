@@ -222,6 +222,7 @@ class CalculationService:
         if not calculation:
             return None
 
+        old_status = calculation.status
         changes: dict = {}
         update_data = data.model_dump(exclude_unset=True)
 
@@ -248,7 +249,39 @@ class CalculationService:
                 changes=changes,
             )
 
+        # Trigger offer generation when status changes to APPROVED
+        if (
+            old_status != CalculationStatus.APPROVED
+            and calculation.status == CalculationStatus.APPROVED
+            and calculation.order_id
+        ):
+            self._trigger_offer_generation(calculation)
+
         return calculation
+
+    @staticmethod
+    def _trigger_offer_generation(calculation: Calculation) -> None:
+        """Dispatch Celery task to generate offer PDF + Pohoda XML."""
+        try:
+            from app.core.celery_app import celery_app
+
+            celery_app.send_task(
+                "orchestration.generate_offer",
+                args=[{
+                    "order_id": str(calculation.order_id),
+                    "calculation_id": str(calculation.id),
+                }],
+            )
+            logger.info(
+                "offer_generation_triggered calculation_id=%s order_id=%s",
+                calculation.id,
+                calculation.order_id,
+            )
+        except Exception:
+            logger.warning(
+                "offer_generation_trigger_failed calculation_id=%s",
+                calculation.id,
+            )
 
     async def add_item(
         self,

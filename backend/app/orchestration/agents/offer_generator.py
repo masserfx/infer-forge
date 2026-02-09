@@ -178,13 +178,85 @@ class OfferGenerator:
             xml_path=str(xml_path),
         )
 
+        # Send offer email to customer
+        email_sent = await self._send_offer_email(
+            customer_email=customer.email,
+            customer_name=customer.company_name,
+            offer_number=offer_number,
+            total_price=calculation.total_price,
+            valid_until=valid_until,
+            pdf_path=pdf_path,
+            offer_id=offer_id,
+        )
+
         return {
             "offer_id": offer_id,
             "offer_number": offer_number,
             "offer_pdf_path": str(pdf_path),
             "pohoda_xml_path": str(xml_path),
             "document_id": document_id,
+            "email_sent": email_sent,
         }
+
+    async def _send_offer_email(
+        self,
+        customer_email: str | None,
+        customer_name: str,
+        offer_number: str,
+        total_price: object,
+        valid_until: date,
+        pdf_path: Path,
+        offer_id: UUID,
+    ) -> bool:
+        """Send offer PDF to customer via email and update offer status to SENT."""
+        if not customer_email:
+            logger.warning("offer_email_skipped", reason="no_customer_email", offer_number=offer_number)
+            return False
+
+        try:
+            from app.integrations.email.smtp_client import SMTPClient
+
+            smtp = SMTPClient()
+            subject = f"Cenová nabídka {offer_number} — Infer s.r.o."
+            body = (
+                f"Vážený zákazníku,\n\n"
+                f"v příloze zasíláme cenovou nabídku {offer_number} "
+                f"na celkovou částku {total_price:,.0f} Kč.\n\n"
+                f"Nabídka je platná do {valid_until.strftime('%d.%m.%Y')}.\n\n"
+                f"V případě dotazů nás neváhejte kontaktovat.\n\n"
+                f"S pozdravem,\n"
+                f"Infer s.r.o.\n"
+                f"Průmyslová 123, 500 03 Hradec Králové\n"
+                f"info@infer.cz | +420 123 456 789"
+            )
+            sent = await smtp.send_email(
+                to=customer_email,
+                subject=subject,
+                body=body,
+                attachments=[pdf_path],
+            )
+
+            if sent:
+                # Update offer status to SENT
+                async with AsyncSessionLocal() as session:
+                    result = await session.execute(
+                        select(Offer).where(Offer.id == offer_id)
+                    )
+                    offer = result.scalar_one_or_none()
+                    if offer:
+                        offer.status = OfferStatus.SENT
+                        await session.commit()
+
+                logger.info(
+                    "offer_email_sent",
+                    offer_number=offer_number,
+                    customer_email=customer_email,
+                )
+            return sent
+
+        except Exception:
+            logger.exception("offer_email_failed", offer_number=offer_number)
+            return False
 
     @staticmethod
     async def _generate_offer_number(session: AsyncSession) -> str:
