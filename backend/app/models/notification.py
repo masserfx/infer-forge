@@ -18,6 +18,7 @@ class NotificationType(str, enum.Enum):
     CALCULATION_COMPLETE = "calculation_complete"
     ORDER_STATUS_CHANGED = "order_status_changed"
     DOCUMENT_UPLOADED = "document_uploaded"
+    DEADLINE_WARNING = "deadline_warning"
 
 
 class Notification(Base, UUIDPKMixin, TimestampMixin):

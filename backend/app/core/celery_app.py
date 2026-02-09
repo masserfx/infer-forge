@@ -20,6 +20,7 @@ celery_app = Celery(
         "app.integrations.pohoda.tasks",
         "app.agents.tasks",
         "app.services.embedding_tasks",
+        "app.services.deadline_tasks",
         "app.orchestration.tasks",
     ],
 )
@@ -56,6 +57,10 @@ celery_app.conf.beat_schedule = {
     "sync-pohoda-daily": {
         "task": "app.integrations.pohoda.tasks.sync_daily_exports",
         "schedule": crontab(hour=6, minute=0),  # Daily at 6 AM
+    },
+    "check-operation-deadlines": {
+        "task": "app.services.deadline_tasks.check_operation_deadlines",
+        "schedule": crontab(hour="7,11,15", minute=0),  # 3x daily
     },
 }
 
