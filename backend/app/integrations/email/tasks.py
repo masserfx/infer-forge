@@ -216,7 +216,7 @@ async def _poll_inbox_async(settings: object) -> dict[str, object]:
 
                     # Create deterministic ID from content, fallback to uuid
                     content_hash = hashlib.sha256(
-                        f"{raw_email.subject}|{raw_email.from_email}|{raw_email.date}".encode()
+                        f"{raw_email.subject}|{raw_email.from_email}|{raw_email.received_at}".encode()
                     ).hexdigest()[:16]
                     raw_email.message_id = f"<gen-{content_hash}-{uuid4().hex[:8]}@infer-forge>"
                     logger.info(
