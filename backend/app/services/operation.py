@@ -3,11 +3,13 @@
 from uuid import UUID
 
 import structlog
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models import Operation, Order
+from app.models.operation import OperationStatus
+from app.models.order import OrderStatus
 from app.schemas.operation import OperationCreate, OperationUpdate
 
 logger = structlog.get_logger(__name__)
@@ -145,6 +147,7 @@ class OperationService:
             return None
 
         # Update fields
+        old_status = operation.status
         update_data = data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(operation, field, value)
@@ -159,7 +162,39 @@ class OperationService:
             user_id=str(self.user_id),
         )
 
+        # Auto-advance order when all operations completed
+        new_status = operation.status
+        if (
+            new_status == OperationStatus.COMPLETED.value
+            and old_status != OperationStatus.COMPLETED.value
+        ):
+            await self._check_all_operations_completed(operation.order_id)
+
         return operation
+
+    async def _check_all_operations_completed(self, order_id: UUID) -> None:
+        """Check if all operations are completed; advance order VYROBA → EXPEDICE."""
+        incomplete = await self.db.execute(
+            select(func.count()).select_from(Operation).where(
+                Operation.order_id == order_id,
+                Operation.status != OperationStatus.COMPLETED.value,
+            )
+        )
+        if incomplete.scalar_one() > 0:
+            return
+
+        result = await self.db.execute(
+            select(Order).where(Order.id == order_id)
+        )
+        order = result.scalar_one_or_none()
+        if order and order.status == OrderStatus.VYROBA:
+            order.status = OrderStatus.EXPEDICE
+            await self.db.commit()
+            logger.info(
+                "order_auto_advanced_to_expedice",
+                order_id=str(order_id),
+                order_number=order.number,
+            )
 
     async def delete(self, operation_id: UUID) -> bool:
         """Delete an operation.

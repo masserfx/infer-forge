@@ -597,7 +597,20 @@ class OrderOrchestrator:
             (6, "Výstupní kontrola a expedice", "Rozměrová kontrola, dokumentace, balení", 4),
         ]
 
+        # Schedule backwards from due_date (8h = 1 working day)
+        hours_per_day = 8
+        schedules: dict[int, tuple[datetime | None, datetime | None]] = {}
+        if order.due_date:
+            cursor = datetime.combine(order.due_date, datetime.min.time())
+            for seq, _, _, hours in reversed(default_ops):
+                days = max(1, -(-hours // hours_per_day))  # ceil division
+                planned_end = cursor
+                planned_start = cursor - timedelta(days=int(days))
+                schedules[seq] = (planned_start, planned_end)
+                cursor = planned_start
+
         for seq, name, description, hours in default_ops:
+            p_start, p_end = schedules.get(seq, (None, None))
             op = Operation(
                 order_id=order_id,
                 name=name,
@@ -605,10 +618,9 @@ class OrderOrchestrator:
                 sequence=seq,
                 duration_hours=Decimal(hours),
                 status=OperationStatus.PLANNED.value,
+                planned_start=p_start,
+                planned_end=p_end,
             )
-            # Set planned_end on last operation if due_date exists
-            if seq == 6 and order.due_date:
-                op.planned_end = datetime.combine(order.due_date, datetime.min.time())
             session.add(op)
 
         order.status = OrderStatus.VYROBA
