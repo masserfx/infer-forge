@@ -27,12 +27,15 @@ _OBJEDNAVKA_PATTERNS = [
 
 _POPTAVKA_PATTERNS = [
     re.compile(r"popt[aá]v[aá]me", re.IGNORECASE),
-    re.compile(r"cenovou\s+nab[ií]dku", re.IGNORECASE),
-    re.compile(r"pros[ií]m\s+o\s+nab[ií]dku", re.IGNORECASE),
-    re.compile(r"[zž][aá]d[aá]me\s+o\s+cenovou", re.IGNORECASE),
+    re.compile(r"popt[aá]l[ia]", re.IGNORECASE),
+    re.compile(r"popt[aá]vka\b", re.IGNORECASE),
+    re.compile(r"cenov[ouéý]\w*\s+nab[ií]dk", re.IGNORECASE),
+    re.compile(r"pros[ií]m\s+o\s+.*nab[ií]dk", re.IGNORECASE),
+    re.compile(r"zasl[aá]n[ií]\s+.*nab[ií]dk", re.IGNORECASE),
+    re.compile(r"[zž][aá]d[aá]me\s+o\s+cenov", re.IGNORECASE),
     re.compile(r"[zž][aá]dost\s+o\s+nab[ií]dku", re.IGNORECASE),
-    re.compile(r"popt[aá]vka\s+([cč]|[cč][ií]slo)", re.IGNORECASE),
     re.compile(r"ocenit", re.IGNORECASE),
+    re.compile(r"nab[ií]dkov[éý]\s+[rř][ií]zen[ií]", re.IGNORECASE),
 ]
 
 _REKLAMACE_PATTERNS = [
@@ -71,7 +74,7 @@ _DOTAZ_PATTERNS = [
 _INFORMACE_ZAKAZKA_PATTERNS = [
     re.compile(r"stav\s+(zak[aá]zky|objedn[aá]vky)", re.IGNORECASE),
     re.compile(r"kde\s+je\s+(zak[aá]zka|objedn[aá]vka)", re.IGNORECASE),
-    re.compile(r"term[ií]n\w*\s+(dokon[cč]en[ií]|dod[aá]n[ií])", re.IGNORECASE),
+    re.compile(r"(jak[yý]|kdy|sd[eě]l\w*|informov\w*)\s+.*term[ií]n", re.IGNORECASE),
     re.compile(r"p[rř]edpokl[aá]dan[yý]\s+term[ií]n", re.IGNORECASE),
     re.compile(r"zak[aá]zka\s+[cč](\.|[ií]slo)", re.IGNORECASE),
     re.compile(r"jak\s+to\s+vypad[aá]\s+s", re.IGNORECASE),
