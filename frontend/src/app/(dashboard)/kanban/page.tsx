@@ -25,7 +25,7 @@ export default function KanbanPage() {
           Jen moje zakázky
         </label>
       </div>
-      <KanbanBoard />
+      <KanbanBoard myOnly={myOnly} />
     </div>
   );
 }

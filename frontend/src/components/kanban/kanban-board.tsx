@@ -16,6 +16,7 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { getOrders, updateOrderStatus } from "@/lib/api";
+import { useAuth } from "@/lib/auth-provider";
 import { stringToColor } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/types";
 import { KanbanColumn } from "./kanban-column";
@@ -52,8 +53,13 @@ const STATUS_BORDER_COLORS: Record<OrderStatus, string> = {
   dokonceno: "border-t-gray-500",
 };
 
-export function KanbanBoard() {
+interface KanbanBoardProps {
+  myOnly?: boolean;
+}
+
+export function KanbanBoard({ myOnly = false }: KanbanBoardProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
@@ -93,11 +99,17 @@ export function KanbanBoard() {
     return Array.from(map.values()).sort((a, b) => b.count - a.count);
   }, [orders]);
 
-  // Filter orders by selected customer
+  // Filter orders by selected customer and/or current user
   const filteredOrders = useMemo(() => {
-    if (!selectedCustomerId) return orders;
-    return orders.filter((o) => o.customer_id === selectedCustomerId);
-  }, [orders, selectedCustomerId]);
+    let result = orders;
+    if (myOnly && user?.id) {
+      result = result.filter((o) => o.assigned_to === user.id);
+    }
+    if (selectedCustomerId) {
+      result = result.filter((o) => o.customer_id === selectedCustomerId);
+    }
+    return result;
+  }, [orders, selectedCustomerId, myOnly, user?.id]);
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: OrderStatus }) =>
