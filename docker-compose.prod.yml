@@ -37,7 +37,7 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       SECRET_KEY: ${SECRET_KEY}
       SENTRY_DSN: ${SENTRY_DSN:-}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:8090,http://91.99.126.53:8090}
       ENVIRONMENT: production
       DEBUG: "false"
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
