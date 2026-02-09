@@ -51,8 +51,23 @@ class TestSendAutoReply:
     """Test send_auto_reply function."""
 
     @patch("app.integrations.email.tasks.get_settings")
+    def test_blocked_when_sending_disabled(self, mock_settings):
+        """Test that sending is blocked when EMAIL_SENDING_ENABLED=false."""
+        mock_settings.return_value.EMAIL_SENDING_ENABLED = False
+        mock_settings.return_value.SMTP_HOST = "smtp.example.com"
+
+        result = send_auto_reply(
+            to_email="customer@example.com",
+            subject="Re: Test",
+        )
+
+        assert result["status"] == "blocked"
+        assert "EMAIL_SENDING_ENABLED" in result["reason"]
+
+    @patch("app.integrations.email.tasks.get_settings")
     def test_skipped_when_smtp_not_configured(self, mock_settings):
         """Test that sending is skipped when SMTP_HOST is not configured."""
+        mock_settings.return_value.EMAIL_SENDING_ENABLED = True
         mock_settings.return_value.SMTP_HOST = ""
 
         result = send_auto_reply(
@@ -70,6 +85,7 @@ class TestSendAutoReply:
         """Test successful email sending."""
         # Mock settings
         settings = MagicMock()
+        settings.EMAIL_SENDING_ENABLED = True
         settings.SMTP_HOST = "smtp.example.com"
         settings.SMTP_PORT = 465
         settings.SMTP_USER = "test@example.com"
@@ -112,6 +128,7 @@ class TestSendAutoReply:
         """Test that STARTTLS is used for port 587."""
         # Mock settings with port 587
         settings = MagicMock()
+        settings.EMAIL_SENDING_ENABLED = True
         settings.SMTP_HOST = "smtp.example.com"
         settings.SMTP_PORT = 587
         settings.SMTP_USER = "test@example.com"
@@ -144,6 +161,7 @@ class TestSendAutoReply:
         """Test error handling when SMTP fails."""
         # Mock settings
         settings = MagicMock()
+        settings.EMAIL_SENDING_ENABLED = True
         settings.SMTP_HOST = "smtp.example.com"
         settings.SMTP_PORT = 465
         settings.SMTP_FROM_EMAIL = "test@example.com"
@@ -176,6 +194,7 @@ class TestSendAutoReplyTask:
         """Test successful task execution."""
         # Mock settings
         settings = MagicMock()
+        settings.EMAIL_SENDING_ENABLED = True
         settings.SMTP_HOST = "smtp.example.com"
         settings.SMTP_PORT = 465
         settings.SMTP_FROM_EMAIL = "test@example.com"
@@ -205,6 +224,7 @@ class TestSendAutoReplyTask:
         """Test that task passes original message ID for email threading."""
         # Mock settings
         settings = MagicMock()
+        settings.EMAIL_SENDING_ENABLED = True
         settings.SMTP_HOST = "smtp.example.com"
         settings.SMTP_PORT = 465
         settings.SMTP_FROM_EMAIL = "test@example.com"

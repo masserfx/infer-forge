@@ -70,6 +70,20 @@ class SMTPClient:
             aiosmtplib.SMTPException: If SMTP operation fails.
             FileNotFoundError: If attachment file not found.
         """
+        # Safety switch — block all sending unless explicitly enabled
+        from app.core.config import get_settings
+
+        settings = get_settings()
+        if not settings.EMAIL_SENDING_ENABLED:
+            recipients = [to] if isinstance(to, str) else to
+            logger.warning(
+                "smtp_send_blocked",
+                reason="EMAIL_SENDING_ENABLED=false",
+                recipients=recipients,
+                subject=subject,
+            )
+            return False
+
         # Normalize recipient list
         recipients = [to] if isinstance(to, str) else to
 

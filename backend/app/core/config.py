@@ -58,6 +58,16 @@ class Settings(BaseSettings):
         description="Anthropic API key for Claude AI agents",
     )
 
+    # Email - Safety switches
+    EMAIL_SENDING_ENABLED: bool = Field(
+        default=False,
+        description="Master switch for SMTP email sending. Must be explicitly set to true to send emails.",
+    )
+    IMAP_POLLING_ENABLED: bool = Field(
+        default=False,
+        description="Master switch for IMAP inbox polling. Must be explicitly set to true to read emails.",
+    )
+
     # Email - IMAP
     IMAP_HOST: str = Field(
         default="",

@@ -59,6 +59,16 @@ def poll_inbox(self) -> dict[str, object]:  # type: ignore[no-untyped-def]
     """
     settings = get_settings()
 
+    # Skip if IMAP polling is disabled (safety switch)
+    if not settings.IMAP_POLLING_ENABLED:
+        logger.info("poll_inbox.skipped", reason="IMAP_POLLING_ENABLED=false")
+        return {
+            "status": "skipped",
+            "reason": "IMAP polling disabled (set IMAP_POLLING_ENABLED=true to enable)",
+            "processed": 0,
+            "errors": 0,
+        }
+
     # Skip if IMAP is not configured
     if not settings.IMAP_HOST:
         logger.info("poll_inbox.skipped", reason="IMAP_HOST not configured")
@@ -538,6 +548,20 @@ def send_auto_reply(
         Exception: On SMTP failures
     """
     settings = get_settings()
+
+    # Skip if email sending is disabled (safety switch)
+    if not settings.EMAIL_SENDING_ENABLED:
+        logger.warning(
+            "send_auto_reply.blocked",
+            reason="EMAIL_SENDING_ENABLED=false",
+            to_email=to_email,
+            subject=subject,
+        )
+        return {
+            "status": "blocked",
+            "reason": "Email sending disabled (set EMAIL_SENDING_ENABLED=true to enable)",
+            "to_email": to_email,
+        }
 
     # Skip if SMTP is not configured
     if not settings.SMTP_HOST:
