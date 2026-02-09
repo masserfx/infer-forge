@@ -10,6 +10,9 @@ Orchestrates:
 
 from __future__ import annotations
 
+import re
+from datetime import date, datetime, timedelta
+from decimal import Decimal
 from uuid import UUID
 
 import structlog
@@ -21,6 +24,7 @@ from app.models.customer import Customer
 from app.models.document import Document
 from app.models.inbox import InboxMessage, InboxStatus
 from app.models.offer import Offer, OfferStatus
+from app.models.operation import Operation, OperationStatus
 from app.models.order import Order, OrderPriority, OrderStatus
 
 logger = structlog.get_logger(__name__)
@@ -89,7 +93,6 @@ class OrderOrchestrator:
 
             # Fallback: try matching via references chain
             if not matched_order_id and inbox_msg.references_header:
-                import re
                 ref_pattern = re.compile(r"<([^>]+)>")
                 ref_ids = ref_pattern.findall(inbox_msg.references_header)
                 if ref_ids:
@@ -115,11 +118,21 @@ class OrderOrchestrator:
                 # Handle offer acceptance
                 if classification == "objednavka":
                     await self._handle_offer_acceptance(session, matched_order_id)
+                    await self._update_order_from_parsed_data(
+                        session, matched_order_id, parsed_data
+                    )
+                    await self._create_default_operations(session, matched_order_id)
 
                 inbox_msg.order_id = matched_order_id
                 inbox_msg.customer_id = matched_customer_id
                 inbox_msg.status = InboxStatus.PROCESSED
                 await session.commit()
+
+                next_stage = (
+                    "production_started"
+                    if classification == "objednavka"
+                    else None
+                )
 
                 logger.info(
                     "order_matched_by_thread",
@@ -135,7 +148,7 @@ class OrderOrchestrator:
                     "customer_created": False,
                     "order_created": False,
                     "documents_linked": 0,
-                    "next_stage": "notify" if classification == "objednavka" else None,
+                    "next_stage": next_stage,
                     "matched_by": "thread",
                 }
 
@@ -362,8 +375,9 @@ class OrderOrchestrator:
             customer_id=customer_id,
             number=order_number,
             status=status,
-            priority=OrderPriority.NORMAL,
-            note=parsed_data.get("description"),
+            priority=self._map_urgency(parsed_data.get("urgency")),
+            due_date=self._parse_deadline(parsed_data.get("deadline")),
+            note=parsed_data.get("note") or parsed_data.get("description"),
         )
         session.add(order)
         await session.flush()
@@ -451,6 +465,159 @@ class OrderOrchestrator:
                 old_status="nabidka",
                 new_status="objednavka",
             )
+
+    @staticmethod
+    def _parse_deadline(deadline_text: str | None) -> date | None:
+        """Parse deadline text into a date.
+
+        Supports:
+        - DD.MM.YYYY format
+        - "X týdnů/týdny" (X weeks)
+        - "X měsíců/měsíce" (X months)
+
+        Returns None for vague texts like "co nejdříve".
+        """
+        if not deadline_text:
+            return None
+
+        text = deadline_text.strip().lower()
+
+        # DD.MM.YYYY
+        m = re.match(r"(\d{1,2})\.(\d{1,2})\.(\d{4})", text)
+        if m:
+            day, month, year = int(m.group(1)), int(m.group(2)), int(m.group(3))
+            try:
+                return date(year, month, day)
+            except ValueError:
+                return None
+
+        # X týdnů/týdny/týden
+        m = re.search(r"(\d+)\s*t[ýy]dn", text)
+        if m:
+            weeks = int(m.group(1))
+            return date.today() + timedelta(weeks=weeks)
+
+        # X měsíců/měsíce/měsíc
+        m = re.search(r"(\d+)\s*m[eě]s[ií]c", text)
+        if m:
+            months = int(m.group(1))
+            return date.today() + timedelta(days=months * 30)
+
+        return None
+
+    @staticmethod
+    def _map_urgency(urgency: str | None) -> OrderPriority:
+        """Map urgency string from parser to OrderPriority enum."""
+        if not urgency:
+            return OrderPriority.NORMAL
+        mapping = {
+            "low": OrderPriority.LOW,
+            "normal": OrderPriority.NORMAL,
+            "high": OrderPriority.HIGH,
+            "critical": OrderPriority.URGENT,
+        }
+        return mapping.get(urgency.lower(), OrderPriority.NORMAL)
+
+    async def _update_order_from_parsed_data(
+        self, session: AsyncSession, order_id: UUID, parsed_data: dict
+    ) -> None:
+        """Update existing order with deadline/priority/note from parsed email data."""
+        result = await session.execute(
+            select(Order).where(Order.id == order_id)
+        )
+        order = result.scalar_one_or_none()
+        if not order:
+            return
+
+        # Set due_date if not already set
+        if parsed_data.get("deadline") and order.due_date is None:
+            due = self._parse_deadline(parsed_data["deadline"])
+            if due:
+                order.due_date = due
+                logger.info(
+                    "order_due_date_set",
+                    order_id=str(order_id),
+                    due_date=str(due),
+                )
+
+        # Update priority if still NORMAL
+        if parsed_data.get("urgency") and order.priority == OrderPriority.NORMAL:
+            new_priority = self._map_urgency(parsed_data["urgency"])
+            if new_priority != OrderPriority.NORMAL:
+                order.priority = new_priority
+                logger.info(
+                    "order_priority_updated",
+                    order_id=str(order_id),
+                    priority=new_priority.value,
+                )
+
+        # Append note
+        note_text = parsed_data.get("note")
+        if note_text:
+            if order.note:
+                order.note = f"{order.note}\n---\n{note_text}"
+            else:
+                order.note = note_text
+
+    async def _create_default_operations(
+        self, session: AsyncSession, order_id: UUID
+    ) -> None:
+        """Create default production operations and advance order to VYROBA.
+
+        Standard operations for Infer s.r.o. (pipe fittings, weldments):
+        1. Material receipt & inspection
+        2. Cutting & preparation
+        3. Welding
+        4. NDT inspection
+        5. Surface treatment
+        6. Final inspection & dispatch
+        """
+        # Check if operations already exist
+        result = await session.execute(
+            select(func.count()).select_from(Operation).where(
+                Operation.order_id == order_id
+            )
+        )
+        if result.scalar_one() > 0:
+            return
+
+        result = await session.execute(
+            select(Order).where(Order.id == order_id)
+        )
+        order = result.scalar_one_or_none()
+        if not order:
+            return
+
+        default_ops = [
+            (1, "Příjem a kontrola materiálu", "Vstupní kontrola dle atestace EN 10204", 4),
+            (2, "Řezání a příprava", "Řezání, úkosy, příprava polotovarů", 8),
+            (3, "Svařování", "Svařování dle WPS, mezioperační kontrola", 24),
+            (4, "NDT kontrola", "Nedestruktivní testování svarů", 8),
+            (5, "Povrchová úprava", "Tryskání Sa 2.5 + nátěr dle specifikace", 8),
+            (6, "Výstupní kontrola a expedice", "Rozměrová kontrola, dokumentace, balení", 4),
+        ]
+
+        for seq, name, description, hours in default_ops:
+            op = Operation(
+                order_id=order_id,
+                name=name,
+                description=description,
+                sequence=seq,
+                duration_hours=Decimal(hours),
+                status=OperationStatus.PLANNED.value,
+            )
+            # Set planned_end on last operation if due_date exists
+            if seq == 6 and order.due_date:
+                op.planned_end = datetime.combine(order.due_date, datetime.min.time())
+            session.add(op)
+
+        order.status = OrderStatus.VYROBA
+
+        logger.info(
+            "production_auto_started",
+            order_id=str(order_id),
+            operations_count=len(default_ops),
+        )
 
     @staticmethod
     def _determine_next_stage(classification: str, order_created: bool) -> str | None:
