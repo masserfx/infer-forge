@@ -61,6 +61,7 @@ services:
     volumes:
       - documents:/app/storage
       - uploads:/app/uploads
+      - ./prezentace:/prezentace
     restart: unless-stopped
 
   celery-worker:
