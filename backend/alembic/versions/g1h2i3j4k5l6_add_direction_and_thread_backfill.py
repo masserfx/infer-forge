@@ -27,7 +27,7 @@ def upgrade() -> None:
             "direction",
             sa.String(length=10),
             nullable=False,
-            server_default="inbound",
+            server_default="INBOUND",
         ),
     )
 

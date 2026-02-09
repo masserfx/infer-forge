@@ -89,7 +89,7 @@ class InboxMessage(Base, UUIDPKMixin, TimestampMixin):
         Enum(MessageDirection, native_enum=False, length=10),
         nullable=False,
         default=MessageDirection.INBOUND,
-        server_default="inbound",
+        server_default="INBOUND",
     )
 
     # Orchestration fields
