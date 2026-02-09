@@ -35,6 +35,7 @@ import type {
   Operation,
   OperationCreate,
   Order,
+  OrderEmail,
   OrderStatus,
   PipelineReport,
   PohodaSyncLog,
@@ -347,6 +348,10 @@ export async function getOrderCalculations(
 
 export async function getOrderOffers(orderId: string): Promise<Offer[]> {
   return fetchApi<Offer[]>(`/zakazky/${orderId}/nabidky`);
+}
+
+export async function getOrderEmails(orderId: string): Promise<OrderEmail[]> {
+  return fetchApi<OrderEmail[]>(`/zakazky/${orderId}/emails`);
 }
 
 export async function createCalculation(data: {

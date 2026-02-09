@@ -53,6 +53,9 @@ class SMTPClient:
         body: str,
         attachments: list[str | Path] | None = None,
         html: bool = False,
+        message_id: str | None = None,
+        in_reply_to: str | None = None,
+        references: str | None = None,
     ) -> bool:
         """Send email with optional attachments.
 
@@ -62,6 +65,9 @@ class SMTPClient:
             body: Email body text (plain text or HTML).
             attachments: Optional list of file paths to attach.
             html: If True, treat body as HTML content.
+            message_id: Optional Message-ID header for the outgoing email.
+            in_reply_to: Optional In-Reply-To header for threading.
+            references: Optional References header for threading.
 
         Returns:
             True if email sent successfully, False otherwise.
@@ -102,6 +108,9 @@ class SMTPClient:
                 body=body,
                 attachments=attachments,
                 html=html,
+                message_id=message_id,
+                in_reply_to=in_reply_to,
+                references=references,
             )
 
             # Send email
@@ -144,6 +153,9 @@ class SMTPClient:
         body: str,
         attachments: list[str | Path] | None,
         html: bool,
+        message_id: str | None = None,
+        in_reply_to: str | None = None,
+        references: str | None = None,
     ) -> MIMEMultipart:
         """Create MIME message with body and attachments.
 
@@ -153,6 +165,9 @@ class SMTPClient:
             body: Email body text.
             attachments: Optional list of file paths.
             html: If True, use HTML content type.
+            message_id: Optional Message-ID header.
+            in_reply_to: Optional In-Reply-To header for threading.
+            references: Optional References header for threading.
 
         Returns:
             Constructed MIMEMultipart message.
@@ -161,6 +176,14 @@ class SMTPClient:
         message["From"] = self.user
         message["To"] = ", ".join(to)
         message["Subject"] = subject
+
+        # Threading headers
+        if message_id:
+            message["Message-ID"] = message_id
+        if in_reply_to:
+            message["In-Reply-To"] = in_reply_to
+        if references:
+            message["References"] = references
 
         # Attach body
         content_type = "html" if html else "plain"

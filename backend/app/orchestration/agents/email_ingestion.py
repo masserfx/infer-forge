@@ -88,6 +88,10 @@ class EmailIngestionAgent:
             # Extract thread_id from headers
             thread_id = self._extract_thread_id(references_header, in_reply_to_header)
 
+            # Root emails (no references) get thread_id = own message_id
+            if not thread_id and raw_email.message_id:
+                thread_id = raw_email.message_id
+
             # Create InboxMessage
             inbox_msg = InboxMessage(
                 message_id=raw_email.message_id,

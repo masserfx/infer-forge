@@ -20,6 +20,7 @@ from app.core.database import AsyncSessionLocal
 from app.models.customer import Customer
 from app.models.document import Document
 from app.models.inbox import InboxMessage, InboxStatus
+from app.models.offer import Offer, OfferStatus
 from app.models.order import Order, OrderPriority, OrderStatus
 
 logger = structlog.get_logger(__name__)
@@ -70,7 +71,10 @@ class OrderOrchestrator:
 
             # Thread-based order matching: if thread_id exists, look for
             # previous messages in the same thread that already have an order
-            if hasattr(inbox_msg, 'thread_id') and inbox_msg.thread_id:
+            matched_order_id = None
+            matched_customer_id = None
+
+            if inbox_msg.thread_id:
                 thread_result = await session.execute(
                     select(InboxMessage).where(
                         InboxMessage.thread_id == inbox_msg.thread_id,
@@ -80,28 +84,60 @@ class OrderOrchestrator:
                 )
                 thread_msg = thread_result.scalar_one_or_none()
                 if thread_msg and thread_msg.order_id:
-                    # Found a previous message with an order — reuse it
-                    inbox_msg.order_id = thread_msg.order_id
-                    inbox_msg.customer_id = thread_msg.customer_id
-                    inbox_msg.status = InboxStatus.PROCESSED
-                    await session.commit()
+                    matched_order_id = thread_msg.order_id
+                    matched_customer_id = thread_msg.customer_id
 
-                    logger.info(
-                        "order_matched_by_thread",
-                        inbox_message_id=str(inbox_message_id),
-                        thread_id=inbox_msg.thread_id,
-                        order_id=str(thread_msg.order_id),
-                    )
+            # Fallback: try matching via references chain
+            if not matched_order_id and inbox_msg.references_header:
+                import re
+                ref_pattern = re.compile(r"<([^>]+)>")
+                ref_ids = ref_pattern.findall(inbox_msg.references_header)
+                if ref_ids:
+                    for ref_id in ref_ids:
+                        ref_result = await session.execute(
+                            select(InboxMessage).where(
+                                InboxMessage.message_id == ref_id,
+                                InboxMessage.order_id.isnot(None),
+                            ).limit(1)
+                        )
+                        ref_msg = ref_result.scalar_one_or_none()
+                        if ref_msg and ref_msg.order_id:
+                            matched_order_id = ref_msg.order_id
+                            matched_customer_id = ref_msg.customer_id
+                            # Also set thread_id for future lookups
+                            if not inbox_msg.thread_id:
+                                inbox_msg.thread_id = ref_msg.thread_id
+                            break
 
-                    return {
-                        "customer_id": thread_msg.customer_id,
-                        "order_id": thread_msg.order_id,
-                        "customer_created": False,
-                        "order_created": False,
-                        "documents_linked": 0,
-                        "next_stage": None,
-                        "matched_by": "thread",
-                    }
+            if matched_order_id:
+                classification = parsed_data.get("classification", "").lower()
+
+                # Handle offer acceptance
+                if classification == "objednavka":
+                    await self._handle_offer_acceptance(session, matched_order_id)
+
+                inbox_msg.order_id = matched_order_id
+                inbox_msg.customer_id = matched_customer_id
+                inbox_msg.status = InboxStatus.PROCESSED
+                await session.commit()
+
+                logger.info(
+                    "order_matched_by_thread",
+                    inbox_message_id=str(inbox_message_id),
+                    thread_id=inbox_msg.thread_id,
+                    order_id=str(matched_order_id),
+                    offer_acceptance=classification == "objednavka",
+                )
+
+                return {
+                    "customer_id": matched_customer_id,
+                    "order_id": matched_order_id,
+                    "customer_created": False,
+                    "order_created": False,
+                    "documents_linked": 0,
+                    "next_stage": "notify" if classification == "objednavka" else None,
+                    "matched_by": "thread",
+                }
 
             # Dedup: if order already exists for this message, skip
             if inbox_msg.order_id:
@@ -375,6 +411,46 @@ class OrderOrchestrator:
             document_count=len(documents),
         )
         return len(documents)
+
+    async def _handle_offer_acceptance(
+        self, session: AsyncSession, order_id: UUID
+    ) -> None:
+        """Handle offer acceptance: mark SENT offer as ACCEPTED and advance order status.
+
+        Args:
+            session: SQLAlchemy async session
+            order_id: Order UUID whose offer should be accepted
+        """
+        # Find the latest SENT offer for this order
+        result = await session.execute(
+            select(Offer).where(
+                Offer.order_id == order_id,
+                Offer.status == OfferStatus.SENT,
+            ).order_by(Offer.created_at.desc()).limit(1)
+        )
+        offer = result.scalar_one_or_none()
+        if offer:
+            offer.status = OfferStatus.ACCEPTED
+            logger.info(
+                "offer_accepted_via_email",
+                offer_id=str(offer.id),
+                offer_number=offer.number,
+                order_id=str(order_id),
+            )
+
+        # Advance order status to OBJEDNAVKA if currently NABIDKA
+        result = await session.execute(
+            select(Order).where(Order.id == order_id)
+        )
+        order_record = result.scalar_one_or_none()
+        if order_record and order_record.status == OrderStatus.NABIDKA:
+            order_record.status = OrderStatus.OBJEDNAVKA
+            logger.info(
+                "order_status_advanced",
+                order_id=str(order_id),
+                old_status="nabidka",
+                new_status="objednavka",
+            )
 
     @staticmethod
     def _determine_next_stage(classification: str, order_created: bool) -> str | None:

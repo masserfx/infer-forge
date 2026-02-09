@@ -730,6 +730,26 @@ export interface DrawingAnalysisResult {
   analyzed_at: string | null;
 }
 
+// --- Order Emails ---
+
+export type MessageDirection = "inbound" | "outbound";
+
+export interface OrderEmail {
+  id: string;
+  from_email: string;
+  subject: string;
+  body_text: string;
+  received_at: string;
+  classification: InboxClassification | null;
+  direction: MessageDirection;
+  status: string;
+}
+
+export const MESSAGE_DIRECTION_LABELS: Record<MessageDirection, string> = {
+  inbound: "Příchozí",
+  outbound: "Odchozí",
+};
+
 // --- Bulk Actions ---
 
 export interface BulkStatusUpdate {

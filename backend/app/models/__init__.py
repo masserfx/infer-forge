@@ -11,7 +11,7 @@ from .document import Document, DocumentCategory
 from .document_embedding import DocumentEmbedding
 from .drawing_analysis import DrawingAnalysis
 from .email_attachment import EmailAttachment, OCRStatus
-from .inbox import InboxClassification, InboxMessage, InboxStatus
+from .inbox import InboxClassification, InboxMessage, InboxStatus, MessageDirection
 from .material_price import MaterialPrice
 from .notification import Notification, NotificationType
 from .offer import Offer, OfferStatus
@@ -55,6 +55,7 @@ __all__ = [
     "InboxMessage",
     "InboxClassification",
     "InboxStatus",
+    "MessageDirection",
     # EmailAttachment
     "EmailAttachment",
     "OCRStatus",

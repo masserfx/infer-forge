@@ -11,6 +11,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base, TimestampMixin, UUIDPKMixin
 
 
+class MessageDirection(str, enum.Enum):
+    """Email direction enum."""
+
+    INBOUND = "inbound"
+    OUTBOUND = "outbound"
+
+
 class InboxClassification(str, enum.Enum):
     """Inbox message classification enum."""
 
@@ -77,6 +84,12 @@ class InboxMessage(Base, UUIDPKMixin, TimestampMixin):
         nullable=False,
         default=False,
         server_default="false",
+    )
+    direction: Mapped[MessageDirection] = mapped_column(
+        Enum(MessageDirection, native_enum=False, length=10),
+        nullable=False,
+        default=MessageDirection.INBOUND,
+        server_default="inbound",
     )
 
     # Orchestration fields

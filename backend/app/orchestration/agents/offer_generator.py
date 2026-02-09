@@ -219,6 +219,41 @@ class OfferGenerator:
 
         try:
             from app.integrations.email.smtp_client import SMTPClient
+            from app.models.inbox import InboxMessage, InboxStatus, MessageDirection
+
+            # Look up the original inquiry email for threading
+            original_message_id = None
+            thread_id = None
+            order_id = None
+            async with AsyncSessionLocal() as session:
+                result = await session.execute(
+                    select(Offer).where(Offer.id == offer_id)
+                )
+                offer_record = result.scalar_one_or_none()
+                if offer_record:
+                    order_id = offer_record.order_id
+
+                if order_id:
+                    # Find original inbound email for this order
+                    result = await session.execute(
+                        select(InboxMessage).where(
+                            InboxMessage.order_id == order_id,
+                            InboxMessage.direction == MessageDirection.INBOUND,
+                        ).order_by(InboxMessage.received_at.asc()).limit(1)
+                    )
+                    original_msg = result.scalar_one_or_none()
+                    if original_msg:
+                        original_message_id = original_msg.message_id
+                        thread_id = original_msg.thread_id
+
+            # Generate unique message_id for outgoing email
+            outbound_message_id = f"<offer-{offer_id}@infer.cz>"
+
+            # Build threading headers
+            in_reply_to = f"<{original_message_id}>" if original_message_id else None
+            references = None
+            if original_message_id:
+                references = f"<{original_message_id}>"
 
             smtp = SMTPClient(
                 host=settings.SMTP_HOST,
@@ -243,23 +278,45 @@ class OfferGenerator:
                 subject=subject,
                 body=body,
                 attachments=[pdf_path],
+                message_id=outbound_message_id,
+                in_reply_to=in_reply_to,
+                references=references,
             )
 
             if sent:
-                # Update offer status to SENT
                 async with AsyncSessionLocal() as session:
+                    # Update offer status to SENT
                     result = await session.execute(
                         select(Offer).where(Offer.id == offer_id)
                     )
                     offer = result.scalar_one_or_none()
                     if offer:
                         offer.status = OfferStatus.SENT
-                        await session.commit()
+
+                    # Save outbound email as InboxMessage for thread tracking
+                    from datetime import datetime, timezone
+
+                    outbound_msg = InboxMessage(
+                        message_id=outbound_message_id.strip("<>"),
+                        from_email=settings.SMTP_USER,
+                        subject=subject,
+                        body_text=body,
+                        received_at=datetime.now(timezone.utc),
+                        status=InboxStatus.PROCESSED,
+                        direction=MessageDirection.OUTBOUND,
+                        order_id=order_id,
+                        thread_id=thread_id,
+                        references_header=references,
+                    )
+                    session.add(outbound_msg)
+                    await session.commit()
 
                 logger.info(
                     "offer_email_sent",
                     offer_number=offer_number,
                     customer_email=customer_email,
+                    outbound_message_id=outbound_message_id,
+                    thread_id=thread_id,
                 )
             return sent
 

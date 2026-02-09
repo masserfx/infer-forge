@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_role
 from app.models import Offer, Order, OrderStatus
+from app.models.inbox import InboxMessage
 from app.models.user import User, UserRole
 from app.schemas import OrderCreate, OrderResponse, OrderStatusUpdate, OrderUpdate
 from app.schemas.embedding import SimilarOrderResult, SimilarOrdersResponse, SimilarSearchRequest
@@ -175,6 +176,34 @@ async def get_order_offers(
             "created_at": o.created_at.isoformat(),
         }
         for o in offers
+    ]
+
+
+@router.get("/{order_id}/emails")
+async def get_order_emails(
+    order_id: UUID,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI, UserRole.UCETNI)),
+    db: AsyncSession = Depends(get_db),
+) -> list[dict]:
+    """Get all emails associated with an order (inbound + outbound), chronologically."""
+    result = await db.execute(
+        select(InboxMessage)
+        .where(InboxMessage.order_id == order_id)
+        .order_by(InboxMessage.received_at.asc())
+    )
+    messages = result.scalars().all()
+    return [
+        {
+            "id": str(m.id),
+            "from_email": m.from_email,
+            "subject": m.subject,
+            "body_text": m.body_text[:200] if m.body_text else "",
+            "received_at": m.received_at.isoformat(),
+            "classification": m.classification.value if m.classification else None,
+            "direction": m.direction.value if hasattr(m, "direction") and m.direction else "inbound",
+            "status": m.status.value,
+        }
+        for m in messages
     ]
 
 
