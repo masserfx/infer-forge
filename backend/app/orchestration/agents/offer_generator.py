@@ -216,7 +216,12 @@ class OfferGenerator:
         try:
             from app.integrations.email.smtp_client import SMTPClient
 
-            smtp = SMTPClient()
+            smtp = SMTPClient(
+                host=settings.SMTP_HOST,
+                port=settings.SMTP_PORT,
+                user=settings.SMTP_USER,
+                password=settings.SMTP_PASSWORD,
+            )
             subject = f"Cenová nabídka {offer_number} — Infer s.r.o."
             body = (
                 f"Vážený zákazníku,\n\n"
