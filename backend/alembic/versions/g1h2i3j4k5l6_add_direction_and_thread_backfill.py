@@ -1,7 +1,7 @@
 """add direction column to inbox_messages and backfill thread_id on root emails
 
 Revision ID: g1h2i3j4k5l6
-Revises: f1a2b3c4d5e6
+Revises: ('e5f6g7h8i9j0', 'f1a2b3c4d5e6')
 Create Date: 2026-02-09 18:00:00.000000
 
 """
@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "g1h2i3j4k5l6"
-down_revision: str | None = "f1a2b3c4d5e6"
+down_revision: tuple[str, ...] = ("e5f6g7h8i9j0", "f1a2b3c4d5e6")
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
