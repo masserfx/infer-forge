@@ -396,12 +396,12 @@ export interface DashboardStats {
 // --- Notifications ---
 
 export type NotificationType =
-  | "EMAIL_NEW"
-  | "EMAIL_CLASSIFIED"
-  | "POHODA_SYNC_COMPLETE"
-  | "CALCULATION_COMPLETE"
-  | "ORDER_STATUS_CHANGED"
-  | "DOCUMENT_UPLOADED";
+  | "email_new"
+  | "email_classified"
+  | "pohoda_sync_complete"
+  | "calculation_complete"
+  | "order_status_changed"
+  | "document_uploaded";
 
 export interface Notification {
   id: string;
@@ -415,12 +415,12 @@ export interface Notification {
 }
 
 export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
-  EMAIL_NEW: "Nový email",
-  EMAIL_CLASSIFIED: "Email klasifikován",
-  POHODA_SYNC_COMPLETE: "Synchronizace Pohoda",
-  CALCULATION_COMPLETE: "Kalkulace dokončena",
-  ORDER_STATUS_CHANGED: "Změna stavu zakázky",
-  DOCUMENT_UPLOADED: "Nový dokument",
+  email_new: "Nový email",
+  email_classified: "Email klasifikován",
+  pohoda_sync_complete: "Synchronizace Pohoda",
+  calculation_complete: "Kalkulace dokončena",
+  order_status_changed: "Změna stavu zakázky",
+  document_uploaded: "Nový dokument",
 };
 
 // --- Gamification ---

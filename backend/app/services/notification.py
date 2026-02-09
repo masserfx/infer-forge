@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.websocket import manager
 from app.models.notification import Notification, NotificationType
+from app.models.user import User, UserRole
 
 logger = structlog.get_logger(__name__)
 
@@ -56,11 +57,14 @@ class NotificationService:
 
         # Broadcast via WebSocket/Redis
         ws_message = {
+            "id": str(notification.id),
+            "user_id": str(user_id),
             "type": notification_type.value,
             "title": title,
             "message": message,
             "link": link,
-            "notification_id": str(notification.id),
+            "read": False,
+            "created_at": notification.created_at.isoformat(),
         }
         await manager.publish_notification(str(user_id), ws_message)
 
@@ -93,19 +97,55 @@ class NotificationService:
             List of created notifications.
         """
         notifications = []
-        if user_ids:
-            for uid in user_ids:
-                n = await self.create(uid, notification_type, title, message, link)
-                notifications.append(n)
-        else:
-            # Broadcast to all connected without persisting per-user
-            ws_message = {
-                "type": notification_type.value,
-                "title": title,
-                "message": message,
-                "link": link,
-            }
-            await manager.broadcast(ws_message)
+        if user_ids is None:
+            # Load all active users from DB and persist for each
+            result = await self.db.execute(
+                select(User.id).where(User.is_active.is_(True))
+            )
+            user_ids = [row[0] for row in result.all()]
+
+        for uid in user_ids:
+            n = await self.create(uid, notification_type, title, message, link)
+            notifications.append(n)
+
+        return notifications
+
+    async def create_for_roles(
+        self,
+        notification_type: NotificationType,
+        title: str,
+        message: str,
+        roles: list[UserRole],
+        link: str | None = None,
+        exclude_user_id: UUID | None = None,
+    ) -> list[Notification]:
+        """Create notifications for all active users with specified roles.
+
+        Args:
+            notification_type: Notification type.
+            title: Title text.
+            message: Body text.
+            roles: Target user roles.
+            link: Optional link.
+            exclude_user_id: Optional user to exclude (e.g. actor).
+
+        Returns:
+            List of created notifications.
+        """
+        query = select(User.id).where(
+            User.is_active.is_(True),
+            User.role.in_(roles),
+        )
+        if exclude_user_id:
+            query = query.where(User.id != exclude_user_id)
+
+        result = await self.db.execute(query)
+        user_ids = [row[0] for row in result.all()]
+
+        notifications = []
+        for uid in user_ids:
+            n = await self.create(uid, notification_type, title, message, link)
+            notifications.append(n)
 
         return notifications
 

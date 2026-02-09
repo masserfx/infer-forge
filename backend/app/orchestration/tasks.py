@@ -218,6 +218,12 @@ def ingest_email(self, raw_email_data: dict) -> dict:
         # M1: Mark processing started
         _run_async(_update_inbox_timestamp(result.get("inbox_message_id"), "processing_started_at"))
 
+        # EMAIL_NEW notification
+        _run_async(_notify_email_new(
+            subject=raw_email_data.get("subject", ""),
+            from_email=raw_email_data.get("from_email", ""),
+        ))
+
         # M3: WebSocket progress
         _run_async(_broadcast_pipeline_progress(
             result.get("inbox_message_id"), "ingest", "success",
@@ -427,15 +433,18 @@ async def _classify_email_async(ingest_result: dict) -> dict:
         # WebSocket notification
         try:
             from app.models.notification import NotificationType
+            from app.models.user import UserRole
             from app.services.notification import NotificationService
 
             notif_service = NotificationService(session)
-            await notif_service.create_for_all(
+            await notif_service.create_for_roles(
                 notification_type=NotificationType.EMAIL_CLASSIFIED,
                 title="Email klasifikován",
                 message=f"'{ingest_result.get('subject', '')}' → {classification or 'neznámé'} ({method})",
+                roles=[UserRole.ADMIN, UserRole.OBCHODNIK],
                 link="/inbox",
             )
+            await session.commit()
         except Exception:
             pass
 
@@ -1380,22 +1389,46 @@ async def _escalate_message(inbox_message_id: str | None) -> None:
             await session.commit()
 
 
+async def _notify_email_new(subject: str, from_email: str) -> None:
+    """Send EMAIL_NEW notification to ADMIN and OBCHODNIK."""
+    try:
+        from app.models.notification import NotificationType
+        from app.models.user import UserRole
+        from app.services.notification import NotificationService
+
+        async with AsyncSessionLocal() as session:
+            notif_service = NotificationService(session)
+            await notif_service.create_for_roles(
+                notification_type=NotificationType.EMAIL_NEW,
+                title="Nový email",
+                message=f"Od: {from_email} — '{subject}'",
+                roles=[UserRole.ADMIN, UserRole.OBCHODNIK],
+                link="/inbox",
+            )
+            await session.commit()
+    except Exception:
+        logger.warning("orchestration.notify_email_new_failed")
+
+
 async def _notify_assignment(inbox_message_id: str | None) -> None:
     """Send notification about email assignment."""
     if not inbox_message_id:
         return
     try:
         from app.models.notification import NotificationType
+        from app.models.user import UserRole
         from app.services.notification import NotificationService
 
         async with AsyncSessionLocal() as session:
             notif_service = NotificationService(session)
-            await notif_service.create_for_all(
+            await notif_service.create_for_roles(
                 notification_type=NotificationType.EMAIL_CLASSIFIED,
                 title="Email přiřazen k zakázce",
                 message="Nový email byl automaticky přiřazen k existující zakázce.",
+                roles=[UserRole.ADMIN, UserRole.OBCHODNIK],
                 link="/inbox",
             )
+            await session.commit()
     except Exception:
         logger.warning("orchestration.notify_failed", inbox_message_id=inbox_message_id)
 

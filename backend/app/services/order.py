@@ -299,6 +299,39 @@ class OrderService:
         except Exception:
             logger.warning("Failed to award points for order %s", str(order.id))
 
+        # ORDER_STATUS_CHANGED notification
+        try:
+            from app.models.notification import NotificationType
+            from app.models.user import UserRole
+            from app.services.notification import NotificationService
+
+            notif_service = NotificationService(self.db)
+            target_roles = [UserRole.ADMIN, UserRole.VEDENI]
+            # Also notify the assigned user if different from actor
+            extra_user_ids = []
+            if order.assigned_to and order.assigned_to != self.user_id:
+                extra_user_ids.append(order.assigned_to)
+
+            await notif_service.create_for_roles(
+                notification_type=NotificationType.ORDER_STATUS_CHANGED,
+                title="Změna stavu zakázky",
+                message=f"Zakázka {order.number}: {old_status.value} → {new_status.value}",
+                roles=target_roles,
+                link=f"/zakazky/{order.id}",
+                exclude_user_id=self.user_id,
+            )
+            # Notify assigned user directly (may not have ADMIN/VEDENI role)
+            for uid in extra_user_ids:
+                await notif_service.create(
+                    user_id=uid,
+                    notification_type=NotificationType.ORDER_STATUS_CHANGED,
+                    title="Změna stavu zakázky",
+                    message=f"Zakázka {order.number}: {old_status.value} → {new_status.value}",
+                    link=f"/zakazky/{order.id}",
+                )
+        except Exception:
+            logger.warning("Failed to send status notification for order %s", str(order.id))
+
         return order
 
     async def assign_order(

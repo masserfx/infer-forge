@@ -327,18 +327,32 @@ async def _process_email_legacy(
         try:
             await session.commit()
 
-            # Emit WebSocket notification for classified email
+            # Emit notifications for new email and classification
             try:
                 from app.models.notification import NotificationType
+                from app.models.user import UserRole
                 from app.services.notification import NotificationService
 
                 notif_service = NotificationService(session)
-                await notif_service.create_for_all(
+
+                # EMAIL_NEW notification
+                await notif_service.create_for_roles(
+                    notification_type=NotificationType.EMAIL_NEW,
+                    title="Nový email",
+                    message=f"Od: {raw_email.from_email} — '{raw_email.subject}'",
+                    roles=[UserRole.ADMIN, UserRole.OBCHODNIK],
+                    link="/inbox",
+                )
+
+                # EMAIL_CLASSIFIED notification
+                await notif_service.create_for_roles(
                     notification_type=NotificationType.EMAIL_CLASSIFIED,
                     title="Email klasifikován",
                     message=f"'{raw_email.subject}' → {classification_result.category or 'neznámé'}",
+                    roles=[UserRole.ADMIN, UserRole.OBCHODNIK],
                     link="/inbox",
                 )
+                await session.commit()
             except Exception:
                 logger.warning("poll_inbox.notification_failed", message_id=raw_email.message_id)
 

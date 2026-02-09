@@ -62,16 +62,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!lastMessage) return;
 
+    // Fallback for missing id from WS message
+    const messageId = lastMessage.id || crypto.randomUUID();
+
     // Prevent duplicate processing
-    if (processedMessageIdsRef.current.has(lastMessage.id)) {
+    if (processedMessageIdsRef.current.has(messageId)) {
       return;
     }
-    processedMessageIdsRef.current.add(lastMessage.id);
+    processedMessageIdsRef.current.add(messageId);
 
     // Use microtask queue to avoid synchronous setState in effect
+    const normalizedMessage = { ...lastMessage, id: messageId };
     queueMicrotask(() => {
       // Prepend new notification to list
-      setNotifications((prev) => [lastMessage, ...prev]);
+      setNotifications((prev) => [normalizedMessage, ...prev]);
 
       // Increment unread count if notification is unread
       if (!lastMessage.read) {

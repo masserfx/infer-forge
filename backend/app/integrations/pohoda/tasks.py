@@ -63,18 +63,21 @@ def sync_entity_task(self, entity_type: str, entity_id: str) -> dict:  # type: i
                 except Exception:
                     logger.warning("pohoda_sync_metrics_failed entity_type=%s", entity_type)
 
-                # Emit WebSocket notification
+                # Emit persisted notification via NotificationService
                 try:
-                    from app.core.websocket import manager
+                    from app.models.notification import NotificationType
+                    from app.models.user import UserRole
+                    from app.services.notification import NotificationService
 
-                    await manager.broadcast(
-                        {
-                            "type": "POHODA_SYNC_COMPLETE",
-                            "title": "Synchronizace Pohoda",
-                            "message": f"{entity_type} {'úspěšně synchronizován' if sync_log.status.value == 'success' else 'chyba synchronizace'}",
-                            "link": "/pohoda",
-                        }
+                    notif_service = NotificationService(session)
+                    await notif_service.create_for_roles(
+                        notification_type=NotificationType.POHODA_SYNC_COMPLETE,
+                        title="Synchronizace Pohoda",
+                        message=f"{entity_type} {'úspěšně synchronizován' if sync_log.status.value == 'success' else 'chyba synchronizace'}",
+                        roles=[UserRole.ADMIN, UserRole.UCETNI, UserRole.VEDENI],
+                        link="/pohoda",
                     )
+                    await session.commit()
                 except Exception:
                     logger.warning("pohoda_sync_notification_failed entity_type=%s", entity_type)
 
@@ -236,16 +239,21 @@ def sync_inventory_from_pohoda(self) -> dict:  # type: ignore[no-untyped-def]
                     results["errors"],
                 )
 
-                # WebSocket notification
+                # Persisted notification via NotificationService
                 try:
-                    from app.core.websocket import manager
+                    from app.models.notification import NotificationType
+                    from app.models.user import UserRole
+                    from app.services.notification import NotificationService
 
-                    await manager.broadcast({
-                        "type": "POHODA_SYNC_COMPLETE",
-                        "title": "Import skladových karet",
-                        "message": f"Synchronizováno {results['synced']} položek ({results['created']} nových, {results['updated']} aktualizovaných)",
-                        "link": "/materialy",
-                    })
+                    notif_service = NotificationService(session)
+                    await notif_service.create_for_roles(
+                        notification_type=NotificationType.POHODA_SYNC_COMPLETE,
+                        title="Import skladových karet",
+                        message=f"Synchronizováno {results['synced']} položek ({results['created']} nových, {results['updated']} aktualizovaných)",
+                        roles=[UserRole.ADMIN, UserRole.UCETNI, UserRole.VEDENI],
+                        link="/materialy",
+                    )
+                    await session.commit()
                 except Exception:
                     logger.warning("inventory_sync_notification_failed")
 

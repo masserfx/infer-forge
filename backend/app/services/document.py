@@ -156,6 +156,24 @@ class DocumentService:
             metadata.entity_id,
         )
 
+        # DOCUMENT_UPLOADED notification
+        try:
+            from app.models.notification import NotificationType
+            from app.models.user import UserRole
+            from app.services.notification import NotificationService
+
+            notif_service = NotificationService(self.db)
+            await notif_service.create_for_roles(
+                notification_type=NotificationType.DOCUMENT_UPLOADED,
+                title="Nový dokument",
+                message=f"Nahrán soubor '{file_name}' ({metadata.category.value})",
+                roles=[UserRole.ADMIN, UserRole.VEDENI, UserRole.TECHNOLOG, UserRole.OBCHODNIK],
+                link=f"/zakazky/{metadata.entity_id}" if metadata.entity_type == "order" else None,
+                exclude_user_id=self.user_id,
+            )
+        except Exception:
+            logger.warning("document_upload_notification_failed document_id=%s", document.id)
+
         return document
 
     async def _get_latest_version(

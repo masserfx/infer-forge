@@ -159,22 +159,28 @@ def run_calculation_estimate(
         except Exception:
             log.warning("task.calculation_estimate.metrics_failed")
 
-        # Emit WebSocket notification
+        # Emit persisted notification via NotificationService
         try:
             import asyncio as _asyncio
 
-            from app.core.websocket import manager
+            from app.core.database import AsyncSessionLocal
+            from app.models.notification import NotificationType
+            from app.models.user import UserRole
+            from app.services.notification import NotificationService
 
-            _asyncio.run(
-                manager.broadcast(
-                    {
-                        "type": "CALCULATION_COMPLETE",
-                        "title": "Kalkulace dokončena",
-                        "message": f"Celková cena: {result.total_czk:,.0f} Kč",
-                        "link": "/kalkulace",
-                    }
-                )
-            )
+            async def _notify_calc_complete() -> None:
+                async with AsyncSessionLocal() as session:
+                    notif_service = NotificationService(session)
+                    await notif_service.create_for_roles(
+                        notification_type=NotificationType.CALCULATION_COMPLETE,
+                        title="Kalkulace dokončena",
+                        message=f"Celková cena: {result.total_czk:,.0f} Kč",
+                        roles=[UserRole.ADMIN, UserRole.OBCHODNIK, UserRole.VEDENI],
+                        link="/kalkulace",
+                    )
+                    await session.commit()
+
+            _asyncio.run(_notify_calc_complete())
         except Exception:
             log.warning("task.calculation_estimate.notification_failed")
 

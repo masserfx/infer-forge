@@ -1,6 +1,7 @@
 """Unit tests for NotificationService."""
 
 import uuid
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -19,7 +20,12 @@ class TestNotificationService:
         mock = AsyncMock(spec=AsyncSession)
         mock.add = MagicMock()
         mock.flush = AsyncMock()
-        mock.refresh = AsyncMock()
+
+        async def _set_created_at(obj, *args, **kwargs):
+            if isinstance(obj, Notification) and obj.created_at is None:
+                obj.created_at = datetime.now(UTC)
+
+        mock.refresh = AsyncMock(side_effect=_set_created_at)
         mock.execute = AsyncMock()
         return mock
 
@@ -69,7 +75,7 @@ class TestNotificationService:
         assert ws_message["title"] == "Nový email"
         assert ws_message["message"] == "Máte nový email od zákazníka"
         assert ws_message["link"] == "/inbox/123"
-        assert "notification_id" in ws_message
+        assert "id" in ws_message
 
     async def test_create_notification_without_link(
         self, mock_db: AsyncMock, mock_manager: AsyncMock
@@ -114,8 +120,15 @@ class TestNotificationService:
     async def test_create_for_all_broadcast(
         self, mock_db: AsyncMock, mock_manager: AsyncMock
     ) -> None:
-        """Test broadcasting notification to all connected users."""
+        """Test creating notifications for all active users when user_ids=None."""
         service = NotificationService(mock_db)
+
+        # Mock DB query returning 2 active users
+        user1_id = uuid.uuid4()
+        user2_id = uuid.uuid4()
+        mock_result = MagicMock()
+        mock_result.all.return_value = [(user1_id,), (user2_id,)]
+        mock_db.execute.return_value = mock_result
 
         notifications = await service.create_for_all(
             notification_type=NotificationType.ORDER_STATUS_CHANGED,
@@ -123,15 +136,10 @@ class TestNotificationService:
             message="Probíhá údržba systému",
         )
 
-        # Should broadcast without persisting
-        assert len(notifications) == 0
-        mock_db.add.assert_not_called()
-        mock_manager.broadcast.assert_awaited_once()
-
-        broadcast_message = mock_manager.broadcast.call_args[0][0]
-        assert broadcast_message["type"] == "order_status_changed"
-        assert broadcast_message["title"] == "Systémová zpráva"
-        assert broadcast_message["message"] == "Probíhá údržba systému"
+        # Should persist for each user
+        assert len(notifications) == 2
+        assert mock_db.add.call_count == 2
+        assert mock_manager.publish_notification.await_count == 2
 
     async def test_get_user_notifications_all(self, mock_db: AsyncMock) -> None:
         """Test retrieving all notifications for a user."""
