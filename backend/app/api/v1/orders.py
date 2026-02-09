@@ -31,7 +31,7 @@ async def get_orders(
     skip: int = Query(default=0, ge=0, description="Number of records to skip"),
     limit: int = Query(default=100, ge=1, le=1000, description="Maximum number of records"),
     status: OrderStatus | None = Query(default=None, description="Filter by status"),
-    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI)),
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI, UserRole.UCETNI)),
     db: AsyncSession = Depends(get_db),
 ) -> list[OrderResponse]:
     """Get all orders with pagination and optional filtering."""
@@ -140,7 +140,7 @@ async def get_next_order_number(
 @router.get("/{order_id}", response_model=OrderResponse)
 async def get_order(
     order_id: UUID,
-    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI)),
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI, UserRole.UCETNI)),
     db: AsyncSession = Depends(get_db),
 ) -> OrderResponse:
     """Get order by ID."""

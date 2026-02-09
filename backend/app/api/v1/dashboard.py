@@ -13,7 +13,7 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 @router.get("/recommendations")
 async def get_recommendations(
     limit: int = Query(default=5, ge=1, le=10),
-    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI)),
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI, UserRole.UCETNI)),
     db: AsyncSession = Depends(get_db),
 ) -> list[dict[str, str]]:
     """Get AI-analyzed recommendations for dashboard actions."""

@@ -23,7 +23,7 @@ router = APIRouter(prefix="/zakaznici", tags=["Zákazníci"])
 async def get_customers(
     skip: int = Query(default=0, ge=0, description="Number of records to skip"),
     limit: int = Query(default=100, ge=1, le=1000, description="Maximum number of records"),
-    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI, UserRole.UCETNI)),
     db: AsyncSession = Depends(get_db),
 ) -> list[CustomerResponse]:
     """Get all customers with pagination."""
@@ -61,7 +61,7 @@ async def create_customer(
 @router.get("/{customer_id}", response_model=CustomerResponse)
 async def get_customer(
     customer_id: UUID,
-    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI, UserRole.UCETNI)),
     db: AsyncSession = Depends(get_db),
 ) -> CustomerResponse:
     """Get customer by ID."""
