@@ -8,10 +8,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import Date, case, cast, func, select, text
 
 from app.core.database import AsyncSessionLocal
 from app.models.dead_letter import DeadLetterEntry
+from app.models.inbox import InboxMessage
 from app.models.processing_task import ProcessingStage, ProcessingStatus, ProcessingTask
 
 router = APIRouter(prefix="/orchestrace", tags=["orchestrace"])
@@ -135,12 +136,339 @@ class PendingApprovalResponse(BaseModel):
     created_at: str
 
 
+class ClassificationBucket(BaseModel):
+    category: str
+    count: int
+    avg_confidence: float
+
+
+class MethodBucket(BaseModel):
+    method: str
+    count: int
+    avg_confidence: float
+    avg_time_ms: float
+
+
+class ConfidenceBucket(BaseModel):
+    range: str
+    count: int
+
+
+class EntityField(BaseModel):
+    field: str
+    extracted_count: int
+    total_count: int
+    rate: float
+
+
+class StageStat(BaseModel):
+    stage: str
+    total: int
+    success: int
+    failed: int
+    avg_time_ms: float
+    total_tokens: int
+
+
+class TrendPoint(BaseModel):
+    date: str
+    avg_confidence: float
+    email_count: int
+
+
+class ValueCount(BaseModel):
+    value: str
+    count: int
+
+
+class NLPAnalyticsResponse(BaseModel):
+    period: str
+    total_emails: int
+    classification_distribution: list[ClassificationBucket]
+    classification_methods: list[MethodBucket]
+    escalation_rate: float
+    avg_confidence: float
+    confidence_buckets: list[ConfidenceBucket]
+    entity_extraction: list[EntityField]
+    stage_success_rates: list[StageStat]
+    total_tokens: int
+    tokens_by_stage: dict[str, int]
+    confidence_trend: list[TrendPoint]
+    top_materials: list[ValueCount]
+    top_companies: list[ValueCount]
+
+
 class DLQResolveRequest(BaseModel):
     resolved_by: str | None = None
 
 
 class RejectRequest(BaseModel):
     reason: str | None = None
+
+
+# ─── NLP Analytics Endpoint ──────────────────────────────────
+
+@router.get("/nlp-analytics", response_model=NLPAnalyticsResponse)
+async def get_nlp_analytics(
+    period: str = Query("all", description="today|week|month|all"),
+):
+    """Get NLP analytics for the email processing pipeline."""
+    cutoff = _period_cutoff(period)
+
+    async with AsyncSessionLocal() as session:
+        # Base filter for InboxMessage
+        inbox_filter = InboxMessage.direction == "inbound"
+        if cutoff:
+            inbox_filter = inbox_filter & (InboxMessage.created_at >= cutoff)
+
+        # Total emails
+        total_emails = (await session.execute(
+            select(func.count(InboxMessage.id)).where(inbox_filter)
+        )).scalar() or 0
+
+        # Classification distribution
+        cls_q = (
+            select(
+                InboxMessage.classification,
+                func.count(InboxMessage.id),
+                func.coalesce(func.avg(InboxMessage.confidence), 0),
+            )
+            .where(inbox_filter)
+            .where(InboxMessage.classification.isnot(None))
+            .group_by(InboxMessage.classification)
+            .order_by(func.count(InboxMessage.id).desc())
+        )
+        cls_rows = (await session.execute(cls_q)).all()
+        classification_distribution = [
+            ClassificationBucket(
+                category=row[0].value if hasattr(row[0], "value") else str(row[0]),
+                count=row[1],
+                avg_confidence=round(float(row[2]), 3),
+            )
+            for row in cls_rows
+        ]
+
+        # Average confidence
+        avg_conf = (await session.execute(
+            select(func.coalesce(func.avg(InboxMessage.confidence), 0)).where(inbox_filter)
+        )).scalar() or 0
+        avg_confidence = round(float(avg_conf), 3)
+
+        # Escalation rate (needs_review = true)
+        escalated = (await session.execute(
+            select(func.count(InboxMessage.id)).where(
+                inbox_filter & (InboxMessage.needs_review == True)  # noqa: E712
+            )
+        )).scalar() or 0
+        escalation_rate = round(escalated / total_emails, 3) if total_emails > 0 else 0.0
+
+        # Confidence buckets
+        confidence_ranges = [
+            ("0-50%", 0.0, 0.5),
+            ("50-60%", 0.5, 0.6),
+            ("60-70%", 0.6, 0.7),
+            ("70-80%", 0.7, 0.8),
+            ("80-90%", 0.8, 0.9),
+            ("90-100%", 0.9, 1.01),
+        ]
+        confidence_buckets = []
+        for label, low, high in confidence_ranges:
+            cnt = (await session.execute(
+                select(func.count(InboxMessage.id)).where(
+                    inbox_filter
+                    & (InboxMessage.confidence.isnot(None))
+                    & (InboxMessage.confidence >= low)
+                    & (InboxMessage.confidence < high)
+                )
+            )).scalar() or 0
+            confidence_buckets.append(ConfidenceBucket(range=label, count=cnt))
+
+        # Classification methods from ProcessingTask (stage=classify)
+        task_filter = ProcessingTask.stage == ProcessingStage.CLASSIFY
+        if cutoff:
+            task_filter = task_filter & (ProcessingTask.created_at >= cutoff)
+
+        # We extract method from output_data->>'method'
+        method_q = (
+            select(
+                func.coalesce(
+                    ProcessingTask.output_data[text("'method'")].as_string(),
+                    text("'unknown'"),
+                ),
+                func.count(ProcessingTask.id),
+                func.coalesce(func.avg(
+                    case(
+                        (InboxMessage.confidence.isnot(None), InboxMessage.confidence),
+                    )
+                ), 0),
+                func.coalesce(func.avg(ProcessingTask.processing_time_ms), 0),
+            )
+            .outerjoin(InboxMessage, ProcessingTask.inbox_message_id == InboxMessage.id)
+            .where(task_filter)
+            .where(ProcessingTask.status == ProcessingStatus.SUCCESS)
+            .group_by(text("1"))
+        )
+        method_rows = (await session.execute(method_q)).all()
+        classification_methods = [
+            MethodBucket(
+                method=str(row[0]),
+                count=row[1],
+                avg_confidence=round(float(row[2]), 3),
+                avg_time_ms=round(float(row[3]), 1),
+            )
+            for row in method_rows
+        ]
+
+        # Entity extraction from parsed_data JSON
+        entity_fields = [
+            "company_name", "ico", "email", "phone", "items",
+            "deadline", "urgency", "contact_person",
+        ]
+        entity_extraction = []
+        for field in entity_fields:
+            extracted = (await session.execute(
+                select(func.count(InboxMessage.id)).where(
+                    inbox_filter
+                    & (InboxMessage.parsed_data.isnot(None))
+                    & (InboxMessage.parsed_data[text(f"'{field}'")].isnot(None))
+                )
+            )).scalar() or 0
+            total_parsed = (await session.execute(
+                select(func.count(InboxMessage.id)).where(
+                    inbox_filter & (InboxMessage.parsed_data.isnot(None))
+                )
+            )).scalar() or 0
+            entity_extraction.append(EntityField(
+                field=field,
+                extracted_count=extracted,
+                total_count=total_parsed,
+                rate=round(extracted / total_parsed, 3) if total_parsed > 0 else 0.0,
+            ))
+        # Sort by rate descending
+        entity_extraction.sort(key=lambda x: x.rate, reverse=True)
+
+        # Stage success rates
+        pt_filter = True  # noqa: E712
+        if cutoff:
+            pt_filter = ProcessingTask.created_at >= cutoff
+
+        stage_q = (
+            select(
+                ProcessingTask.stage,
+                func.count(ProcessingTask.id),
+                func.count(case((ProcessingTask.status == ProcessingStatus.SUCCESS, 1))),
+                func.count(case((ProcessingTask.status.in_(
+                    [ProcessingStatus.FAILED, ProcessingStatus.DLQ]
+                ), 1))),
+                func.coalesce(func.avg(ProcessingTask.processing_time_ms), 0),
+                func.coalesce(func.sum(ProcessingTask.tokens_used), 0),
+            )
+            .where(pt_filter)
+            .group_by(ProcessingTask.stage)
+            .order_by(ProcessingTask.stage)
+        )
+        stage_rows = (await session.execute(stage_q)).all()
+        stage_success_rates = [
+            StageStat(
+                stage=row[0].value,
+                total=row[1],
+                success=row[2],
+                failed=row[3],
+                avg_time_ms=round(float(row[4]), 1),
+                total_tokens=row[5],
+            )
+            for row in stage_rows
+        ]
+
+        # Total tokens and tokens by stage
+        total_tokens = sum(s.total_tokens for s in stage_success_rates)
+        tokens_by_stage = {s.stage: s.total_tokens for s in stage_success_rates}
+
+        # Confidence trend by date
+        trend_q = (
+            select(
+                cast(InboxMessage.created_at, Date).label("date"),
+                func.coalesce(func.avg(InboxMessage.confidence), 0),
+                func.count(InboxMessage.id),
+            )
+            .where(inbox_filter)
+            .where(InboxMessage.confidence.isnot(None))
+            .group_by(text("date"))
+            .order_by(text("date"))
+        )
+        trend_rows = (await session.execute(trend_q)).all()
+        confidence_trend = [
+            TrendPoint(
+                date=str(row[0]),
+                avg_confidence=round(float(row[1]), 3),
+                email_count=row[2],
+            )
+            for row in trend_rows
+        ]
+
+        # Top companies from parsed_data->>'company_name'
+        company_q = (
+            select(
+                InboxMessage.parsed_data[text("'company_name'")].as_string(),
+                func.count(InboxMessage.id),
+            )
+            .where(
+                inbox_filter
+                & (InboxMessage.parsed_data.isnot(None))
+                & (InboxMessage.parsed_data[text("'company_name'")].isnot(None))
+            )
+            .group_by(text("1"))
+            .order_by(func.count(InboxMessage.id).desc())
+            .limit(10)
+        )
+        company_rows = (await session.execute(company_q)).all()
+        top_companies = [
+            ValueCount(value=str(row[0]), count=row[1])
+            for row in company_rows
+            if row[0]
+        ]
+
+        # Top materials from parsed_data->'items' (JSON array with 'material' key)
+        # This requires iterating parsed_data; we'll do it in Python
+        material_q = (
+            select(InboxMessage.parsed_data)
+            .where(
+                inbox_filter
+                & (InboxMessage.parsed_data.isnot(None))
+            )
+        )
+        material_rows = (await session.execute(material_q)).all()
+        material_counts: dict[str, int] = {}
+        for (pd,) in material_rows:
+            if isinstance(pd, dict):
+                items = pd.get("items", [])
+                if isinstance(items, list):
+                    for item in items:
+                        if isinstance(item, dict):
+                            mat = item.get("material")
+                            if mat and isinstance(mat, str):
+                                material_counts[mat] = material_counts.get(mat, 0) + 1
+        top_materials = [
+            ValueCount(value=k, count=v)
+            for k, v in sorted(material_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+        ]
+
+        return NLPAnalyticsResponse(
+            period=period,
+            total_emails=total_emails,
+            classification_distribution=classification_distribution,
+            classification_methods=classification_methods,
+            escalation_rate=escalation_rate,
+            avg_confidence=avg_confidence,
+            confidence_buckets=confidence_buckets,
+            entity_extraction=entity_extraction,
+            stage_success_rates=stage_success_rates,
+            total_tokens=total_tokens,
+            tokens_by_stage=tokens_by_stage,
+            confidence_trend=confidence_trend,
+            top_materials=top_materials,
+            top_companies=top_companies,
+        )
 
 
 # ─── DLQ Endpoints ────────────────────────────────────────────

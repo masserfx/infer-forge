@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Activity, AlertTriangle, Clock, Cpu, RefreshCw, CheckCircle, XCircle, Zap, BarChart3, Send, Mail, Upload } from "lucide-react";
+import Link from "next/link";
+import { Activity, AlertTriangle, Clock, Cpu, RefreshCw, CheckCircle, XCircle, Zap, BarChart3, Send, Mail, Upload, Brain } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -341,6 +342,13 @@ export default function AutomatizacePage() {
           <h1 className="text-3xl font-bold tracking-tight">Automatizace</h1>
           <p className="text-muted-foreground">Pipeline pro automatické zpracování dokumentů</p>
         </div>
+        <div className="flex items-center gap-2">
+        <Link href="/automatizace/analytika">
+          <Button variant="outline" size="sm">
+            <Brain className="mr-2 h-4 w-4" />
+            NLP Analytika
+          </Button>
+        </Link>
         <Button variant="outline" size="sm" onClick={() => {
           queryClient.invalidateQueries({ queryKey: ["orchestration-stats"] });
           queryClient.invalidateQueries({ queryKey: ["orchestration-tasks"] });
@@ -352,6 +360,7 @@ export default function AutomatizacePage() {
           <RefreshCw className="mr-2 h-4 w-4" />
           Obnovit
         </Button>
+        </div>
       </div>
 
       {/* Test Email */}
