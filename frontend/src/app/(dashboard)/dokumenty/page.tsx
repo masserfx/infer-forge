@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getDocuments, getDocumentDownloadUrl } from "@/lib/api";
+import { getDocuments, downloadDocument } from "@/lib/api";
 import type { Document } from "@/types";
 import { DOCUMENT_CATEGORY_LABELS } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -208,16 +208,9 @@ export default function DocumentsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        asChild
+                        onClick={() => downloadDocument(doc.id, doc.file_name)}
                       >
-                        <a
-                          href={getDocumentDownloadUrl(doc.id)}
-                          download
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Download className="h-4 w-4" />
-                        </a>
+                        <Download className="h-4 w-4" />
                       </Button>
                     </td>
                   </tr>

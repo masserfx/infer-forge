@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import {
   deleteDocument,
-  getDocumentDownloadUrl,
+  downloadDocument,
   getEntityDocuments,
   uploadDocument,
 } from "@/lib/api";
@@ -279,16 +279,9 @@ export function OrderDocuments({ entityType, entityId }: OrderDocumentsProps) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          asChild
+                          onClick={() => downloadDocument(doc.id, doc.file_name)}
                         >
-                          <a
-                            href={getDocumentDownloadUrl(doc.id)}
-                            download
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <Download className="h-4 w-4" />
-                          </a>
+                          <Download className="h-4 w-4" />
                         </Button>
 
                         <AlertDialog>

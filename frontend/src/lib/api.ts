@@ -296,6 +296,29 @@ export function getDocumentDownloadUrl(id: string): string {
   return `${API_BASE}/dokumenty/${id}/download`;
 }
 
+export async function downloadDocument(id: string, fileName?: string): Promise<void> {
+  const url = `${API_BASE}/dokumenty/${id}/download`;
+  const token = getAuthToken();
+
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (!res.ok) {
+    throw new ApiError(res.status, `Download failed: ${res.statusText}`);
+  }
+
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = fileName || "document";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(objectUrl);
+}
+
 // --- Calculations ---
 
 export async function getCalculations(params?: {
