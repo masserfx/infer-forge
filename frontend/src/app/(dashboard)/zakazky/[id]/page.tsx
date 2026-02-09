@@ -4,6 +4,7 @@ import { OrderDetail } from "@/components/zakazky/order-detail";
 import { OrderItemsTable } from "@/components/zakazky/order-items-table";
 import { OrderDocuments } from "@/components/zakazky/order-documents";
 import { OrderCalculations } from "@/components/zakazky/order-calculations";
+import { OrderOffers } from "@/components/zakazky/order-offers";
 import { OrderOperations } from "@/components/zakazky/order-operations";
 import { SimilarOrders } from "@/components/zakazky/similar-orders";
 import { DocumentGenerator } from "@/components/zakazky/document-generator";
@@ -184,6 +185,10 @@ export default function OrderDetailPage({ params }: PageProps) {
       <Separator className="my-2" />
 
       <OrderCalculations orderId={order.id} />
+
+      <Separator className="my-2" />
+
+      <OrderOffers orderId={order.id} />
 
       <Separator className="my-2" />
 

@@ -313,7 +313,28 @@ export const COST_TYPE_COLORS: Record<CostType, string> = {
 export const CALCULATION_STATUS_LABELS: Record<CalculationStatus, string> = {
   draft: "Koncept",
   approved: "Schváleno",
-  offered: "Nabídnuto",
+  offered: "Nabídka vytvořena",
+};
+
+// --- Offers ---
+
+export type OfferStatus = "draft" | "sent" | "accepted" | "rejected" | "expired";
+
+export interface Offer {
+  id: string;
+  number: string;
+  total_price: number;
+  valid_until: string;
+  status: OfferStatus;
+  created_at: string;
+}
+
+export const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
+  draft: "Vytvořena",
+  sent: "Odesláno",
+  accepted: "Přijato",
+  rejected: "Odmítnuto",
+  expired: "Expirováno",
 };
 
 // --- Reporting ---

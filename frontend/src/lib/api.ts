@@ -31,6 +31,7 @@ import type {
   LoginResponse,
   MaterialPrice,
   Notification,
+  Offer,
   Operation,
   OperationCreate,
   Order,
@@ -342,6 +343,10 @@ export async function getOrderCalculations(
   orderId: string,
 ): Promise<Calculation[]> {
   return fetchApi<Calculation[]>(`/kalkulace/zakazka/${orderId}`);
+}
+
+export async function getOrderOffers(orderId: string): Promise<Offer[]> {
+  return fetchApi<Offer[]>(`/zakazky/${orderId}/nabidky`);
 }
 
 export async function createCalculation(data: {

@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_role
-from app.models import Order, OrderStatus
+from app.models import Offer, Order, OrderStatus
 from app.models.user import User, UserRole
 from app.schemas import OrderCreate, OrderResponse, OrderStatusUpdate, OrderUpdate
 from app.schemas.embedding import SimilarOrderResult, SimilarOrdersResponse, SimilarSearchRequest
@@ -152,6 +152,30 @@ async def get_order(
             detail=f"Order {order_id} not found",
         )
     return _order_response(order)
+
+
+@router.get("/{order_id}/nabidky")
+async def get_order_offers(
+    order_id: UUID,
+    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI, UserRole.UCETNI)),
+    db: AsyncSession = Depends(get_db),
+) -> list[dict]:
+    """Get all offers for an order."""
+    result = await db.execute(
+        select(Offer).where(Offer.order_id == order_id).order_by(Offer.created_at.desc())
+    )
+    offers = result.scalars().all()
+    return [
+        {
+            "id": str(o.id),
+            "number": o.number,
+            "total_price": str(o.total_price),
+            "valid_until": str(o.valid_until),
+            "status": o.status.value,
+            "created_at": o.created_at.isoformat(),
+        }
+        for o in offers
+    ]
 
 
 @router.put("/{order_id}", response_model=OrderResponse)
