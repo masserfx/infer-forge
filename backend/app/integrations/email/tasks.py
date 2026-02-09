@@ -209,6 +209,22 @@ async def _poll_inbox_async(settings: object) -> dict[str, object]:
         # Process each email
         for raw_email in raw_emails:
             try:
+                # Generate a unique message_id if missing
+                if not raw_email.message_id or not raw_email.message_id.strip():
+                    import hashlib
+                    from uuid import uuid4
+
+                    # Create deterministic ID from content, fallback to uuid
+                    content_hash = hashlib.sha256(
+                        f"{raw_email.subject}|{raw_email.from_email}|{raw_email.date}".encode()
+                    ).hexdigest()[:16]
+                    raw_email.message_id = f"<gen-{content_hash}-{uuid4().hex[:8]}@infer-forge>"
+                    logger.info(
+                        "poll_inbox.generated_message_id",
+                        generated_id=raw_email.message_id,
+                        subject=raw_email.subject,
+                    )
+
                 # Check if message already exists (deduplication)
                 async with AsyncSessionLocal() as session:
                     result = await session.execute(
