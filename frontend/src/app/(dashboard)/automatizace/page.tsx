@@ -10,6 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { TaskFiltersBar, type TaskFilters } from "./_components/task-filters";
+import { TaskDetailSheet } from "./_components/task-detail-sheet";
+import { StatsPeriodSelector } from "./_components/stats-period-selector";
+import { PipelineThroughputChart } from "./_components/pipeline-throughput-chart";
+import { PipelineConfigCard } from "./_components/pipeline-config-card";
+import { PendingApprovals } from "./_components/pending-approvals";
 
 // API client
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -63,6 +69,8 @@ interface ProcessingTask {
   processing_time_ms: number | null;
   retry_count: number;
   error_message: string | null;
+  input_data: Record<string, unknown> | null;
+  output_data: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -81,6 +89,14 @@ interface DLQListResponse {
   items: DLQEntry[];
   total: number;
   unresolved: number;
+}
+
+interface TimelineBucket {
+  bucket: string;
+  tasks_count: number;
+  success_count: number;
+  failed_count: number;
+  tokens_used: number;
 }
 
 // Stage and status label maps (Czech)
@@ -209,6 +225,14 @@ export default function AutomatizacePage() {
   const [testResult, setTestResult] = useState<TestEmailResult | null>(null);
   const [livePipeline, setLivePipeline] = useState<Record<string, { stage: string; status: string; data?: Record<string, unknown>; timestamp?: string }[]>>({});
 
+  // Filter & detail state
+  const [filters, setFilters] = useState<TaskFilters>({ stage: "all", status: "all", period: "all" });
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Stats period
+  const [statsPeriod, setStatsPeriod] = useState("all");
+
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
     if (!token) return;
@@ -258,15 +282,37 @@ export default function AutomatizacePage() {
     },
   });
 
+  // Build tasks query params from filters
+  const tasksParams = new URLSearchParams({ limit: "20" });
+  if (filters.stage !== "all") tasksParams.set("stage", filters.stage);
+  if (filters.status !== "all") tasksParams.set("status", filters.status);
+  if (filters.period === "today") {
+    tasksParams.set("date_from", new Date().toISOString().slice(0, 10));
+  } else if (filters.period === "week") {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    tasksParams.set("date_from", d.toISOString().slice(0, 10));
+  } else if (filters.period === "month") {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    tasksParams.set("date_from", d.toISOString().slice(0, 10));
+  }
+
   const { data: stats } = useQuery<PipelineStats>({
-    queryKey: ["orchestration-stats"],
-    queryFn: () => fetchApi<PipelineStats>("/orchestrace/stats"),
+    queryKey: ["orchestration-stats", statsPeriod],
+    queryFn: () => fetchApi<PipelineStats>(`/orchestrace/stats${statsPeriod !== "all" ? `?period=${statsPeriod}` : ""}`),
     refetchInterval: 10000,
   });
 
+  const { data: timeline } = useQuery<TimelineBucket[]>({
+    queryKey: ["orchestration-timeline", statsPeriod],
+    queryFn: () => fetchApi<TimelineBucket[]>(`/orchestrace/stats/timeline?period=${statsPeriod === "all" ? "month" : statsPeriod}`),
+    refetchInterval: 30000,
+  });
+
   const { data: tasks, isLoading: tasksLoading } = useQuery<ProcessingTask[]>({
-    queryKey: ["orchestration-tasks"],
-    queryFn: () => fetchApi<ProcessingTask[]>("/orchestrace/tasks?limit=20"),
+    queryKey: ["orchestration-tasks", filters],
+    queryFn: () => fetchApi<ProcessingTask[]>(`/orchestrace/tasks?${tasksParams.toString()}`),
     refetchInterval: 10000,
   });
 
@@ -299,6 +345,9 @@ export default function AutomatizacePage() {
           queryClient.invalidateQueries({ queryKey: ["orchestration-stats"] });
           queryClient.invalidateQueries({ queryKey: ["orchestration-tasks"] });
           queryClient.invalidateQueries({ queryKey: ["orchestration-dlq"] });
+          queryClient.invalidateQueries({ queryKey: ["orchestration-timeline"] });
+          queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
+          queryClient.invalidateQueries({ queryKey: ["pipeline-config"] });
         }}>
           <RefreshCw className="mr-2 h-4 w-4" />
           Obnovit
@@ -505,7 +554,15 @@ export default function AutomatizacePage() {
         </Card>
       )}
 
-      {/* Stats Cards */}
+      {/* Pending Approvals */}
+      <PendingApprovals />
+
+      {/* Stats Period Selector + Cards */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Statistiky</h2>
+        <StatsPeriodSelector value={statsPeriod} onChange={setStatsPeriod} />
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -562,6 +619,9 @@ export default function AutomatizacePage() {
         </Card>
       </div>
 
+      {/* Throughput Chart */}
+      <PipelineThroughputChart data={timeline ?? []} period={statsPeriod === "all" ? "month" : statsPeriod} />
+
       {/* Stage breakdown */}
       {stats && Object.keys(stats.by_stage).length > 0 && (
         <Card>
@@ -584,13 +644,19 @@ export default function AutomatizacePage() {
         </Card>
       )}
 
+      {/* Pipeline Config */}
+      <PipelineConfigCard />
+
       {/* Processing Tasks Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Cpu className="h-5 w-5" />
-            Poslední zpracované úlohy
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Cpu className="h-5 w-5" />
+              Poslední zpracované úlohy
+            </CardTitle>
+          </div>
+          <TaskFiltersBar filters={filters} onChange={setFilters} />
         </CardHeader>
         <CardContent>
           {tasksLoading ? (
@@ -609,7 +675,14 @@ export default function AutomatizacePage() {
               </TableHeader>
               <TableBody>
                 {(tasks ?? []).map((task) => (
-                  <TableRow key={task.id}>
+                  <TableRow
+                    key={task.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => {
+                      setSelectedTaskId(task.id);
+                      setSheetOpen(true);
+                    }}
+                  >
                     <TableCell>
                       <Badge variant="outline">{stageLabels[task.stage] ?? task.stage}</Badge>
                     </TableCell>
@@ -638,6 +711,13 @@ export default function AutomatizacePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Task Detail Sheet */}
+      <TaskDetailSheet
+        taskId={selectedTaskId}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+      />
 
       {/* Dead Letter Queue */}
       <Card>

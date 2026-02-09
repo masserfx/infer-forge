@@ -27,7 +27,9 @@ class CalculationStatus(str, enum.Enum):
     """Calculation lifecycle status."""
 
     DRAFT = "draft"
+    PENDING_APPROVAL = "pending_approval"
     APPROVED = "approved"
+    REJECTED = "rejected"
     OFFERED = "offered"  # Offer generated from this calculation
 
 
@@ -43,7 +45,7 @@ class Calculation(Base, UUIDPKMixin, TimestampMixin):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[CalculationStatus] = mapped_column(
-        Enum(CalculationStatus, native_enum=False, length=20),
+        Enum(CalculationStatus, native_enum=False, length=30),
         nullable=False,
         default=CalculationStatus.DRAFT,
     )

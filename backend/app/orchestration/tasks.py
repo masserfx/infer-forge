@@ -1031,7 +1031,7 @@ async def _auto_calculate_async(order_id: str) -> dict:
             calc = Calculation(
                 order_id=UUID(order_id),
                 name=f"Auto-kalkulace {order.number}",
-                status=CalculationStatus.DRAFT,
+                status=CalculationStatus.PENDING_APPROVAL,
                 note=estimate.reasoning,
                 material_total=Decimal(str(estimate.material_cost_czk)),
                 labor_total=Decimal(str(estimate.labor_cost_czk)),

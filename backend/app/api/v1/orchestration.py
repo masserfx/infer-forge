@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
@@ -79,10 +79,17 @@ class ProcessingTaskResponse(BaseModel):
     processing_time_ms: int | None
     retry_count: int
     error_message: str | None
+    input_data: dict | None = None
+    output_data: dict | None = None
     created_at: str
 
     class Config:
         from_attributes = True
+
+
+class ProcessingTaskDetailResponse(ProcessingTaskResponse):
+    order_id: str | None = None
+    error_traceback: str | None = None
 
 
 class PipelineStatsResponse(BaseModel):
@@ -95,8 +102,45 @@ class PipelineStatsResponse(BaseModel):
     dlq_unresolved: int
 
 
+class TimelineBucket(BaseModel):
+    bucket: str
+    tasks_count: int
+    success_count: int
+    failed_count: int
+    tokens_used: int
+
+
+class PipelineConfigResponse(BaseModel):
+    auto_calculate: bool
+    auto_offer: bool
+    auto_create_orders: bool
+    review_threshold: float
+
+
+class PipelineConfigUpdate(BaseModel):
+    auto_calculate: bool | None = None
+    auto_offer: bool | None = None
+    auto_create_orders: bool | None = None
+    review_threshold: float | None = Field(None, ge=0.0, le=1.0)
+
+
+class PendingApprovalResponse(BaseModel):
+    id: str
+    order_id: str
+    order_number: str
+    customer_name: str | None
+    name: str
+    total_price: float
+    note: str | None
+    created_at: str
+
+
 class DLQResolveRequest(BaseModel):
     resolved_by: str | None = None
+
+
+class RejectRequest(BaseModel):
+    reason: str | None = None
 
 
 # ─── DLQ Endpoints ────────────────────────────────────────────
@@ -266,6 +310,8 @@ async def list_processing_tasks(
     stage: str | None = Query(None),
     status: str | None = Query(None),
     inbox_message_id: UUID | None = Query(None),
+    date_from: str | None = Query(None, description="ISO date YYYY-MM-DD"),
+    date_to: str | None = Query(None, description="ISO date YYYY-MM-DD"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
@@ -279,6 +325,14 @@ async def list_processing_tasks(
             query = query.where(ProcessingTask.status == ProcessingStatus(status))
         if inbox_message_id:
             query = query.where(ProcessingTask.inbox_message_id == inbox_message_id)
+        if date_from:
+            query = query.where(
+                ProcessingTask.created_at >= datetime.fromisoformat(date_from)
+            )
+        if date_to:
+            query = query.where(
+                ProcessingTask.created_at < datetime.fromisoformat(date_to) + timedelta(days=1)
+            )
 
         query = query.limit(limit).offset(offset)
 
@@ -296,46 +350,128 @@ async def list_processing_tasks(
                 processing_time_ms=t.processing_time_ms,
                 retry_count=t.retry_count,
                 error_message=t.error_message,
+                input_data=t.input_data,
+                output_data=t.output_data,
                 created_at=t.created_at.isoformat(),
             )
             for t in tasks
         ]
 
 
+@router.get("/tasks/{task_id}", response_model=ProcessingTaskDetailResponse)
+async def get_processing_task(task_id: UUID):
+    """Get processing task detail including input/output data."""
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(ProcessingTask).where(ProcessingTask.id == task_id)
+        )
+        task = result.scalar_one_or_none()
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        # Try to extract order_id from output_data
+        order_id = None
+        if task.output_data and isinstance(task.output_data, dict):
+            order_id = task.output_data.get("order_id")
+
+        # Try to find error traceback from DLQ
+        error_traceback = None
+        if task.status == ProcessingStatus.DLQ or task.status == ProcessingStatus.FAILED:
+            dlq_result = await session.execute(
+                select(DeadLetterEntry.error_traceback)
+                .where(DeadLetterEntry.original_task.contains(task.stage.value))
+                .where(DeadLetterEntry.created_at >= task.created_at)
+                .order_by(DeadLetterEntry.created_at.asc())
+                .limit(1)
+            )
+            row = dlq_result.first()
+            if row:
+                error_traceback = row[0]
+
+        return ProcessingTaskDetailResponse(
+            id=str(task.id),
+            inbox_message_id=str(task.inbox_message_id) if task.inbox_message_id else None,
+            celery_task_id=task.celery_task_id,
+            stage=task.stage.value,
+            status=task.status.value,
+            tokens_used=task.tokens_used,
+            processing_time_ms=task.processing_time_ms,
+            retry_count=task.retry_count,
+            error_message=task.error_message,
+            input_data=task.input_data,
+            output_data=task.output_data,
+            created_at=task.created_at.isoformat(),
+            order_id=order_id,
+            error_traceback=error_traceback,
+        )
+
+
 # ─── Pipeline Stats ──────────────────────────────────────────
 
+def _period_cutoff(period: str | None) -> datetime | None:
+    """Calculate cutoff datetime for a given period."""
+    if not period or period == "all":
+        return None
+    now = datetime.now(UTC)
+    if period == "today":
+        return now.replace(hour=0, minute=0, second=0, microsecond=0)
+    if period == "week":
+        return now - timedelta(days=7)
+    if period == "month":
+        return now - timedelta(days=30)
+    return None
+
+
 @router.get("/stats", response_model=PipelineStatsResponse)
-async def get_pipeline_stats():
+async def get_pipeline_stats(
+    period: str | None = Query(None, description="today|week|month|all"),
+):
     """Get pipeline processing statistics."""
+    cutoff = _period_cutoff(period)
+
     async with AsyncSessionLocal() as session:
+        base = select(ProcessingTask)
+        if cutoff:
+            base = base.where(ProcessingTask.created_at >= cutoff)
+
         # Total tasks
         total = (await session.execute(
-            select(func.count(ProcessingTask.id))
+            select(func.count(ProcessingTask.id)).where(
+                ProcessingTask.created_at >= cutoff if cutoff else True  # noqa: E712
+            )
         )).scalar() or 0
 
         # By stage
-        stage_result = await session.execute(
+        stage_q = (
             select(ProcessingTask.stage, func.count(ProcessingTask.id))
             .group_by(ProcessingTask.stage)
         )
+        if cutoff:
+            stage_q = stage_q.where(ProcessingTask.created_at >= cutoff)
+        stage_result = await session.execute(stage_q)
         by_stage = {row[0].value: row[1] for row in stage_result}
 
         # By status
-        status_result = await session.execute(
+        status_q = (
             select(ProcessingTask.status, func.count(ProcessingTask.id))
             .group_by(ProcessingTask.status)
         )
+        if cutoff:
+            status_q = status_q.where(ProcessingTask.created_at >= cutoff)
+        status_result = await session.execute(status_q)
         by_status = {row[0].value: row[1] for row in status_result}
 
         # Tokens
-        tokens = (await session.execute(
-            select(func.coalesce(func.sum(ProcessingTask.tokens_used), 0))
-        )).scalar() or 0
+        tokens_q = select(func.coalesce(func.sum(ProcessingTask.tokens_used), 0))
+        if cutoff:
+            tokens_q = tokens_q.where(ProcessingTask.created_at >= cutoff)
+        tokens = (await session.execute(tokens_q)).scalar() or 0
 
         # Average processing time
-        avg_time = (await session.execute(
-            select(func.coalesce(func.avg(ProcessingTask.processing_time_ms), 0))
-        )).scalar() or 0
+        avg_q = select(func.coalesce(func.avg(ProcessingTask.processing_time_ms), 0))
+        if cutoff:
+            avg_q = avg_q.where(ProcessingTask.created_at >= cutoff)
+        avg_time = (await session.execute(avg_q)).scalar() or 0
 
         # Error rate
         failed = by_status.get("failed", 0) + by_status.get("dlq", 0)
@@ -357,6 +493,192 @@ async def get_pipeline_stats():
             error_rate=error_rate,
             dlq_unresolved=dlq_unresolved,
         )
+
+
+@router.get("/stats/timeline", response_model=list[TimelineBucket])
+async def get_pipeline_timeline(
+    period: str = Query("today", description="today|week|month"),
+):
+    """Get time-series stats (group by hour for today, by day for week/month)."""
+    from sqlalchemy import case, cast, Date, extract, literal_column
+
+    now = datetime.now(UTC)
+    if period == "today":
+        cutoff = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period == "week":
+        cutoff = now - timedelta(days=7)
+    else:
+        cutoff = now - timedelta(days=30)
+
+    async with AsyncSessionLocal() as session:
+        if period == "today":
+            # Group by hour
+            bucket_expr = extract("hour", ProcessingTask.created_at)
+        else:
+            # Group by date
+            bucket_expr = cast(ProcessingTask.created_at, Date)
+
+        q = (
+            select(
+                bucket_expr.label("bucket"),
+                func.count(ProcessingTask.id).label("tasks_count"),
+                func.count(
+                    case(
+                        (ProcessingTask.status == ProcessingStatus.SUCCESS, 1),
+                    )
+                ).label("success_count"),
+                func.count(
+                    case(
+                        (ProcessingTask.status.in_([ProcessingStatus.FAILED, ProcessingStatus.DLQ]), 1),
+                    )
+                ).label("failed_count"),
+                func.coalesce(func.sum(ProcessingTask.tokens_used), 0).label("tokens_used"),
+            )
+            .where(ProcessingTask.created_at >= cutoff)
+            .group_by(literal_column("bucket"))
+            .order_by(literal_column("bucket"))
+        )
+
+        result = await session.execute(q)
+        rows = result.all()
+
+        return [
+            TimelineBucket(
+                bucket=str(row.bucket),
+                tasks_count=row.tasks_count,
+                success_count=row.success_count,
+                failed_count=row.failed_count,
+                tokens_used=row.tokens_used,
+            )
+            for row in rows
+        ]
+
+
+# ─── Pipeline Config ─────────────────────────────────────────
+
+@router.get("/config", response_model=PipelineConfigResponse)
+async def get_pipeline_config():
+    """Get current pipeline configuration flags."""
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    return PipelineConfigResponse(
+        auto_calculate=settings.ORCHESTRATION_AUTO_CALCULATE,
+        auto_offer=settings.ORCHESTRATION_AUTO_OFFER,
+        auto_create_orders=settings.ORCHESTRATION_AUTO_CREATE_ORDERS,
+        review_threshold=settings.ORCHESTRATION_REVIEW_THRESHOLD,
+    )
+
+
+@router.put("/config", response_model=PipelineConfigResponse)
+async def update_pipeline_config(body: PipelineConfigUpdate):
+    """Update pipeline configuration flags (runtime, persisted in settings singleton)."""
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    if body.auto_calculate is not None:
+        object.__setattr__(settings, "ORCHESTRATION_AUTO_CALCULATE", body.auto_calculate)
+    if body.auto_offer is not None:
+        object.__setattr__(settings, "ORCHESTRATION_AUTO_OFFER", body.auto_offer)
+    if body.auto_create_orders is not None:
+        object.__setattr__(settings, "ORCHESTRATION_AUTO_CREATE_ORDERS", body.auto_create_orders)
+    if body.review_threshold is not None:
+        object.__setattr__(settings, "ORCHESTRATION_REVIEW_THRESHOLD", body.review_threshold)
+
+    return PipelineConfigResponse(
+        auto_calculate=settings.ORCHESTRATION_AUTO_CALCULATE,
+        auto_offer=settings.ORCHESTRATION_AUTO_OFFER,
+        auto_create_orders=settings.ORCHESTRATION_AUTO_CREATE_ORDERS,
+        review_threshold=settings.ORCHESTRATION_REVIEW_THRESHOLD,
+    )
+
+
+# ─── Approval Workflow ───────────────────────────────────────
+
+@router.get("/pending-approvals", response_model=list[PendingApprovalResponse])
+async def list_pending_approvals():
+    """List calculations awaiting approval."""
+    from app.models.calculation import Calculation, CalculationStatus
+    from app.models.customer import Customer
+    from app.models.order import Order
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Calculation, Order, Customer)
+            .join(Order, Calculation.order_id == Order.id)
+            .outerjoin(Customer, Order.customer_id == Customer.id)
+            .where(Calculation.status == CalculationStatus.PENDING_APPROVAL)
+            .order_by(Calculation.created_at.desc())
+        )
+        rows = result.all()
+
+        return [
+            PendingApprovalResponse(
+                id=str(calc.id),
+                order_id=str(order.id),
+                order_number=order.number,
+                customer_name=customer.company_name if customer else None,
+                name=calc.name,
+                total_price=float(calc.total_price),
+                note=calc.note,
+                created_at=calc.created_at.isoformat(),
+            )
+            for calc, order, customer in rows
+        ]
+
+
+@router.post("/approve-calculation/{calc_id}")
+async def approve_calculation(calc_id: UUID):
+    """Approve a pending calculation and optionally trigger offer generation."""
+    from app.models.calculation import Calculation, CalculationStatus
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Calculation).where(Calculation.id == calc_id)
+        )
+        calc = result.scalar_one_or_none()
+        if not calc:
+            raise HTTPException(status_code=404, detail="Calculation not found")
+        if calc.status != CalculationStatus.PENDING_APPROVAL:
+            raise HTTPException(status_code=400, detail="Calculation is not pending approval")
+
+        calc.status = CalculationStatus.APPROVED
+        await session.commit()
+
+        # Trigger offer generation if auto_offer is enabled
+        from app.core.config import get_settings
+
+        if get_settings().ORCHESTRATION_AUTO_OFFER:
+            try:
+                from app.orchestration.tasks import generate_offer
+                generate_offer.delay(str(calc.order_id))
+            except Exception:
+                pass  # Non-critical: offer can be generated manually
+
+        return {"status": "approved", "id": str(calc_id)}
+
+
+@router.post("/reject-calculation/{calc_id}")
+async def reject_calculation(calc_id: UUID, body: RejectRequest):
+    """Reject a pending calculation with optional reason."""
+    from app.models.calculation import Calculation, CalculationStatus
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Calculation).where(Calculation.id == calc_id)
+        )
+        calc = result.scalar_one_or_none()
+        if not calc:
+            raise HTTPException(status_code=404, detail="Calculation not found")
+        if calc.status != CalculationStatus.PENDING_APPROVAL:
+            raise HTTPException(status_code=400, detail="Calculation is not pending approval")
+
+        calc.status = CalculationStatus.REJECTED
+        if body.reason:
+            calc.note = f"Zamítnuto: {body.reason}"
+        await session.commit()
+
+        return {"status": "rejected", "id": str(calc_id)}
 
 
 # ─── Test Email Endpoint ─────────────────────────────────────

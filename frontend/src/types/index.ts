@@ -263,7 +263,7 @@ export const DOCUMENT_CATEGORY_LABELS: Record<DocumentCategory, string> = {
 // --- Calculations ---
 
 export type CostType = "material" | "labor" | "cooperation" | "overhead";
-export type CalculationStatus = "draft" | "approved" | "offered";
+export type CalculationStatus = "draft" | "pending_approval" | "approved" | "rejected" | "offered";
 
 export interface CalculationItem {
   id: string;
@@ -312,7 +312,9 @@ export const COST_TYPE_COLORS: Record<CostType, string> = {
 
 export const CALCULATION_STATUS_LABELS: Record<CalculationStatus, string> = {
   draft: "Koncept",
+  pending_approval: "Ke schválení",
   approved: "Schváleno",
+  rejected: "Zamítnuto",
   offered: "Nabídka vytvořena",
 };
 
