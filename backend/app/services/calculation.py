@@ -376,10 +376,28 @@ class CalculationService:
 
         return calculation
 
+    async def _generate_next_offer_number(self) -> str:
+        """Generate next sequential offer number (NAB-XXXXXX)."""
+        result = await self.db.execute(
+            select(Offer).order_by(Offer.created_at.desc()).limit(1)
+        )
+        last_offer = result.scalar_one_or_none()
+
+        if last_offer:
+            try:
+                last_num = int(last_offer.number.split("-")[-1])
+                next_num = last_num + 1
+            except (ValueError, IndexError):
+                next_num = 1
+        else:
+            next_num = 1
+
+        return f"NAB-{next_num:06d}"
+
     async def generate_offer(
         self,
         calculation_id: UUID,
-        offer_number: str,
+        offer_number: str | None = None,
         valid_days: int = 30,
     ) -> Offer | None:
         """Generate an Offer from a calculation."""
@@ -391,6 +409,9 @@ class CalculationService:
 
         if calculation.total_price <= 0:
             raise ValueError("Cannot generate offer from empty calculation")
+
+        if not offer_number:
+            offer_number = await self._generate_next_offer_number()
 
         valid_until = datetime.now(UTC).date() + timedelta(days=valid_days)
 

@@ -291,7 +291,7 @@ async def remove_calculation_item(
 )
 async def generate_offer(
     calculation_id: UUID,
-    offer_number: str = Query(..., description="Offer number"),
+    offer_number: str | None = Query(default=None, description="Offer number (auto-generated if empty)"),
     valid_days: int = Query(default=30, ge=1, le=365, description="Offer validity in days"),
     _user: User = Depends(require_role(UserRole.TECHNOLOG, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),

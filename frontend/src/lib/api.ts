@@ -414,7 +414,9 @@ export async function generateOffer(
   valid_until: string;
 }> {
   const searchParams = new URLSearchParams();
-  searchParams.set("offer_number", offerNumber);
+  if (offerNumber) {
+    searchParams.set("offer_number", offerNumber);
+  }
   searchParams.set("valid_days", String(validDays));
   return fetchApi<{
     offer_id: string;

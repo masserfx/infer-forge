@@ -867,15 +867,14 @@ export default function CalculationDetailPage() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="offer_number">Číslo nabídky *</Label>
+                <Label htmlFor="offer_number">Číslo nabídky</Label>
                 <Input
                   id="offer_number"
                   value={offerData.offer_number}
                   onChange={(e) =>
                     setOfferData({ ...offerData, offer_number: e.target.value })
                   }
-                  placeholder="např. NAB-2024-001"
-                  required
+                  placeholder="Automaticky (NAB-XXXXXX)"
                 />
               </div>
               <div className="space-y-2">

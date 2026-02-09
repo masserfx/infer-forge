@@ -32,6 +32,31 @@ from app.services import DocumentGeneratorService, DocumentService
 router = APIRouter(prefix="/dokumenty", tags=["Dokumenty"])
 
 
+async def _persist_generated_document(
+    db: AsyncSession,
+    order_id: UUID,
+    pdf_bytes: bytes,
+    file_name: str,
+    category: DocumentCategory,
+    description: str,
+) -> None:
+    """Save a generated PDF to disk and create a Document record in the DB."""
+    service = DocumentService(db)
+    metadata = DocumentUpload(
+        entity_type="order",
+        entity_id=order_id,
+        category=category,
+        description=description,
+    )
+    await service.upload(
+        metadata=metadata,
+        file_name=file_name,
+        file_content=pdf_bytes,
+        mime_type="application/pdf",
+    )
+    await db.commit()
+
+
 @router.post(
     "/upload",
     response_model=DocumentResponse,
@@ -253,12 +278,15 @@ async def generate_offer(
             valid_days=req.valid_days,
             note=req.note,
         )
+        file_name = f"nabidka_{order_id}.pdf"
+        await _persist_generated_document(
+            db, order_id, pdf_bytes, file_name,
+            DocumentCategory.NABIDKA, "Vygenerovaná nabídka",
+        )
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={
-                "Content-Disposition": f'attachment; filename="nabidka_{order_id}.pdf"',
-            },
+            headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
         )
     except ValueError as e:
         raise HTTPException(
@@ -283,12 +311,15 @@ async def generate_production_sheet(
             include_controls=req.include_controls,
             note=req.note,
         )
+        file_name = f"pruvodka_{order_id}.pdf"
+        await _persist_generated_document(
+            db, order_id, pdf_bytes, file_name,
+            DocumentCategory.PRUVODKA, "Vygenerovaná výrobní průvodka",
+        )
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={
-                "Content-Disposition": f'attachment; filename="pruvodka_{order_id}.pdf"',
-            },
+            headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
         )
     except ValueError as e:
         raise HTTPException(
@@ -417,12 +448,15 @@ async def generate_dimensional_protocol(
         result = await db.execute(sql_select(Order.number).where(Order.id == order_id))
         order_number = result.scalar_one_or_none() or str(order_id)
 
+        file_name = f"protokol_rozmerovy_{order_number}.pdf"
+        await _persist_generated_document(
+            db, order_id, pdf_bytes, file_name,
+            DocumentCategory.PROTOKOL, "Vygenerovaný rozměrový protokol",
+        )
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={
-                "Content-Disposition": f'attachment; filename="protokol_rozmerovy_{order_number}.pdf"',
-            },
+            headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
         )
     except ValueError as e:
         raise HTTPException(
@@ -460,12 +494,15 @@ async def generate_material_certificate(
         order_number = result.scalar_one_or_none() or str(order_id)
 
         cert_type_filename = certificate_type.replace(".", "")
+        file_name = f"atestace_{cert_type_filename}_{order_number}.pdf"
+        await _persist_generated_document(
+            db, order_id, pdf_bytes, file_name,
+            DocumentCategory.ATESTACE, f"Vygenerovaná atestace EN 10-204 {certificate_type}",
+        )
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={
-                "Content-Disposition": f'attachment; filename="atestace_{cert_type_filename}_{order_number}.pdf"',
-            },
+            headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
         )
     except ValueError as e:
         raise HTTPException(
@@ -491,12 +528,15 @@ async def generate_invoice_pdf(
             due_days=req.due_days,
             note=req.note,
         )
+        file_name = f"faktura_{order_id}.pdf"
+        await _persist_generated_document(
+            db, order_id, pdf_bytes, file_name,
+            DocumentCategory.FAKTURA, "Vygenerovaná faktura",
+        )
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={
-                "Content-Disposition": f'attachment; filename="faktura_{order_id}.pdf"',
-            },
+            headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
         )
     except ValueError as e:
         raise HTTPException(
@@ -521,12 +561,15 @@ async def generate_delivery_note(
             delivery_address=req.delivery_address,
             note=req.note,
         )
+        file_name = f"dodaci_list_{order_id}.pdf"
+        await _persist_generated_document(
+            db, order_id, pdf_bytes, file_name,
+            DocumentCategory.OSTATNI, "Vygenerovaný dodací list",
+        )
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={
-                "Content-Disposition": f'attachment; filename="dodaci_list_{order_id}.pdf"',
-            },
+            headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
         )
     except ValueError as e:
         raise HTTPException(
@@ -553,12 +596,15 @@ async def generate_order_confirmation(
             payment_terms=req.payment_terms,
             note=req.note,
         )
+        file_name = f"objednavka_{order_id}.pdf"
+        await _persist_generated_document(
+            db, order_id, pdf_bytes, file_name,
+            DocumentCategory.OBJEDNAVKA, "Vygenerované potvrzení objednávky",
+        )
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={
-                "Content-Disposition": f'attachment; filename="objednavka_{order_id}.pdf"',
-            },
+            headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
         )
     except ValueError as e:
         raise HTTPException(
