@@ -743,6 +743,11 @@ export interface OrderEmail {
   classification: InboxClassification | null;
   direction: MessageDirection;
   status: string;
+  offer_id?: string;
+  offer_number?: string;
+  offer_status?: string;
+  document_id?: string;
+  document_name?: string;
 }
 
 export const MESSAGE_DIRECTION_LABELS: Record<MessageDirection, string> = {

@@ -10,7 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_role
 from app.models import Offer, Order, OrderStatus
-from app.models.inbox import InboxMessage
+from app.models.document import Document
+from app.models.inbox import InboxMessage, MessageDirection
 from app.models.user import User, UserRole
 from app.schemas import OrderCreate, OrderResponse, OrderStatusUpdate, OrderUpdate
 from app.schemas.embedding import SimilarOrderResult, SimilarOrdersResponse, SimilarSearchRequest
@@ -185,26 +186,70 @@ async def get_order_emails(
     _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI, UserRole.UCETNI)),
     db: AsyncSession = Depends(get_db),
 ) -> list[dict]:
-    """Get all emails associated with an order (inbound + outbound), chronologically."""
+    """Get all emails associated with an order (inbound + outbound), chronologically.
+
+    Outbound offer emails are enriched with offer_id, offer_number, and document_id
+    for the attached PDF.
+    """
     result = await db.execute(
         select(InboxMessage)
         .where(InboxMessage.order_id == order_id)
         .order_by(InboxMessage.received_at.asc())
     )
     messages = result.scalars().all()
-    return [
-        {
+
+    # Pre-load offers and their documents for this order
+    offer_result = await db.execute(
+        select(Offer).where(Offer.order_id == order_id)
+    )
+    offers = {str(o.id): o for o in offer_result.scalars().all()}
+
+    doc_result = await db.execute(
+        select(Document).where(
+            Document.entity_type == "offer",
+            Document.entity_id.in_([o.id for o in offers.values()]) if offers else False,
+        )
+    )
+    # Map offer_id → document
+    offer_docs: dict[str, Document] = {}
+    for doc in doc_result.scalars().all():
+        offer_docs[str(doc.entity_id)] = doc
+
+    items = []
+    for m in messages:
+        item: dict = {
             "id": str(m.id),
             "from_email": m.from_email,
             "subject": m.subject,
-            "body_text": m.body_text[:200] if m.body_text else "",
+            "body_text": m.body_text or "",
             "received_at": m.received_at.isoformat(),
             "classification": m.classification.value if m.classification else None,
             "direction": m.direction.value if hasattr(m, "direction") and m.direction else "inbound",
             "status": m.status.value,
         }
-        for m in messages
-    ]
+
+        # Enrich outbound offer emails with offer + document info
+        if (
+            hasattr(m, "direction")
+            and m.direction == MessageDirection.OUTBOUND
+            and m.message_id
+            and m.message_id.startswith("offer-")
+        ):
+            # Extract offer_id from message_id "offer-{uuid}@infer.cz"
+            offer_id_str = m.message_id.replace("offer-", "").replace("@infer.cz", "")
+            if offer_id_str in offers:
+                offer = offers[offer_id_str]
+                item["offer_id"] = str(offer.id)
+                item["offer_number"] = offer.number
+                item["offer_status"] = offer.status.value
+                doc = offer_docs.get(offer_id_str)
+                if doc:
+                    item["document_id"] = str(doc.id)
+                    item["document_name"] = doc.file_name
+
+        items.append(item)
+
+    return items
 
 
 @router.put("/{order_id}", response_model=OrderResponse)
