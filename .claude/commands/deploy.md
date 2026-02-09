@@ -46,7 +46,7 @@ Po deployi ověř přes SSH:
 
 ```bash
 # Backend health
-curl -sf http://localhost:8000/api/v1/health || echo "FAIL: backend health"
+curl -sf http://localhost:8000/health || echo "FAIL: backend health"
 
 # API response
 curl -sf http://localhost:8000/api/v1/orchestrace/stats | python3 -m json.tool | head -5

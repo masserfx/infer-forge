@@ -89,7 +89,7 @@ $COMPOSE exec -T backend alembic upgrade head
 echo "[REMOTE] Smoke tests..."
 FAILURES=0
 
-if curl -sf http://localhost:8000/api/v1/health > /dev/null 2>&1; then
+if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
   echo "[SMOKE] Backend health: OK"
 else
   echo "[SMOKE] Backend health: FAIL"
