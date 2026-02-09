@@ -56,6 +56,7 @@ import {
   getAIEstimate,
   getCalculationAnomalies,
 } from "@/lib/api";
+import { MaterialCombobox } from "@/components/material-combobox";
 import { formatCurrency } from "@/lib/utils";
 import {
   CALCULATION_STATUS_LABELS,
@@ -64,6 +65,7 @@ import {
   type CalculationItem,
   type CalculationStatus,
   type CostType,
+  type MaterialPrice,
 } from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -537,14 +539,34 @@ export default function CalculationDetailPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="name">Název *</Label>
-                <Input
-                  id="name"
-                  value={newItem.name}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, name: e.target.value })
-                  }
-                  required
-                />
+                {newItem.cost_type === "material" ? (
+                  <MaterialCombobox
+                    id="name"
+                    value={newItem.name}
+                    onChange={(value) =>
+                      setNewItem({ ...newItem, name: value })
+                    }
+                    onSelect={(material: MaterialPrice) =>
+                      setNewItem({
+                        ...newItem,
+                        name: material.name + (material.dimension ? ` ${material.dimension}` : ""),
+                        unit: material.unit,
+                        unit_price: material.unit_price,
+                        description: material.specification || material.material_grade || "",
+                      })
+                    }
+                    required
+                  />
+                ) : (
+                  <Input
+                    id="name"
+                    value={newItem.name}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, name: e.target.value })
+                    }
+                    required
+                  />
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Popis</Label>
@@ -654,14 +676,34 @@ export default function CalculationDetailPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit_name">Název *</Label>
-                  <Input
-                    id="edit_name"
-                    value={itemToEdit.name}
-                    onChange={(e) =>
-                      setItemToEdit({ ...itemToEdit, name: e.target.value })
-                    }
-                    required
-                  />
+                  {itemToEdit.cost_type === "material" ? (
+                    <MaterialCombobox
+                      id="edit_name"
+                      value={itemToEdit.name}
+                      onChange={(value) =>
+                        setItemToEdit({ ...itemToEdit, name: value })
+                      }
+                      onSelect={(material: MaterialPrice) =>
+                        setItemToEdit({
+                          ...itemToEdit,
+                          name: material.name + (material.dimension ? ` ${material.dimension}` : ""),
+                          unit: material.unit,
+                          unit_price: material.unit_price,
+                          description: material.specification || material.material_grade || "",
+                        })
+                      }
+                      required
+                    />
+                  ) : (
+                    <Input
+                      id="edit_name"
+                      value={itemToEdit.name}
+                      onChange={(e) =>
+                        setItemToEdit({ ...itemToEdit, name: e.target.value })
+                      }
+                      required
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit_description">Popis</Label>
