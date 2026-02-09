@@ -24,7 +24,7 @@ from app.integrations.pohoda.xml_builder import PohodaXMLBuilder
 from app.models.calculation import Calculation, CalculationStatus
 from app.models.document import Document, DocumentCategory
 from app.models.offer import Offer, OfferStatus
-from app.models.order import Order
+from app.models.order import Order, OrderStatus
 from app.services.document_generator import DocumentGeneratorService
 
 logger = structlog.get_logger(__name__)
@@ -106,6 +106,10 @@ class OfferGenerator:
 
             # Update calculation status
             calculation.status = CalculationStatus.OFFERED
+
+            # Advance order status to NABIDKA
+            if order.status == OrderStatus.POPTAVKA:
+                order.status = OrderStatus.NABIDKA
 
             await session.commit()
 
