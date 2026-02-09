@@ -491,8 +491,8 @@ class OrderOrchestrator:
             except ValueError:
                 return None
 
-        # X týdnů/týdny/týden
-        m = re.search(r"(\d+)\s*t[ýy]dn", text)
+        # X týdnů/týdny/týden/tydnu/tyden
+        m = re.search(r"(\d+)\s*t[ýy]d[eě]?n", text)
         if m:
             weeks = int(m.group(1))
             return date.today() + timedelta(weeks=weeks)
