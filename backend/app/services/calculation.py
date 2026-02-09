@@ -18,6 +18,8 @@ from app.models import (
     CostType,
     Offer,
     OfferStatus,
+    Order,
+    OrderStatus,
 )
 from app.schemas import (
     CalculationCreate,
@@ -426,6 +428,13 @@ class CalculationService:
 
         # Mark calculation as offered
         calculation.status = CalculationStatus.OFFERED
+
+        # Advance order status to NABIDKA if currently POPTAVKA
+        if calculation.order_id:
+            order = await self.db.get(Order, calculation.order_id)
+            if order and order.status == OrderStatus.POPTAVKA:
+                order.status = OrderStatus.NABIDKA
+
         await self.db.flush()
         await self.db.refresh(offer)
 
