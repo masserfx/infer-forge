@@ -16,9 +16,9 @@ depends_on = None
 
 def upgrade() -> None:
     # Drop old CASCADE FK and create RESTRICT FK on orders.customer_id
-    op.drop_constraint("orders_customer_id_fkey", "orders", type_="foreignkey")
+    op.drop_constraint("fk_orders_customer_id_customers", "orders", type_="foreignkey")
     op.create_foreign_key(
-        "orders_customer_id_fkey",
+        "fk_orders_customer_id_customers",
         "orders",
         "customers",
         ["customer_id"],
@@ -28,9 +28,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_constraint("orders_customer_id_fkey", "orders", type_="foreignkey")
+    op.drop_constraint("fk_orders_customer_id_customers", "orders", type_="foreignkey")
     op.create_foreign_key(
-        "orders_customer_id_fkey",
+        "fk_orders_customer_id_customers",
         "orders",
         "customers",
         ["customer_id"],
