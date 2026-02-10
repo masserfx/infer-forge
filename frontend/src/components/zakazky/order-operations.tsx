@@ -323,6 +323,7 @@ export function OrderOperations({ orderId }: OrderOperationsProps) {
                         size="icon"
                         className="h-7 w-7"
                         onClick={() => openEdit(op)}
+                        aria-label="Upravit operaci"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -332,6 +333,7 @@ export function OrderOperations({ orderId }: OrderOperationsProps) {
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-destructive"
+                            aria-label="Smazat operaci"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>

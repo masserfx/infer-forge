@@ -10,7 +10,7 @@ import email
 import imaplib
 import ssl
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from email.header import decode_header
 from email.message import Message
 from typing import Any
@@ -373,7 +373,7 @@ class IMAPClient:
             Parsed datetime (UTC). Falls back to current time if parsing fails.
         """
         if not date_str:
-            return datetime.utcnow()
+            return datetime.now(UTC)
 
         try:
             # Use email.utils.parsedate_to_datetime for RFC 2822 dates
@@ -382,7 +382,7 @@ class IMAPClient:
             return parsedate_to_datetime(date_str)
         except (ValueError, TypeError):
             logger.warning("imap_date_parse_failed", date_str=date_str)
-            return datetime.utcnow()
+            return datetime.now(UTC)
 
     async def __aenter__(self) -> "IMAPClient":
         """Async context manager entry."""

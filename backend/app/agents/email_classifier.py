@@ -40,8 +40,9 @@ _VALID_CATEGORIES: set[str] = {
 # Confidence threshold below which the result is flagged for human review
 _ESCALATION_THRESHOLD: float = 0.8
 
-# Anthropic model used for classification
-_MODEL: str = "claude-sonnet-4-20250514"
+# Anthropic model — centralized in Settings
+from app.core.config import get_settings as _get_settings
+_MODEL: str = _get_settings().ANTHROPIC_MODEL
 
 # Maximum tokens for the classification response
 _MAX_TOKENS: int = 1024
@@ -149,6 +150,7 @@ class ClassificationResult:
     confidence: float
     reasoning: str
     needs_escalation: bool = field(default=False)
+    tokens_used: int = field(default=0)
 
     def __post_init__(self) -> None:
         """Validate invariants after initialization."""
@@ -200,8 +202,44 @@ class EmailClassifier:
         log = logger.bind(subject=subject[:100])
         log.info("email_classification.started")
 
+        # Circuit breaker check
+        from app.core.circuit_breaker import anthropic_breaker
+
+        if not anthropic_breaker.can_execute():
+            log.warning("email_classification.circuit_open")
+            fallback = self._keyword_fallback(subject, body)
+            if fallback is not None:
+                log.info("email_classification.keyword_fallback", category=fallback)
+                return ClassificationResult(
+                    category=fallback,
+                    confidence=0.3,
+                    reasoning="Klasifikace pomoci klicovych slov (API nedostupne).",
+                    needs_escalation=True,
+                )
+            return ClassificationResult(
+                category=None,
+                confidence=0.0,
+                reasoning="Klasifikace odlozena: Anthropic API je docasne nedostupne.",
+                needs_escalation=True,
+            )
+
+        # Rate limiter check
+        from app.core.rate_limiter import RateLimitExceeded, get_rate_limiter
+
+        try:
+            get_rate_limiter().acquire(estimated_tokens=_MAX_TOKENS)
+        except RateLimitExceeded as exc:
+            log.warning("email_classification.rate_limited", reason=str(exc))
+            return ClassificationResult(
+                category=None,
+                confidence=0.0,
+                reasoning="Klasifikace odlozena: dosazeny limit API volani.",
+                needs_escalation=True,
+            )
+
         user_message = self._build_user_message(subject, body)
 
+        tokens_used = 0
         try:
             response = await self._client.messages.create(
                 model=_MODEL,
@@ -212,7 +250,15 @@ class EmailClassifier:
                 messages=[{"role": "user", "content": user_message}],
                 timeout=_TIMEOUT_SECONDS,
             )
+            anthropic_breaker.record_success()
+            # Record actual token usage
+            usage = getattr(response, "usage", None)
+            if usage:
+                tokens_used = (getattr(usage, "input_tokens", 0) + getattr(usage, "output_tokens", 0))
+                get_rate_limiter().record_usage(tokens_used)
+                log.info("email_classification.token_usage", input=getattr(usage, "input_tokens", 0), output=getattr(usage, "output_tokens", 0))
         except TimeoutError:
+            anthropic_breaker.record_failure()
             log.warning("email_classification.timeout")
             return ClassificationResult(
                 category=None,
@@ -221,6 +267,7 @@ class EmailClassifier:
                 needs_escalation=True,
             )
         except Exception:
+            anthropic_breaker.record_failure()
             log.exception("email_classification.api_error")
             return ClassificationResult(
                 category=None,
@@ -228,8 +275,35 @@ class EmailClassifier:
                 reasoning="Klasifikace selhala: neocekavana chyba pri volani API.",
                 needs_escalation=True,
             )
+        finally:
+            get_rate_limiter().release()
 
-        return self._parse_response(response, log)
+        result = self._parse_response(response, log)
+        return ClassificationResult(
+            category=result.category,
+            confidence=result.confidence,
+            reasoning=result.reasoning,
+            needs_escalation=result.needs_escalation,
+            tokens_used=tokens_used,
+        )
+
+    @staticmethod
+    def _keyword_fallback(subject: str, body: str) -> EmailCategory | None:
+        """Simple keyword-based fallback classification when API is unavailable."""
+        text = (subject + " " + body).lower()
+        keywords: list[tuple[EmailCategory, list[str]]] = [
+            ("reklamace", ["reklamace", "reklamaci", "vada", "neshoda", "stiznost"]),
+            ("objednavka", ["objednavka", "objednavame", "objednavku", "potvrzujeme objednavku"]),
+            ("poptavka", ["poptavka", "poptavame", "cenova nabidka", "cenovou nabidku", "prosim o nabidku"]),
+            ("faktura", ["faktura", "proforma", "dobropis", "danovy doklad"]),
+            ("priloha", ["v priloze", "priloha", "prilohy", "vykres"]),
+            ("obchodni_sdeleni", ["newsletter", "unsubscribe", "odhlasit"]),
+        ]
+        for category, kws in keywords:
+            for kw in kws:
+                if kw in text:
+                    return category
+        return None
 
     @staticmethod
     def _build_user_message(subject: str, body: str) -> str:
@@ -247,10 +321,11 @@ class EmailClassifier:
         if len(body) > 4000:
             truncated_body += "\n\n[... text zkracen ...]"
 
+        # XML tags delimit user content to prevent prompt injection
         return (
-            f"Klasifikuj nasledujici email:\n\n"
-            f"PREDMET: {subject}\n\n"
-            f"TELO EMAILU:\n{truncated_body}"
+            "Klasifikuj nasledujici email:\n\n"
+            f"<email_subject>{subject}</email_subject>\n\n"
+            f"<email_body>\n{truncated_body}\n</email_body>"
         )
 
     @staticmethod

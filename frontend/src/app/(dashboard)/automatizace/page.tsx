@@ -11,43 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { fetchApi, getAuthToken } from "@/lib/api";
 import { TaskFiltersBar, type TaskFilters } from "./_components/task-filters";
 import { TaskDetailSheet } from "./_components/task-detail-sheet";
 import { StatsPeriodSelector } from "./_components/stats-period-selector";
 import { PipelineThroughputChart } from "./_components/pipeline-throughput-chart";
 import { PipelineConfigCard } from "./_components/pipeline-config-card";
 import { PendingApprovals } from "./_components/pending-approvals";
-
-// API client
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
-
-async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
-  const url = `${API_BASE}${path}`;
-  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      ...headers,
-      ...options?.headers,
-    },
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(body || res.statusText);
-  }
-
-  return res.json() as Promise<T>;
-}
 
 // Types
 interface PipelineStats {
@@ -157,8 +127,9 @@ function BatchUploadZone() {
       formData.append("files", files[i]);
     }
 
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+      const token = getAuthToken();
       const res = await fetch(`${API_BASE}/orchestrace/batch-upload`, {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -235,17 +206,22 @@ export default function AutomatizacePage() {
   const [statsPeriod, setStatsPeriod] = useState("all");
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+    const token = getAuthToken();
     if (!token) return;
 
-    const wsUrl = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/api/v1/ws/${token}`;
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
     let ws: WebSocket | null = null;
 
     try {
       ws = new WebSocket(wsUrl);
+      ws.onopen = () => {
+        ws?.send(JSON.stringify({ type: "auth", token }));
+      };
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
+          if (msg.type === "auth_ok" || msg.type === "pong") return;
           if (msg.type === "pipeline_progress" && msg.inbox_message_id) {
             setLivePipeline((prev) => {
               const key = msg.inbox_message_id;

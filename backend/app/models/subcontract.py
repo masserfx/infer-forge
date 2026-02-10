@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, Index, Numeric, String, Text
+from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, Index, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin, UUIDPKMixin
@@ -41,7 +41,11 @@ class Subcontract(Base, UUIDPKMixin, TimestampMixin):
     )
     description: Mapped[str] = mapped_column(Text, nullable=False)
     price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="requested")
+    status: Mapped[str] = mapped_column(
+        SAEnum(SubcontractStatus, native_enum=False, length=20),
+        nullable=False,
+        default=SubcontractStatus.REQUESTED,
+    )
     planned_start: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,

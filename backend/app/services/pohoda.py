@@ -71,6 +71,9 @@ class PohodaService:
             xml_data = builder.build_customer_xml(customer)
             sync_log.xml_request = xml_data.decode("Windows-1250", errors="replace")
 
+            # Validate XML against XSD before sending
+            self._validate_xml(xml_data)
+
             # Send to mServer
             if settings.POHODA_MSERVER_URL:
                 from app.integrations.pohoda.client import PohodaClient
@@ -173,6 +176,9 @@ class PohodaService:
             xml_data = builder.build_order_xml(order, order.customer)
             sync_log.xml_request = xml_data.decode("Windows-1250", errors="replace")
 
+            # Validate XML against XSD before sending
+            self._validate_xml(xml_data)
+
             if settings.POHODA_MSERVER_URL:
                 from app.integrations.pohoda.client import PohodaClient
                 from app.integrations.pohoda.xml_parser import PohodaXMLParser
@@ -266,6 +272,9 @@ class PohodaService:
             builder = PohodaXMLBuilder()
             xml_data = builder.build_offer_xml(offer, offer.order, offer.order.customer)
             sync_log.xml_request = xml_data.decode("Windows-1250", errors="replace")
+
+            # Validate XML against XSD before sending
+            self._validate_xml(xml_data)
 
             if settings.POHODA_MSERVER_URL:
                 from app.integrations.pohoda.client import PohodaClient
@@ -504,6 +513,9 @@ class PohodaService:
             )
             sync_log.xml_request = xml_data.decode("Windows-1250", errors="replace")
 
+            # Validate XML against XSD before sending
+            self._validate_xml(xml_data)
+
             if settings.POHODA_MSERVER_URL:
                 from app.integrations.pohoda.client import PohodaClient
                 from app.integrations.pohoda.xml_parser import PohodaXMLParser
@@ -558,6 +570,22 @@ class PohodaService:
             },
         )
         return sync_log
+
+    @staticmethod
+    def _validate_xml(xml_data: bytes) -> None:
+        """Validate XML against XSD schema before sending to Pohoda.
+
+        Raises:
+            ValueError: If XML validation fails.
+        """
+        from app.integrations.pohoda.xsd_validator import XSDValidator
+
+        validator = XSDValidator()
+        is_valid, errors = validator.validate(xml_data)
+        if not is_valid:
+            error_msg = "; ".join(errors[:3])  # Limit to first 3 errors
+            logger.error("pohoda_xsd_validation_failed errors=%s", error_msg)
+            raise ValueError(f"XSD validace selhala: {error_msg}")
 
     async def _create_audit_log(
         self,

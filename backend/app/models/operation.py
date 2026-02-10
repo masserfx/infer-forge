@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, Index, Numeric, String, Text
+from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, Index, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin, UUIDPKMixin
@@ -74,9 +74,9 @@ class Operation(Base, UUIDPKMixin, TimestampMixin):
         nullable=True,
     )
     status: Mapped[str] = mapped_column(
-        String(20),
+        SAEnum(OperationStatus, native_enum=False, length=20),
         nullable=False,
-        default=OperationStatus.PLANNED.value,
+        default=OperationStatus.PLANNED,
         index=True,
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)

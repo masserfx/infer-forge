@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/lib/providers";
-import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({
   subsets: ["latin", "latin-ext"],
@@ -17,7 +16,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -28,10 +26,7 @@ export default function RootLayout({
   return (
     <html lang="cs">
       <body className={`${inter.variable} font-sans antialiased`}>
-        <Providers>
-          {children}
-          <Toaster />
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

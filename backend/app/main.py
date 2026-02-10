@@ -11,7 +11,8 @@ from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.core import get_db, get_logger, get_settings
+from app.api.deps import get_db
+from app.core import get_logger, get_settings
 from app.core.config import Settings
 from app.core.database import close_db, init_db
 from app.core.health import check_database, check_redis, get_aggregated_health, get_version
@@ -72,6 +73,7 @@ app = FastAPI(
     version="0.1.0",
     docs_url="/api/docs" if settings.DEBUG else None,
     redoc_url="/api/redoc" if settings.DEBUG else None,
+    openapi_url="/api/openapi.json" if settings.DEBUG else None,
     lifespan=lifespan,
     redirect_slashes=False,
 )
@@ -212,9 +214,13 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.responses import Response as StarletteResponse
 
 
-@app.get("/metrics")
-async def metrics() -> StarletteResponse:
-    """Prometheus metrics endpoint."""
+@app.get("/metrics", include_in_schema=False)
+async def metrics(request: StarletteRequest) -> StarletteResponse:
+    """Prometheus metrics endpoint (restricted to local/Docker network)."""
+    client_ip = request.client.host if request.client else ""
+    allowed_prefixes = ("127.0.0.1", "::1", "10.", "172.", "192.168.")
+    if not client_ip.startswith(allowed_prefixes):
+        return StarletteResponse(content="Forbidden", status_code=403)
     return StarletteResponse(
         content=generate_latest(),
         media_type=CONTENT_TYPE_LATEST,

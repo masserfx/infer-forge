@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FileText, Loader2, Receipt, Truck, ClipboardList } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -69,8 +70,8 @@ export function DocumentGenerator({ orderId }: DocumentGeneratorProps) {
       a.click();
       window.URL.revokeObjectURL(url);
       a.remove();
-    } catch (error) {
-      console.error("Document generation failed:", error);
+    } catch {
+      toast.error("Generování dokumentu se nezdařilo");
     } finally {
       setGenerating(null);
     }

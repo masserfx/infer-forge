@@ -96,12 +96,13 @@ class GamificationService:
             return None
 
     async def get_leaderboard(
-        self, period: PointsPeriod = PointsPeriod.ALL_TIME, limit: int = 10
+        self, period: PointsPeriod = PointsPeriod.ALL_TIME, skip: int = 0, limit: int = 10
     ) -> LeaderboardResponse:
         """Get leaderboard for a period.
 
         Args:
             period: Time period for aggregation
+            skip: Number of entries to skip
             limit: Maximum number of entries to return
 
         Returns:
@@ -125,7 +126,7 @@ class GamificationService:
             query = query.where(UserPoints.earned_at >= period_start)
 
         # Execute query
-        result = await self.db.execute(query.limit(limit))
+        result = await self.db.execute(query.offset(skip).limit(limit))
         rows = result.all()
 
         # Batch-load user details (avoid N+1)
@@ -139,7 +140,7 @@ class GamificationService:
             users_map = {}
 
         entries = []
-        for rank, row in enumerate(rows, start=1):
+        for rank, row in enumerate(rows, start=skip + 1):
             user_id = row.user_id
             total_points = row.total_points or 0
             tasks_completed = row.tasks_completed or 0

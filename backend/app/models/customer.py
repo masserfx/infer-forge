@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Index, Integer, Numeric, String, Text
+from sqlalchemy import CheckConstraint, DateTime, Index, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin, UUIDPKMixin
@@ -36,6 +36,7 @@ class Customer(Base, UUIDPKMixin, TimestampMixin):
         String(1),
         nullable=True,
         default="C",
+        index=True,
         comment="A=Klíčový, B=Běžný, C=Nový/jednorázový",
     )
     discount_percent: Mapped[Decimal | None] = mapped_column(
@@ -71,6 +72,10 @@ class Customer(Base, UUIDPKMixin, TimestampMixin):
     __table_args__ = (
         Index("ix_customers_company_name", "company_name"),
         Index("ix_customers_email", "email"),
+        CheckConstraint(
+            "discount_percent >= 0 AND discount_percent <= 100",
+            name="ck_customers_discount_percent_range",
+        ),
     )
 
     def __repr__(self) -> str:

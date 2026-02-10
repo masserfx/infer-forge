@@ -94,6 +94,7 @@ export default function OrderDetailPage({ params }: PageProps) {
             variant="ghost"
             size="icon"
             onClick={() => router.push("/zakazky")}
+            aria-label="Zpět na zakázky"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>

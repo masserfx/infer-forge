@@ -17,23 +17,14 @@ async def get_leaderboard(
         default=PointsPeriod.ALL_TIME,
         description="Time period for leaderboard (daily, weekly, monthly, all_time)",
     ),
+    skip: int = Query(default=0, ge=0, description="Number of entries to skip"),
     limit: int = Query(default=10, ge=1, le=100, description="Maximum entries to return"),
     _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> LeaderboardResponse:
-    """Get leaderboard for a given period.
-
-    Args:
-        period: Time period (daily, weekly, monthly, all_time)
-        limit: Maximum number of entries
-        _user: Current authenticated user
-        db: Database session
-
-    Returns:
-        Leaderboard with ranked entries
-    """
+    """Get leaderboard for a given period."""
     service = GamificationService(db)
-    return await service.get_leaderboard(period=period, limit=limit)
+    return await service.get_leaderboard(period=period, skip=skip, limit=limit)
 
 
 @router.get("/me", response_model=UserStatsResponse)

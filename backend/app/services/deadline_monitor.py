@@ -24,7 +24,8 @@ from app.services.notification import NotificationService
 
 logger = logging.getLogger(__name__)
 
-_MODEL: str = "claude-sonnet-4-20250514"
+from app.core.config import get_settings as _get_settings
+_MODEL: str = _get_settings().ANTHROPIC_MODEL
 _MAX_TOKENS: int = 512
 _TIMEOUT_SECONDS: float = 30.0
 

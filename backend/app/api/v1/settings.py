@@ -34,21 +34,45 @@ class IntegrationStatus(BaseModel):
     details: str | None = None
 
 
+def _read_flag_from_redis(r: "redis.Redis", key: str, default: bool) -> bool:  # type: ignore[name-defined]
+    """Read a feature flag from Redis, falling back to settings default."""
+    val = r.get(f"feature_flag:{key}")
+    if val is not None:
+        return val in (b"1", "1", b"true", "true")
+    return default
+
+
+def _get_flags_with_redis_overrides() -> FeatureFlagsResponse:
+    """Read feature flags with Redis overrides applied on top of env defaults."""
+    import redis
+
+    from app.core.config import get_settings
+    settings = get_settings()
+
+    defaults = {
+        "ORCHESTRATION_ENABLED": settings.ORCHESTRATION_ENABLED,
+        "ORCHESTRATION_AUTO_CREATE_ORDERS": settings.ORCHESTRATION_AUTO_CREATE_ORDERS,
+        "ORCHESTRATION_AUTO_CALCULATE": settings.ORCHESTRATION_AUTO_CALCULATE,
+        "ORCHESTRATION_AUTO_OFFER": settings.ORCHESTRATION_AUTO_OFFER,
+        "POHODA_AUTO_SYNC": getattr(settings, "POHODA_AUTO_SYNC", False),
+    }
+
+    try:
+        r = redis.from_url(str(settings.REDIS_URL))  # type: ignore[no-untyped-call]
+        resolved = {k: _read_flag_from_redis(r, k, v) for k, v in defaults.items()}
+        r.close()
+    except Exception:
+        resolved = defaults
+
+    return FeatureFlagsResponse(**resolved)
+
+
 @router.get("/flags", response_model=FeatureFlagsResponse)
 async def get_feature_flags(
     _user: User = Depends(require_role(UserRole.VEDENI)),
 ) -> FeatureFlagsResponse:
     """Get current feature flags configuration."""
-    from app.core.config import get_settings
-    settings = get_settings()
-
-    return FeatureFlagsResponse(
-        ORCHESTRATION_ENABLED=settings.ORCHESTRATION_ENABLED,
-        ORCHESTRATION_AUTO_CREATE_ORDERS=settings.ORCHESTRATION_AUTO_CREATE_ORDERS,
-        ORCHESTRATION_AUTO_CALCULATE=settings.ORCHESTRATION_AUTO_CALCULATE,
-        ORCHESTRATION_AUTO_OFFER=settings.ORCHESTRATION_AUTO_OFFER,
-        POHODA_AUTO_SYNC=getattr(settings, "POHODA_AUTO_SYNC", False),
-    )
+    return _get_flags_with_redis_overrides()
 
 
 @router.patch("/flags", response_model=FeatureFlagsResponse)
@@ -58,38 +82,27 @@ async def update_feature_flags(
 ) -> FeatureFlagsResponse:
     """Update feature flags (admin/vedeni only).
 
-    Note: Changes are stored in Redis for persistence across restarts.
-    Environment variables take precedence on initial load.
+    Changes are stored in Redis for persistence across restarts.
+    Settings singleton is NOT mutated — flags are read from Redis on each request.
     """
     import redis
 
     from app.core.config import get_settings
-
     settings = get_settings()
 
-    # Store in Redis for persistence
     try:
-        redis_url = str(settings.REDIS_URL)
-        r = redis.from_url(redis_url)  # type: ignore[no-untyped-call]
-
+        r = redis.from_url(str(settings.REDIS_URL))  # type: ignore[no-untyped-call]
         update_data = data.model_dump(exclude_none=True)
         for key, value in update_data.items():
             r.set(f"feature_flag:{key}", str(int(value)))
-            # Also update the settings singleton
-            object.__setattr__(settings, key, value)
-    except Exception as e:
+        r.close()
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update flags: {str(e)}",
-        ) from e
+            detail="Nepodařilo se uložit nastavení",
+        )
 
-    return FeatureFlagsResponse(
-        ORCHESTRATION_ENABLED=settings.ORCHESTRATION_ENABLED,
-        ORCHESTRATION_AUTO_CREATE_ORDERS=settings.ORCHESTRATION_AUTO_CREATE_ORDERS,
-        ORCHESTRATION_AUTO_CALCULATE=settings.ORCHESTRATION_AUTO_CALCULATE,
-        ORCHESTRATION_AUTO_OFFER=settings.ORCHESTRATION_AUTO_OFFER,
-        POHODA_AUTO_SYNC=getattr(settings, "POHODA_AUTO_SYNC", False),
-    )
+    return _get_flags_with_redis_overrides()
 
 
 @router.get("/integrations", response_model=list[IntegrationStatus])

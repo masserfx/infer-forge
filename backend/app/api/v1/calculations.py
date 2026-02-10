@@ -3,6 +3,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_role
@@ -320,10 +321,18 @@ async def generate_offer(
         ) from e
 
 
+class CalculationFeedbackRequest(BaseModel):
+    """Request body for calculation feedback."""
+
+    original_items: list[dict] = Field(default_factory=list)
+    corrected_items: list[dict] = Field(default_factory=list)
+    correction_type: str = Field(default="price")
+
+
 @router.post("/{calculation_id}/feedback")
 async def submit_calculation_feedback(
     calculation_id: UUID,
-    feedback: dict,
+    feedback: CalculationFeedbackRequest,
     user: User = Depends(require_role(UserRole.TECHNOLOG, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
@@ -333,9 +342,9 @@ async def submit_calculation_feedback(
 
     fb = CalculationFeedback(
         calculation_id=calculation_id,
-        original_items=json.dumps(feedback.get("original_items", [])),
-        corrected_items=json.dumps(feedback.get("corrected_items", [])),
-        correction_type=CorrectionType(feedback.get("correction_type", "price")),
+        original_items=json.dumps(feedback.original_items),
+        corrected_items=json.dumps(feedback.corrected_items),
+        correction_type=CorrectionType(feedback.correction_type),
         user_id=user.id,
     )
     db.add(fb)

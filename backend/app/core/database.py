@@ -3,8 +3,6 @@
 Provides async engine, sessionmaker and dependency injection for FastAPI routes.
 """
 
-from collections.abc import AsyncGenerator
-
 from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -57,29 +55,6 @@ AsyncSessionLocal = async_sessionmaker(
     autocommit=False,
     autoflush=False,
 )
-
-
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """FastAPI dependency for async database sessions.
-
-    Usage:
-        @app.get("/items")
-        async def get_items(db: AsyncSession = Depends(get_db)):
-            result = await db.execute(select(Item))
-            return result.scalars().all()
-
-    Yields:
-        AsyncSession: Database session that will be automatically closed.
-    """
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
 
 
 async def init_db() -> None:

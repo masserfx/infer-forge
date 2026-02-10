@@ -80,6 +80,7 @@ import {
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function CalculationDetailPage() {
   const params = useParams();
@@ -178,7 +179,7 @@ export default function CalculationDetailPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["calculation", id] });
       setIsOfferDialogOpen(false);
-      alert(
+      toast.success(
         `Nabídka ${data.number} byla vygenerována. Celková cena: ${data.total_price}`,
       );
     },
@@ -293,7 +294,7 @@ export default function CalculationDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
+          <Button variant="ghost" size="icon" asChild aria-label="Zpět na kalkulace">
             <Link href="/kalkulace">
               <ArrowLeft className="h-5 w-5" />
             </Link>
@@ -483,6 +484,7 @@ export default function CalculationDetailPage() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => setItemToEdit(item)}
+                                  aria-label="Upravit položku"
                                 >
                                   <Edit2 className="h-4 w-4" />
                                 </Button>
@@ -490,6 +492,7 @@ export default function CalculationDetailPage() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => setItemToDelete(item.id)}
+                                  aria-label="Smazat položku"
                                 >
                                   <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>

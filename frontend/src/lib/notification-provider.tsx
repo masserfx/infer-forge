@@ -50,8 +50,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         const result = await getNotifications({ limit: 20 });
         setNotifications(result.items);
         setUnreadCount(result.unread_count);
-      } catch (error) {
-        console.error("Failed to load notifications:", error);
+      } catch {
+        // Silent fail — notifications will retry on next mount
       }
     };
 
@@ -111,8 +111,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (notification && !notification.read) {
         setUnreadCount((prev) => Math.max(0, prev - 1));
       }
-    } catch (error) {
-      console.error("Failed to mark notification as read:", error);
+    } catch {
       toast.error("Nepodařilo se označit notifikaci jako přečtenou");
     }
   };
@@ -126,8 +125,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setUnreadCount(0);
 
       toast.success("Všechny notifikace označeny jako přečtené");
-    } catch (error) {
-      console.error("Failed to mark all notifications as read:", error);
+    } catch {
       toast.error("Nepodařilo se označit všechny notifikace jako přečtené");
     }
   };

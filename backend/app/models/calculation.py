@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import Enum, ForeignKey, Index, Numeric, String, Text
+from sqlalchemy import CheckConstraint, Enum, ForeignKey, Index, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin, UUIDPKMixin
@@ -83,7 +83,13 @@ class Calculation(Base, UUIDPKMixin, TimestampMixin):
         cascade="all, delete-orphan",
     )
 
-    __table_args__ = (Index("ix_calculations_status", "status"),)
+    __table_args__ = (
+        Index("ix_calculations_status", "status"),
+        CheckConstraint(
+            "margin_percent >= 0 AND margin_percent <= 100",
+            name="ck_calculations_margin_percent_range",
+        ),
+    )
 
     def __repr__(self) -> str:
         return (

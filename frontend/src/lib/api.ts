@@ -76,7 +76,7 @@ export function getAuthToken(): string | null {
   return localStorage.getItem("auth_token");
 }
 
-async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
+export async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${path}`;
   const token = getAuthToken();
 

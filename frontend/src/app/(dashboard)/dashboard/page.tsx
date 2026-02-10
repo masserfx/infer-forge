@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getOrders, getInboxMessages } from "@/lib/api";
+import { getDashboardStats, getOrders } from "@/lib/api";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { PipelineChart } from "@/components/dashboard/pipeline-chart";
 import { RecentOrders } from "@/components/dashboard/recent-orders";
@@ -9,39 +9,28 @@ import { Recommendations } from "@/components/dashboard/recommendations";
 import type { OrderStatus } from "@/types";
 
 export default function DashboardPage() {
-  // Fetch all orders
-  const { data: orders = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ["orders"],
-    queryFn: () => getOrders(),
+  // Fetch aggregated stats from the API (instead of fetching ALL orders)
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ["dashboard-stats"],
+    queryFn: () => getDashboardStats(),
   });
 
-  // Fetch inbox messages
-  const { data: inboxMessages = [], isLoading: inboxLoading } = useQuery({
-    queryKey: ["inbox", "new"],
-    queryFn: () => getInboxMessages({ status: "new" }),
+  // Fetch only the 10 most recent orders for the list
+  const { data: recentOrders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ["orders", "recent"],
+    queryFn: () => getOrders({ limit: 10 }),
   });
 
-  // Calculate statistics
-  const totalOrders = orders.length;
-  const inProduction = orders.filter((o) => o.status === "vyroba").length;
-  const newMessages = inboxMessages.length;
-  const pendingInvoices = orders.filter((o) => o.status === "fakturace").length;
-
-  // Calculate status counts for pipeline
-  const statusCounts = orders.reduce(
-    (acc, order) => {
-      acc[order.status] = (acc[order.status] || 0) + 1;
+  // Convert pipeline statuses array to Record for PipelineChart
+  const statusCounts = (stats?.pipeline?.statuses ?? []).reduce(
+    (acc, s) => {
+      acc[s.status as OrderStatus] = s.count;
       return acc;
     },
-    {} as Record<OrderStatus, number>
+    {} as Record<OrderStatus, number>,
   );
 
-  // Get recent orders (last 10, sorted by creation date)
-  const recentOrders = [...orders]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 10);
-
-  if (ordersLoading || inboxLoading) {
+  if (statsLoading || ordersLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-muted-foreground">Načítání...</div>
@@ -59,10 +48,10 @@ export default function DashboardPage() {
       </div>
 
       <StatsCards
-        totalOrders={totalOrders}
-        inProduction={inProduction}
-        newMessages={newMessages}
-        pendingInvoices={pendingInvoices}
+        totalOrders={stats?.total_orders ?? 0}
+        inProduction={stats?.orders_in_production ?? 0}
+        newMessages={stats?.new_inbox_messages ?? 0}
+        pendingInvoices={stats?.pending_invoicing ?? 0}
       />
 
       <Recommendations />

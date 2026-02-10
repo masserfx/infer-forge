@@ -787,7 +787,7 @@ async def _analyze_drawing_async(document_id: str, ocr_text: str) -> dict:
                 "acceptance_criteria": analysis.welding_requirements.acceptance_criteria,
             },
             notes=analysis.notes,
-            analysis_model="claude-sonnet-4-20250514",
+            analysis_model=settings.ANTHROPIC_MODEL,
             tokens_used=2500,
         )
         session.add(db_analysis)

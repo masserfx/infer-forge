@@ -451,7 +451,7 @@ class TestCalculationAgent:
             items=[],
         )
         assert "Prázdná zakázka" in msg
-        assert "POLOŽKY:" in msg
+        assert "<order_items>" in msg
 
     def test_build_user_message_missing_fields(self) -> None:
         """Test user message with items missing optional fields."""

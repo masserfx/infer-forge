@@ -3,7 +3,8 @@
 Provides test database, async client, and mock settings.
 """
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Generator
+from unittest.mock import MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -14,7 +15,8 @@ from sqlalchemy.pool import StaticPool
 # Import all models so they register with Base.metadata
 import app.models  # noqa: F401
 from app.core.config import Settings
-from app.core.database import Base, get_db
+from app.api.deps import get_db
+from app.core.database import Base
 
 # Test database URL (use in-memory SQLite with shared cache for fast tests)
 # file::memory:?cache=shared allows multiple connections to share the same in-memory DB
@@ -88,6 +90,24 @@ async def test_client(test_db: AsyncSession) -> AsyncGenerator[AsyncClient, None
         yield client
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def _mock_rate_limiter_and_circuit_breaker() -> Generator[None, None, None]:
+    """Mock rate limiter and circuit breaker so tests don't need Redis."""
+    mock_limiter = MagicMock()
+    mock_limiter.acquire.return_value = True
+    mock_limiter.release.return_value = None
+    mock_limiter.record_usage.return_value = None
+
+    with (
+        patch("app.core.rate_limiter.get_rate_limiter", return_value=mock_limiter),
+        patch("app.core.circuit_breaker.anthropic_breaker") as mock_breaker,
+    ):
+        mock_breaker.can_execute.return_value = True
+        mock_breaker.record_success.return_value = None
+        mock_breaker.record_failure.return_value = None
+        yield
 
 
 @pytest.fixture(scope="function")

@@ -3,6 +3,7 @@
 Provides endpoints and functions to verify database, Redis, and service health.
 """
 
+import logging
 from typing import Any
 
 from sqlalchemy import text
@@ -11,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 
 settings = get_settings()
+_logger = logging.getLogger(__name__)
 
 
 async def check_database(db: AsyncSession) -> dict[str, Any]:
@@ -27,7 +29,8 @@ async def check_database(db: AsyncSession) -> dict[str, Any]:
         result.scalar_one()
         return {"healthy": True, "service": "database"}
     except Exception as e:
-        return {"healthy": False, "service": "database", "error": str(e)}
+        _logger.error("Health check failed for database: %s", e)
+        return {"healthy": False, "service": "database", "error": "service unavailable"}
 
 
 async def check_redis() -> dict[str, Any]:
@@ -44,7 +47,8 @@ async def check_redis() -> dict[str, Any]:
         await redis.close()
         return {"healthy": True, "service": "redis"}
     except Exception as e:
-        return {"healthy": False, "service": "redis", "error": str(e)}
+        _logger.error("Health check failed for redis: %s", e)
+        return {"healthy": False, "service": "redis", "error": "service unavailable"}
 
 
 def get_version() -> dict[str, str]:

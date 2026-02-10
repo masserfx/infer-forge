@@ -14,8 +14,9 @@ from anthropic import AsyncAnthropic
 
 logger = structlog.get_logger(__name__)
 
-# Anthropic model used for drawing analysis
-_MODEL: str = "claude-sonnet-4-20250514"
+# Anthropic model — centralized in Settings
+from app.core.config import get_settings as _get_settings
+_MODEL: str = _get_settings().ANTHROPIC_MODEL
 
 # Maximum tokens for the analysis response
 _MAX_TOKENS: int = 4096

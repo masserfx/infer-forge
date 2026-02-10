@@ -113,6 +113,7 @@ class InboxMessage(Base, UUIDPKMixin, TimestampMixin):
         Index("ix_inbox_messages_status_received", "status", "received_at"),
         Index("ix_inbox_messages_classification", "classification"),
         Index("ix_inbox_messages_thread_id", "thread_id"),
+        Index("ix_inbox_messages_from_email_received_at", "from_email", "received_at"),
     )
 
     def __repr__(self) -> str:

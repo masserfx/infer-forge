@@ -20,8 +20,9 @@ logger = structlog.get_logger(__name__)
 # Default hourly rate for labor in CZK (configurable)
 _DEFAULT_HOURLY_RATE_CZK: float = 850.0
 
-# Anthropic model used for cost estimation
-_MODEL: str = "claude-sonnet-4-20250514"
+# Anthropic model — centralized in Settings
+from app.core.config import get_settings as _get_settings
+_MODEL: str = _get_settings().ANTHROPIC_MODEL
 
 # Maximum tokens for the estimation response
 _MAX_TOKENS: int = 4096
@@ -201,6 +202,7 @@ class CalculationEstimate:
     total_czk: float
     breakdown: list[ItemEstimate] = field(default_factory=list)
     reasoning: str = ""
+    tokens_used: int = field(default=0)
 
     def __post_init__(self) -> None:
         """Validate invariants after initialization."""
@@ -280,11 +282,45 @@ class CalculationAgent:
         log = logger.bind(description=description[:100], item_count=len(items))
         log.info("calculation_estimate.started")
 
+        # Circuit breaker check
+        from app.core.circuit_breaker import anthropic_breaker
+
+        if not anthropic_breaker.can_execute():
+            log.warning("calculation_estimate.circuit_open")
+            return CalculationEstimate(
+                material_cost_czk=-1.0,
+                labor_hours=-1.0,
+                labor_cost_czk=-1.0,
+                overhead_czk=-1.0,
+                margin_percent=0.0,
+                total_czk=-1.0,
+                reasoning="CHYBA: Automaticka kalkulace neni dostupna (Anthropic API docasne nedostupne). "
+                "Vytvorte kalkulaci manualne nebo zkuste pozdeji.",
+            )
+
+        # Rate limiter check
+        from app.core.rate_limiter import RateLimitExceeded, get_rate_limiter
+
+        try:
+            get_rate_limiter().acquire(estimated_tokens=_MAX_TOKENS)
+        except RateLimitExceeded as exc:
+            log.warning("calculation_estimate.rate_limited", reason=str(exc))
+            return CalculationEstimate(
+                material_cost_czk=0.0,
+                labor_hours=0.0,
+                labor_cost_czk=0.0,
+                overhead_czk=0.0,
+                margin_percent=0.0,
+                total_czk=0.0,
+                reasoning="Kalkulace odložena: dosažený limit API volání.",
+            )
+
         # Try to fetch real prices from database
         items_with_prices = await self._enrich_items_with_prices(items, log)
 
         user_message = self._build_user_message(description, items_with_prices)
 
+        tokens_used = 0
         try:
             response = await self._client.messages.create(
                 model=_MODEL,
@@ -295,7 +331,14 @@ class CalculationAgent:
                 messages=[{"role": "user", "content": user_message}],
                 timeout=_TIMEOUT_SECONDS,
             )
+            anthropic_breaker.record_success()
+            usage = getattr(response, "usage", None)
+            if usage:
+                tokens_used = (getattr(usage, "input_tokens", 0) + getattr(usage, "output_tokens", 0))
+                get_rate_limiter().record_usage(tokens_used)
+                log.info("calculation_estimate.token_usage", input=getattr(usage, "input_tokens", 0), output=getattr(usage, "output_tokens", 0))
         except TimeoutError:
+            anthropic_breaker.record_failure()
             log.warning("calculation_estimate.timeout")
             return CalculationEstimate(
                 material_cost_czk=0.0,
@@ -307,6 +350,7 @@ class CalculationAgent:
                 reasoning="Kalkulace selhala: vypršení časového limitu API volání.",
             )
         except Exception:
+            anthropic_breaker.record_failure()
             log.exception("calculation_estimate.api_error")
             return CalculationEstimate(
                 material_cost_czk=0.0,
@@ -317,8 +361,21 @@ class CalculationAgent:
                 total_czk=0.0,
                 reasoning="Kalkulace selhala: neočekávaná chyba při volání API.",
             )
+        finally:
+            get_rate_limiter().release()
 
-        return self._parse_response(response, log)
+        result = self._parse_response(response, log)
+        return CalculationEstimate(
+            material_cost_czk=result.material_cost_czk,
+            labor_hours=result.labor_hours,
+            labor_cost_czk=result.labor_cost_czk,
+            overhead_czk=result.overhead_czk,
+            margin_percent=result.margin_percent,
+            total_czk=result.total_czk,
+            breakdown=result.breakdown,
+            reasoning=result.reasoning,
+            tokens_used=tokens_used,
+        )
 
     async def _enrich_items_with_prices(
         self,
@@ -413,12 +470,13 @@ class CalculationAgent:
                     f"   - POUŽIJ TUTO CENU místo odhadu!\n"
                 )
 
+        # XML tags delimit user content to prevent prompt injection
         return (
-            f"Proveď kalkulaci nákladů pro následující zakázku:\n\n"
-            f"**POPIS ZAKÁZKY:**\n{description}\n\n"
-            f"**POLOŽKY:**{items_text}\n\n"
-            f"Odhadni materiálové náklady, pracnost v hodinách, režii a navrhni "
-            f"vhodnou marži. Pro každou položku poskytni rozpad a poznámky."
+            "Proveď kalkulaci nákladů pro následující zakázku:\n\n"
+            f"<order_description>{description}</order_description>\n\n"
+            f"<order_items>{items_text}\n</order_items>\n\n"
+            "Odhadni materiálové náklady, pracnost v hodinách, režii a navrhni "
+            "vhodnou marži. Pro každou položku poskytni rozpad a poznámky."
         )
 
     def _parse_response(

@@ -58,6 +58,10 @@ class Settings(BaseSettings):
         default="",
         description="Anthropic API key for Claude AI agents",
     )
+    ANTHROPIC_MODEL: str = Field(
+        default="claude-sonnet-4-20250514",
+        description="Default Anthropic model for AI agents",
+    )
 
     # Email - Safety switches
     EMAIL_SENDING_ENABLED: bool = Field(

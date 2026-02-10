@@ -11,6 +11,7 @@ import {
   Search,
   Loader2,
 } from "lucide-react";
+import type cytoscape from "cytoscape";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 
@@ -119,8 +120,7 @@ export default function DiagramPage() {
       setActiveCategories(cats);
 
       return json;
-    } catch (err) {
-      console.error("Failed to load architecture data:", err);
+    } catch {
       return null;
     }
   }, []);
@@ -138,7 +138,7 @@ export default function DiagramPage() {
       const coseBilkent = await import("cytoscape-cose-bilkent");
       cytoscape.use(coseBilkent.default || coseBilkent);
     } catch {
-      console.warn("cose-bilkent not available");
+      // cose-bilkent layout plugin not available
     }
 
     // Destroy previous instance
@@ -147,8 +147,7 @@ export default function DiagramPage() {
     }
 
     // Build elements
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const elements: any[] = [];
+    const elements: cytoscape.ElementDefinition[] = [];
     for (const node of graphData.nodes) {
       if (!categories.has(node.category)) continue;
       const colors = CATEGORY_COLORS[node.category] || CATEGORY_COLORS.core;
@@ -177,8 +176,7 @@ export default function DiagramPage() {
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const nodeIds = new Set(elements.filter((e: any) => e.group === "nodes").map((e: any) => e.data.id));
+    const nodeIds = new Set(elements.filter((e) => e.group === "nodes").map((e) => e.data.id));
     for (const edge of graphData.edges) {
       if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) continue;
       elements.push({
@@ -194,8 +192,7 @@ export default function DiagramPage() {
     }
 
     // Layout config
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const layoutConfigs: Record<string, any> = {
+    const layoutConfigs: Record<string, cytoscape.LayoutOptions & Record<string, unknown>> = {
       "cose-bilkent": {
         name: "cose-bilkent",
         animate: "end",
@@ -214,8 +211,7 @@ export default function DiagramPage() {
         name: "concentric",
         animate: true,
         animationDuration: 500,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        concentric: (node: any) => {
+        concentric: (node: cytoscape.NodeSingular) => {
           const p: Record<string, number> = { core: 5, model: 4, service: 3, api: 2, agent: 2, integration: 1, frontend: 0 };
           return p[node.data("category")] || 0;
         },
@@ -228,7 +224,6 @@ export default function DiagramPage() {
 
     const layoutConfig = layoutConfigs[layout] || layoutConfigs["circle"];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cy = cytoscape({
       container: cyRef.current,
       elements,
@@ -291,18 +286,14 @@ export default function DiagramPage() {
         { selector: "edge[edgeType = 'triggers']", style: { "line-style": "dashed" as const, width: 2, opacity: 0.5 } },
         { selector: "edge.highlighted", style: { opacity: 1, width: 3.5, "z-index": 50 } },
         { selector: "edge.faded", style: { opacity: 0.03 } },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ] as any[],
-      layout: layoutConfig as cytoscape.LayoutOptions,
+      ] as cytoscape.StylesheetStyle[],
+      layout: layoutConfig,
       minZoom: 0.15,
       maxZoom: 3,
       wheelSensitivity: 0.3,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+    });
 
-    // Interactions — use any for Cytoscape internal event types
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    cy.on("mouseover", "node", (evt: any) => {
+    cy.on("mouseover", "node", (evt) => {
       const node = evt.target;
       const connEdges = node.connectedEdges();
       const neighbors = connEdges.connectedNodes().difference(node);
@@ -324,8 +315,7 @@ export default function DiagramPage() {
       setTooltip(null);
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    cy.on("tap", "node", (evt: any) => {
+    cy.on("tap", "node", (evt) => {
       cy.animate(
         { center: { eles: evt.target }, zoom: 1.5 },
         { duration: 400 }
@@ -351,8 +341,7 @@ export default function DiagramPage() {
 
   // Search
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cy = cyInstanceRef.current as any;
+    const cy = cyInstanceRef.current as cytoscape.Core | null;
     if (!cy) return;
 
     cy.elements().removeClass("search-match faded");
@@ -360,8 +349,7 @@ export default function DiagramPage() {
 
     const q = search.toLowerCase();
     cy.elements().addClass("faded");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const matched = cy.nodes().filter((node: any) => {
+    const matched = cy.nodes().filter((node: cytoscape.NodeSingular) => {
       const d = node.data();
       return (
         (d.label || "").toLowerCase().includes(q) ||
@@ -381,14 +369,12 @@ export default function DiagramPage() {
   };
 
   const handleFit = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cy = cyInstanceRef.current as any;
-    if (cy) cy.animate({ fit: { padding: 50 } }, { duration: 400 });
+    const cy = cyInstanceRef.current as cytoscape.Core | null;
+    if (cy) cy.animate({ fit: { eles: cy.elements(), padding: 50 } }, { duration: 400 });
   };
 
   const handleExport = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cy = cyInstanceRef.current as any;
+    const cy = cyInstanceRef.current as cytoscape.Core | null;
     if (!cy) return;
     const png = cy.png({ scale: 2, bg: "#0a0e17", full: true });
     const link = document.createElement("a");

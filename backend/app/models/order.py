@@ -57,7 +57,7 @@ class Order(Base, UUIDPKMixin, TimestampMixin):
     __tablename__ = "orders"
 
     customer_id: Mapped[UUID] = mapped_column(
-        ForeignKey("customers.id", ondelete="CASCADE"),
+        ForeignKey("customers.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )
@@ -74,7 +74,7 @@ class Order(Base, UUIDPKMixin, TimestampMixin):
     )
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_by: Mapped[UUID | None] = mapped_column(nullable=True)
+    created_by: Mapped[UUID | None] = mapped_column(nullable=True, index=True)
     assigned_to: Mapped[UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,

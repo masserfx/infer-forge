@@ -1,8 +1,9 @@
 """Authentication API endpoints."""
 
+import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db, require_role
@@ -17,21 +18,73 @@ from app.schemas.auth import (
 )
 from app.services.auth import AuthService
 
+_logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/auth", tags=["Autentizace"])
+
+_MAX_LOGIN_ATTEMPTS = 5
+_LOGIN_WINDOW_SECONDS = 60
+_LOGIN_KEY_PREFIX = "login_attempts"
+
+
+def _get_redis():
+    """Get Redis client for login rate limiting."""
+    from redis import Redis
+    from app.core.config import get_settings
+    settings = get_settings()
+    return Redis.from_url(str(settings.REDIS_URL), decode_responses=True)
+
+
+def _check_login_rate(client_ip: str) -> None:
+    """Check login rate limit for a given IP using Redis. Raises 429 if exceeded."""
+    try:
+        redis = _get_redis()
+        key = f"{_LOGIN_KEY_PREFIX}:{client_ip}"
+        current = int(redis.get(key) or 0)
+        if current >= _MAX_LOGIN_ATTEMPTS:
+            _logger.warning("login_rate_limit_exceeded ip=%s attempts=%d", client_ip, current)
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Příliš mnoho pokusů o přihlášení. Zkuste to za minutu.",
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        _logger.warning("redis_unavailable_for_rate_limit ip=%s", client_ip)
+
+
+def _record_failed_login(client_ip: str) -> None:
+    """Record a failed login attempt in Redis."""
+    try:
+        redis = _get_redis()
+        key = f"{_LOGIN_KEY_PREFIX}:{client_ip}"
+        pipe = redis.pipeline()
+        pipe.incr(key)
+        pipe.expire(key, _LOGIN_WINDOW_SECONDS)
+        pipe.execute()
+    except Exception:
+        _logger.warning("redis_unavailable_for_rate_limit ip=%s", client_ip)
 
 
 @router.post("/login", response_model=TokenResponse)
 async def login(
     data: LoginRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     """Přihlášení uživatele.
 
     Vrací JWT token pro autentizaci dalších požadavků.
+    Rate limited: max 5 pokusů za 60 sekund na IP.
     """
+    client_ip = request.client.host if request.client else "unknown"
+    _check_login_rate(client_ip)
+
     service = AuthService(db)
     user = await service.authenticate(data.email, data.password)
     if user is None:
+        _record_failed_login(client_ip)
+        _logger.warning("login_failed email=%s ip=%s", data.email, client_ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Nesprávný email nebo heslo",

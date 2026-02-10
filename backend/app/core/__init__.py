@@ -10,7 +10,7 @@ Exports:
 
 from app.core.celery_app import celery_app
 from app.core.config import Settings, get_settings
-from app.core.database import AsyncSessionLocal, Base, engine, get_db
+from app.core.database import AsyncSessionLocal, Base, engine
 from app.core.logging import get_logger
 from app.core.security import (
     create_access_token,
@@ -27,7 +27,6 @@ __all__ = [
     "engine",
     "AsyncSessionLocal",
     "Base",
-    "get_db",
     # Celery
     "celery_app",
     # Security

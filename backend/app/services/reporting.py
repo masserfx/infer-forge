@@ -277,13 +277,31 @@ class ReportingService:
             1,
         ) - timedelta(days=1)
 
-        # Get active production orders
+        # Get active production orders with customer and item count in single query
+        from app.models import OrderItem
+        from sqlalchemy.orm import selectinload
+
+        items_count_subq = (
+            select(
+                OrderItem.order_id,
+                func.count(OrderItem.id).label("items_count"),
+            )
+            .group_by(OrderItem.order_id)
+            .subquery()
+        )
+
         result = await self.db.execute(
-            select(Order)
+            select(
+                Order,
+                Customer.company_name.label("customer_name"),
+                func.coalesce(items_count_subq.c.items_count, 0).label("items_count"),
+            )
+            .outerjoin(Customer, Order.customer_id == Customer.id)
+            .outerjoin(items_count_subq, Order.id == items_count_subq.c.order_id)
             .where(Order.status.in_(list(ACTIVE_STATUSES)))
             .order_by(Order.due_date.asc().nullslast(), Order.priority.desc())
         )
-        orders = list(result.scalars().all())
+        rows = result.all()
 
         production_items = []
         in_production = 0
@@ -292,7 +310,7 @@ class ReportingService:
         due_this_week = 0
         due_this_month = 0
 
-        for order in orders:
+        for order, customer_name, items_count in rows:
             if order.status == OrderStatus.VYROBA:
                 in_production += 1
             if order.status == OrderStatus.EXPEDICE:
@@ -308,27 +326,11 @@ class ReportingService:
                 if order.due_date <= end_of_month:
                     due_this_month += 1
 
-            # Get customer name
-            customer_name = ""
-            if order.customer_id:
-                cust = await self.db.execute(
-                    select(Customer.company_name).where(Customer.id == order.customer_id)
-                )
-                customer_name = cust.scalar() or ""
-
-            # Count items
-            from app.models import OrderItem
-
-            items_result = await self.db.execute(
-                select(func.count(OrderItem.id)).where(OrderItem.order_id == order.id)
-            )
-            items_count = items_result.scalar() or 0
-
             production_items.append(
                 ProductionItem(
                     order_id=str(order.id),
                     order_number=order.number,
-                    customer_name=customer_name,
+                    customer_name=customer_name or "",
                     status=order.status.value,
                     priority=order.priority.value,
                     due_date=order.due_date,

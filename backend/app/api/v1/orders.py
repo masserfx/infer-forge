@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -69,12 +69,12 @@ async def create_order(
 
 
 class BulkStatusUpdate(BaseModel):
-    order_ids: list[UUID]
+    order_ids: list[UUID] = Field(..., max_length=100)
     status: OrderStatus
 
 
 class BulkAssignUpdate(BaseModel):
-    order_ids: list[UUID]
+    order_ids: list[UUID] = Field(..., max_length=100)
     assignee_id: UUID
 
 
@@ -159,12 +159,14 @@ async def get_order(
 @router.get("/{order_id}/nabidky")
 async def get_order_offers(
     order_id: UUID,
+    skip: int = Query(default=0, ge=0, description="Number of records to skip"),
+    limit: int = Query(default=100, ge=1, le=1000, description="Maximum number of records"),
     _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI, UserRole.UCETNI)),
     db: AsyncSession = Depends(get_db),
 ) -> list[dict]:
     """Get all offers for an order."""
     result = await db.execute(
-        select(Offer).where(Offer.order_id == order_id).order_by(Offer.created_at.desc())
+        select(Offer).where(Offer.order_id == order_id).order_by(Offer.created_at.desc()).offset(skip).limit(limit)
     )
     offers = result.scalars().all()
     return [
@@ -183,6 +185,8 @@ async def get_order_offers(
 @router.get("/{order_id}/emails")
 async def get_order_emails(
     order_id: UUID,
+    skip: int = Query(default=0, ge=0, description="Number of records to skip"),
+    limit: int = Query(default=100, ge=1, le=1000, description="Maximum number of records"),
     _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.TECHNOLOG, UserRole.VEDENI, UserRole.UCETNI)),
     db: AsyncSession = Depends(get_db),
 ) -> list[dict]:
@@ -195,6 +199,8 @@ async def get_order_emails(
         select(InboxMessage)
         .where(InboxMessage.order_id == order_id)
         .order_by(InboxMessage.received_at.asc())
+        .offset(skip)
+        .limit(limit)
     )
     messages = result.scalars().all()
 

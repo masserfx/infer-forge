@@ -90,7 +90,8 @@ async def test_analyze_drawing_success(
     # Verify API call
     mock_anthropic_client.messages.create.assert_called_once()
     call_kwargs = mock_anthropic_client.messages.create.call_args.kwargs
-    assert call_kwargs["model"] == "claude-sonnet-4-20250514"
+    from app.core.config import get_settings
+    assert call_kwargs["model"] == get_settings().ANTHROPIC_MODEL
     assert "analyze_drawing" in str(call_kwargs["tool_choice"])
 
     # Verify dimensions

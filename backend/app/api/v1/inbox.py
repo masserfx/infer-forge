@@ -22,11 +22,11 @@ async def get_inbox_messages(
     classification: InboxClassification | None = Query(
         default=None, description="Filter by classification"
     ),
-    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
+    user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> list[InboxMessageResponse]:
     """Get all inbox messages with pagination and filtering."""
-    service = InboxService(db)
+    service = InboxService(db, user_id=user.id)
     messages = await service.get_all(
         skip=skip,
         limit=limit,
@@ -39,11 +39,11 @@ async def get_inbox_messages(
 @router.get("/{message_id}", response_model=InboxMessageResponse)
 async def get_inbox_message(
     message_id: UUID,
-    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
+    user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> InboxMessageResponse:
     """Get inbox message by ID."""
-    service = InboxService(db)
+    service = InboxService(db, user_id=user.id)
     message = await service.get_by_id(message_id)
     if not message:
         raise HTTPException(
@@ -57,11 +57,11 @@ async def get_inbox_message(
 async def assign_inbox_message(
     message_id: UUID,
     assign_data: InboxAssign,
-    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
+    user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> InboxMessageResponse:
     """Assign inbox message to customer and/or order."""
-    service = InboxService(db)
+    service = InboxService(db, user_id=user.id)
     message = await service.assign_to(
         message_id=message_id,
         customer_id=assign_data.customer_id,
@@ -80,11 +80,11 @@ async def assign_inbox_message(
 async def reclassify_inbox_message(
     message_id: UUID,
     reclassify_data: InboxReclassify,
-    _user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
+    user: User = Depends(require_role(UserRole.OBCHODNIK, UserRole.VEDENI)),
     db: AsyncSession = Depends(get_db),
 ) -> InboxMessageResponse:
     """Manually reclassify inbox message."""
-    service = InboxService(db)
+    service = InboxService(db, user_id=user.id)
     message = await service.reclassify(
         message_id=message_id,
         new_classification=reclassify_data.classification,

@@ -14,8 +14,9 @@ from anthropic import AsyncAnthropic
 
 logger = structlog.get_logger(__name__)
 
-# Anthropic model used for parsing
-_MODEL: str = "claude-sonnet-4-20250514"
+# Anthropic model — centralized in Settings
+from app.core.config import get_settings as _get_settings
+_MODEL: str = _get_settings().ANTHROPIC_MODEL
 
 # Maximum tokens for the parsing response
 _MAX_TOKENS: int = 2048
@@ -228,6 +229,7 @@ class ParsedInquiry:
     invoice_amount: float | None = None
     urgency: str | None = None
     ico: str | None = None
+    tokens_used: int = field(default=0)
 
 
 class EmailParser:
@@ -273,8 +275,25 @@ class EmailParser:
         log = logger.bind(subject=subject[:100])
         log.info("email_parsing.started")
 
+        # Circuit breaker check
+        from app.core.circuit_breaker import anthropic_breaker
+
+        if not anthropic_breaker.can_execute():
+            log.warning("email_parsing.circuit_open")
+            return ParsedInquiry()
+
+        # Rate limiter check
+        from app.core.rate_limiter import RateLimitExceeded, get_rate_limiter
+
+        try:
+            get_rate_limiter().acquire(estimated_tokens=_MAX_TOKENS)
+        except RateLimitExceeded as exc:
+            log.warning("email_parsing.rate_limited", reason=str(exc))
+            return ParsedInquiry()
+
         user_message = self._build_user_message(subject, body)
 
+        tokens_used = 0
         try:
             response = await self._client.messages.create(
                 model=_MODEL,
@@ -285,14 +304,39 @@ class EmailParser:
                 messages=[{"role": "user", "content": user_message}],
                 timeout=_TIMEOUT_SECONDS,
             )
+            anthropic_breaker.record_success()
+            usage = getattr(response, "usage", None)
+            if usage:
+                tokens_used = (getattr(usage, "input_tokens", 0) + getattr(usage, "output_tokens", 0))
+                get_rate_limiter().record_usage(tokens_used)
+                log.info("email_parsing.token_usage", input=getattr(usage, "input_tokens", 0), output=getattr(usage, "output_tokens", 0))
         except TimeoutError:
+            anthropic_breaker.record_failure()
             log.warning("email_parsing.timeout")
             return ParsedInquiry()
         except Exception:
+            anthropic_breaker.record_failure()
             log.exception("email_parsing.api_error")
             return ParsedInquiry()
+        finally:
+            get_rate_limiter().release()
 
-        return self._parse_response(response, log)
+        result = self._parse_response(response, log)
+        return ParsedInquiry(
+            company_name=result.company_name,
+            contact_name=result.contact_name,
+            email=result.email,
+            phone=result.phone,
+            items=result.items,
+            deadline=result.deadline,
+            note=result.note,
+            order_reference=result.order_reference,
+            invoice_number=result.invoice_number,
+            invoice_amount=result.invoice_amount,
+            urgency=result.urgency,
+            ico=result.ico,
+            tokens_used=tokens_used,
+        )
 
     @staticmethod
     def _build_user_message(subject: str, body: str) -> str:
@@ -310,10 +354,11 @@ class EmailParser:
         if len(body) > 6000:
             truncated_body += "\n\n[... text zkracen ...]"
 
+        # XML tags delimit user content to prevent prompt injection
         return (
-            f"Extrahuj strukturovana data z nasledujiciho emailu:\n\n"
-            f"PREDMET: {subject}\n\n"
-            f"TELO EMAILU:\n{truncated_body}"
+            "Extrahuj strukturovana data z nasledujiciho emailu:\n\n"
+            f"<email_subject>{subject}</email_subject>\n\n"
+            f"<email_body>\n{truncated_body}\n</email_body>"
         )
 
     @staticmethod
