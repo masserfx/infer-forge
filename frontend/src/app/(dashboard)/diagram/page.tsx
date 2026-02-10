@@ -10,10 +10,14 @@ import {
   Download,
   Search,
   Loader2,
+  Network,
+  GitBranch,
 } from "lucide-react";
 import type cytoscape from "cytoscape";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
+
+// ── Types ────────────────────────────────────────────────────────────────────
 
 interface GraphNode {
   id: string;
@@ -50,6 +54,34 @@ interface GraphData {
   };
 }
 
+interface WorkflowNode {
+  id: string;
+  label: string;
+  description: string;
+  color: string;
+  icon: string;
+  phase: string;
+  category: string;
+}
+
+interface WorkflowEdge {
+  source: string;
+  target: string;
+  label: string;
+  edge_type: string;
+}
+
+interface WorkflowData {
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+  phase_labels: Record<string, string>;
+  category_labels: Record<string, string>;
+}
+
+type TabId = "architecture" | "workflow";
+
+// ── Architecture constants ───────────────────────────────────────────────────
+
 const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string }> = {
   api:         { bg: "#f59e0b", border: "#d97706", text: "#000" },
   service:     { bg: "#3b82f6", border: "#2563eb", text: "#fff" },
@@ -85,68 +117,96 @@ const LAYOUTS = [
   { id: "grid", label: "Mřížka" },
 ];
 
+// ── Workflow constants ───────────────────────────────────────────────────────
+
+const WORKFLOW_CATEGORY_COLORS: Record<string, { bg: string; border: string }> = {
+  pipeline:     { bg: "#64748b", border: "#475569" },
+  order_status: { bg: "#3b82f6", border: "#2563eb" },
+  support:      { bg: "#10b981", border: "#059669" },
+};
+
+const WORKFLOW_EDGE_COLORS: Record<string, string> = {
+  forward:  "#3b82f6",
+  back:     "#f59e0b",
+  pipeline: "#64748b",
+  support:  "#10b981",
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function getAuthHeaders(): Record<string, string> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return headers;
+}
+
+async function loadCytoscape() {
+  const cytoscapeModule = await import("cytoscape");
+  const cy = cytoscapeModule.default;
+  try {
+    const coseBilkent = await import("cytoscape-cose-bilkent");
+    cy.use(coseBilkent.default || coseBilkent);
+  } catch {
+    // plugin not available
+  }
+  return cy;
+}
+
+// ── Main Component ───────────────────────────────────────────────────────────
+
 export default function DiagramPage() {
-  const cyRef = useRef<HTMLDivElement>(null);
-  const cyInstanceRef = useRef<unknown>(null);
-  const [data, setData] = useState<GraphData | null>(null);
+  const [activeTab, setActiveTab] = useState<TabId>("architecture");
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+
+  // Architecture state
+  const archCyRef = useRef<HTMLDivElement>(null);
+  const archCyInstanceRef = useRef<unknown>(null);
+  const [archData, setArchData] = useState<GraphData | null>(null);
+  const [archRefreshing, setArchRefreshing] = useState(false);
   const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set());
   const [currentLayout, setCurrentLayout] = useState("cose-bilkent");
-  const [search, setSearch] = useState("");
-  const [tooltip, setTooltip] = useState<{
-    node: GraphNode;
-    x: number;
-    y: number;
-  } | null>(null);
+  const [archSearch, setArchSearch] = useState("");
+  const [archTooltip, setArchTooltip] = useState<{ node: GraphNode; x: number; y: number } | null>(null);
 
-  // Load data from API
-  const loadData = useCallback(async (refresh = false) => {
+  // Workflow state
+  const wfCyRef = useRef<HTMLDivElement>(null);
+  const wfCyInstanceRef = useRef<unknown>(null);
+  const [wfData, setWfData] = useState<WorkflowData | null>(null);
+  const [wfLoading, setWfLoading] = useState(false);
+  const [wfTooltip, setWfTooltip] = useState<{ node: WorkflowNode; x: number; y: number } | null>(null);
+
+  // ── Architecture data loading ──────────────────────────────────────────────
+
+  const loadArchData = useCallback(async (refresh = false) => {
     try {
       const url = `${API_BASE}/architektura${refresh ? "?refresh=true" : ""}`;
-      const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-      const headers: Record<string, string> = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      const resp = await fetch(url, { headers });
+      const resp = await fetch(url, { headers: getAuthHeaders() });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const json = await resp.json();
-
       if (json.error) throw new Error(json.error);
-      setData(json);
+      setArchData(json);
 
       const cats = new Set<string>();
       for (const node of json.nodes) cats.add(node.category);
       setActiveCategories(cats);
-
       return json;
     } catch {
       return null;
     }
   }, []);
 
-  // Initialize Cytoscape
-  const initGraph = useCallback(async (graphData: GraphData, layout: string, categories: Set<string>) => {
-    if (!cyRef.current) return;
+  // ── Architecture graph init ────────────────────────────────────────────────
 
-    // Dynamic import of Cytoscape (client-side only)
-    const cytoscapeModule = await import("cytoscape");
-    const cytoscape = cytoscapeModule.default;
+  const initArchGraph = useCallback(async (graphData: GraphData, layout: string, categories: Set<string>) => {
+    if (!archCyRef.current) return;
 
-    // Load cose-bilkent plugin
-    try {
-      const coseBilkent = await import("cytoscape-cose-bilkent");
-      cytoscape.use(coseBilkent.default || coseBilkent);
-    } catch {
-      // cose-bilkent layout plugin not available
+    const cytoscape = await loadCytoscape();
+
+    if (archCyInstanceRef.current) {
+      (archCyInstanceRef.current as { destroy: () => void }).destroy();
     }
 
-    // Destroy previous instance
-    if (cyInstanceRef.current) {
-      (cyInstanceRef.current as { destroy: () => void }).destroy();
-    }
-
-    // Build elements
     const elements: cytoscape.ElementDefinition[] = [];
     for (const node of graphData.nodes) {
       if (!categories.has(node.category)) continue;
@@ -191,7 +251,6 @@ export default function DiagramPage() {
       });
     }
 
-    // Layout config
     const layoutConfigs: Record<string, cytoscape.LayoutOptions & Record<string, unknown>> = {
       "cose-bilkent": {
         name: "cose-bilkent",
@@ -225,7 +284,7 @@ export default function DiagramPage() {
     const layoutConfig = layoutConfigs[layout] || layoutConfigs["circle"];
 
     const cy = cytoscape({
-      container: cyRef.current,
+      container: archCyRef.current,
       elements,
       style: [
         {
@@ -304,50 +363,296 @@ export default function DiagramPage() {
 
       const pos = node.renderedPosition();
       const nodeData = node.data() as GraphNode;
-      if (cyRef.current) {
-        const rect = cyRef.current.getBoundingClientRect();
-        setTooltip({ node: nodeData, x: pos.x + rect.left + 20, y: pos.y + rect.top - 20 });
+      if (archCyRef.current) {
+        const rect = archCyRef.current.getBoundingClientRect();
+        setArchTooltip({ node: nodeData, x: pos.x + rect.left + 20, y: pos.y + rect.top - 20 });
       }
     });
 
     cy.on("mouseout", "node", () => {
       cy.elements().removeClass("faded hover highlighted neighbor");
-      setTooltip(null);
+      setArchTooltip(null);
     });
 
     cy.on("tap", "node", (evt) => {
-      cy.animate(
-        { center: { eles: evt.target }, zoom: 1.5 },
-        { duration: 400 }
-      );
+      cy.animate({ center: { eles: evt.target }, zoom: 1.5 }, { duration: 400 });
     });
 
-    cyInstanceRef.current = cy;
+    archCyInstanceRef.current = cy;
   }, []);
 
-  // Initial load
+  // ── Workflow data loading ──────────────────────────────────────────────────
+
+  const loadWorkflowData = useCallback(async () => {
+    try {
+      setWfLoading(true);
+      const resp = await fetch(`${API_BASE}/architektura/workflow`, { headers: getAuthHeaders() });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const json = await resp.json();
+      setWfData(json);
+      return json;
+    } catch {
+      return null;
+    } finally {
+      setWfLoading(false);
+    }
+  }, []);
+
+  // ── Workflow graph init ────────────────────────────────────────────────────
+
+  const initWorkflowGraph = useCallback(async (wfGraphData: WorkflowData) => {
+    if (!wfCyRef.current) return;
+
+    const cytoscape = await loadCytoscape();
+
+    if (wfCyInstanceRef.current) {
+      (wfCyInstanceRef.current as { destroy: () => void }).destroy();
+    }
+
+    const elements: cytoscape.ElementDefinition[] = [];
+
+    // Phase ordering for vertical position
+    const phaseOrder: Record<string, number> = {
+      vstup: 0,
+      obchod: 1,
+      "výroba": 2,
+      logistika: 3,
+      finance: 4,
+      archiv: 5,
+    };
+
+    for (const node of wfGraphData.nodes) {
+      const catColors = WORKFLOW_CATEGORY_COLORS[node.category] || WORKFLOW_CATEGORY_COLORS.order_status;
+      const isOrderStatus = node.category === "order_status";
+      const size = isOrderStatus ? 55 : 40;
+
+      elements.push({
+        group: "nodes",
+        data: {
+          id: node.id,
+          label: node.label,
+          description: node.description,
+          category: node.category,
+          phase: node.phase,
+          phaseOrder: phaseOrder[node.phase] ?? 3,
+          bgColor: node.color,
+          borderColor: catColors.border,
+          size,
+        },
+      });
+    }
+
+    const nodeIds = new Set(elements.filter((e) => e.group === "nodes").map((e) => e.data.id));
+    for (const edge of wfGraphData.edges) {
+      if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) continue;
+      elements.push({
+        group: "edges",
+        data: {
+          source: edge.source,
+          target: edge.target,
+          label: edge.label,
+          edgeType: edge.edge_type,
+          lineColor: WORKFLOW_EDGE_COLORS[edge.edge_type] || "#64748b",
+        },
+      });
+    }
+
+    const cy = cytoscape({
+      container: wfCyRef.current,
+      elements,
+      style: [
+        {
+          selector: "node",
+          style: {
+            width: "data(size)",
+            height: "data(size)",
+            "background-color": "data(bgColor)",
+            "background-opacity": 0.9,
+            "border-width": 3,
+            "border-color": "data(borderColor)",
+            label: "data(label)",
+            "text-valign": "bottom",
+            "text-halign": "center",
+            "font-size": 12,
+            "font-weight": "bold",
+            color: "#e2e8f0",
+            "text-margin-y": 10,
+            "text-outline-color": "#0a0e17",
+            "text-outline-width": 2.5,
+            shape: "round-rectangle",
+            opacity: 1,
+            "transition-property": "opacity, border-width, border-color",
+            "transition-duration": "0.25s",
+          },
+        },
+        {
+          selector: "node[category = 'order_status']",
+          style: {
+            shape: "round-rectangle",
+            "border-width": 3.5,
+            "font-size": 13,
+          },
+        },
+        {
+          selector: "node[category = 'pipeline']",
+          style: {
+            shape: "ellipse",
+            "background-opacity": 0.7,
+            "border-style": "dashed" as const,
+          },
+        },
+        {
+          selector: "node[category = 'support']",
+          style: {
+            shape: "diamond",
+            "background-opacity": 0.75,
+            "font-size": 10,
+          },
+        },
+        {
+          selector: "node.hover",
+          style: {
+            "border-width": 5,
+            "border-color": "#60a5fa",
+            "background-opacity": 1,
+            "font-size": 14,
+            color: "#f8fafc",
+            "z-index": 100,
+          },
+        },
+        { selector: "node.neighbor", style: { "border-width": 4, "border-color": "#60a5fa", "background-opacity": 0.95 } },
+        { selector: "node.faded", style: { opacity: 0.15 } },
+        {
+          selector: "edge",
+          style: {
+            width: 2.5,
+            "line-color": "data(lineColor)",
+            "target-arrow-color": "data(lineColor)",
+            "target-arrow-shape": "triangle",
+            "arrow-scale": 1,
+            "curve-style": "bezier",
+            opacity: 0.6,
+            label: "data(label)",
+            "font-size": 9,
+            color: "#94a3b8",
+            "text-rotation": "autorotate",
+            "text-outline-color": "#0a0e17",
+            "text-outline-width": 2,
+            "text-margin-y": -10,
+          },
+        },
+        {
+          selector: "edge[edgeType = 'back']",
+          style: {
+            "line-style": "dashed" as const,
+            width: 2,
+            opacity: 0.5,
+            "target-arrow-shape": "triangle-backcurve",
+          },
+        },
+        {
+          selector: "edge[edgeType = 'support']",
+          style: {
+            "line-style": "dotted" as const,
+            width: 1.5,
+            opacity: 0.4,
+          },
+        },
+        {
+          selector: "edge[edgeType = 'pipeline']",
+          style: {
+            width: 2,
+            opacity: 0.5,
+          },
+        },
+        { selector: "edge.highlighted", style: { opacity: 1, width: 4, "z-index": 50, "font-size": 11 } },
+        { selector: "edge.faded", style: { opacity: 0.05 } },
+      ] as cytoscape.StylesheetStyle[],
+      layout: {
+        name: "breadthfirst",
+        directed: true,
+        padding: 60,
+        spacingFactor: 1.6,
+        animate: true,
+        animationDuration: 600,
+        roots: "#pipe_email_in",
+      } as cytoscape.LayoutOptions & Record<string, unknown>,
+      minZoom: 0.15,
+      maxZoom: 3,
+      wheelSensitivity: 0.3,
+    });
+
+    cy.on("mouseover", "node", (evt) => {
+      const node = evt.target;
+      const connEdges = node.connectedEdges();
+      const neighbors = connEdges.connectedNodes().difference(node);
+      cy.elements().addClass("faded");
+      node.removeClass("faded").addClass("hover");
+      neighbors.removeClass("faded").addClass("neighbor");
+      connEdges.removeClass("faded").addClass("highlighted");
+
+      const pos = node.renderedPosition();
+      const nodeData = node.data() as WorkflowNode;
+      if (wfCyRef.current) {
+        const rect = wfCyRef.current.getBoundingClientRect();
+        setWfTooltip({ node: nodeData, x: pos.x + rect.left + 20, y: pos.y + rect.top - 20 });
+      }
+    });
+
+    cy.on("mouseout", "node", () => {
+      cy.elements().removeClass("faded hover highlighted neighbor");
+      setWfTooltip(null);
+    });
+
+    cy.on("tap", "node", (evt) => {
+      cy.animate({ center: { eles: evt.target }, zoom: 1.8 }, { duration: 400 });
+    });
+
+    wfCyInstanceRef.current = cy;
+  }, []);
+
+  // ── Effects ────────────────────────────────────────────────────────────────
+
+  // Initial load — always refresh architecture from codebase
   useEffect(() => {
     (async () => {
-      const d = await loadData();
+      const d = await loadArchData(true);
       if (d) setLoading(false);
     })();
-  }, [loadData]);
+  }, [loadArchData]);
 
-  // Rebuild graph when data/layout/categories change
+  // Rebuild architecture graph when data/layout/categories change
   useEffect(() => {
-    if (!data || loading) return;
-    initGraph(data, currentLayout, activeCategories);
-  }, [data, currentLayout, activeCategories, loading, initGraph]);
+    if (!archData || loading || activeTab !== "architecture") return;
+    initArchGraph(archData, currentLayout, activeCategories);
+  }, [archData, currentLayout, activeCategories, loading, activeTab, initArchGraph]);
 
-  // Search
+  // Load workflow data when switching to workflow tab
   useEffect(() => {
-    const cy = cyInstanceRef.current as cytoscape.Core | null;
+    if (activeTab !== "workflow") return;
+    if (!wfData) {
+      loadWorkflowData();
+    }
+  }, [activeTab, wfData, loadWorkflowData]);
+
+  // Rebuild workflow graph when data is available
+  useEffect(() => {
+    if (!wfData || activeTab !== "workflow") return;
+    // Slight delay to let the container render
+    const t = setTimeout(() => initWorkflowGraph(wfData), 50);
+    return () => clearTimeout(t);
+  }, [wfData, activeTab, initWorkflowGraph]);
+
+  // Architecture search
+  useEffect(() => {
+    if (activeTab !== "architecture") return;
+    const cy = archCyInstanceRef.current as cytoscape.Core | null;
     if (!cy) return;
 
     cy.elements().removeClass("search-match faded");
-    if (!search.trim()) return;
+    if (!archSearch.trim()) return;
 
-    const q = search.toLowerCase();
+    const q = archSearch.toLowerCase();
     cy.elements().addClass("faded");
     const matched = cy.nodes().filter((node: cytoscape.NodeSingular) => {
       const d = node.data();
@@ -360,25 +665,27 @@ export default function DiagramPage() {
     });
     matched.removeClass("faded").addClass("search-match");
     matched.connectedEdges().removeClass("faded").connectedNodes().removeClass("faded");
-  }, [search]);
+  }, [archSearch, activeTab]);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadData(true);
-    setRefreshing(false);
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
+  const handleArchRefresh = async () => {
+    setArchRefreshing(true);
+    await loadArchData(true);
+    setArchRefreshing(false);
   };
 
   const handleFit = () => {
-    const cy = cyInstanceRef.current as cytoscape.Core | null;
+    const cy = (activeTab === "architecture" ? archCyInstanceRef.current : wfCyInstanceRef.current) as cytoscape.Core | null;
     if (cy) cy.animate({ fit: { eles: cy.elements(), padding: 50 } }, { duration: 400 });
   };
 
   const handleExport = () => {
-    const cy = cyInstanceRef.current as cytoscape.Core | null;
+    const cy = (activeTab === "architecture" ? archCyInstanceRef.current : wfCyInstanceRef.current) as cytoscape.Core | null;
     if (!cy) return;
     const png = cy.png({ scale: 2, bg: "#0a0e17", full: true });
     const link = document.createElement("a");
-    link.download = "infer-forge-architecture.png";
+    link.download = activeTab === "architecture" ? "infer-forge-architecture.png" : "infer-forge-workflow.png";
     link.href = png;
     link.click();
   };
@@ -392,6 +699,8 @@ export default function DiagramPage() {
     });
   };
 
+  // ── Loading state ──────────────────────────────────────────────────────────
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -401,21 +710,57 @@ export default function DiagramPage() {
     );
   }
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
       {/* Header */}
       <div className="flex items-center gap-4 px-4 py-2 border-b bg-background/95 backdrop-blur shrink-0">
-        <h1 className="text-lg font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-          Architektura
-        </h1>
-        {data && (
+        {/* Tabs */}
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
+          <button
+            onClick={() => setActiveTab("architecture")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "architecture"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Network className="h-4 w-4" />
+            Architektura
+          </button>
+          <button
+            onClick={() => setActiveTab("workflow")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "workflow"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <GitBranch className="h-4 w-4" />
+            Proces zakázky
+          </button>
+        </div>
+
+        {/* Architecture stats */}
+        {activeTab === "architecture" && archData && (
           <div className="hidden md:flex items-center gap-4 text-xs text-muted-foreground">
-            <span>Uzly: <span className="text-blue-500 font-semibold">{data.stats.total_nodes}</span></span>
-            <span>Hrany: <span className="text-blue-500 font-semibold">{data.stats.total_edges}</span></span>
-            <span>LOC: <span className="text-blue-500 font-semibold">{data.stats.total_lines.toLocaleString("cs")}</span></span>
-            <span>Funkce: <span className="text-blue-500 font-semibold">{data.stats.total_functions}</span></span>
+            <span>Uzly: <span className="text-blue-500 font-semibold">{archData.stats.total_nodes}</span></span>
+            <span>Hrany: <span className="text-blue-500 font-semibold">{archData.stats.total_edges}</span></span>
+            <span>LOC: <span className="text-blue-500 font-semibold">{archData.stats.total_lines.toLocaleString("cs")}</span></span>
+            <span>Funkce: <span className="text-blue-500 font-semibold">{archData.stats.total_functions}</span></span>
           </div>
         )}
+
+        {/* Workflow stats */}
+        {activeTab === "workflow" && wfData && (
+          <div className="hidden md:flex items-center gap-4 text-xs text-muted-foreground">
+            <span>Stavy: <span className="text-blue-500 font-semibold">{wfData.nodes.filter(n => n.category === "order_status").length}</span></span>
+            <span>Pipeline: <span className="text-blue-500 font-semibold">{wfData.nodes.filter(n => n.category === "pipeline").length}</span></span>
+            <span>Podprocesy: <span className="text-blue-500 font-semibold">{wfData.nodes.filter(n => n.category === "support").length}</span></span>
+          </div>
+        )}
+
         <div className="ml-auto flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleFit}>
             <Maximize className="h-4 w-4 mr-1" /> Vejít
@@ -423,112 +768,204 @@ export default function DiagramPage() {
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-4 w-4 mr-1" /> PNG
           </Button>
-          <Button size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? "animate-spin" : ""}`} />
-            Obnovit
-          </Button>
+          {activeTab === "architecture" && (
+            <Button size="sm" onClick={handleArchRefresh} disabled={archRefreshing}>
+              <RefreshCw className={`h-4 w-4 mr-1 ${archRefreshing ? "animate-spin" : ""}`} />
+              Obnovit
+            </Button>
+          )}
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-60 border-r p-3 overflow-y-auto shrink-0 hidden lg:block">
-          <div className="relative mb-3">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Hledat uzel..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pl-8 h-9 text-sm"
-            />
-          </div>
+        {/* Architecture Sidebar */}
+        {activeTab === "architecture" && (
+          <div className="w-60 border-r p-3 overflow-y-auto shrink-0 hidden lg:block">
+            <div className="relative mb-3">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Hledat uzel..."
+                value={archSearch}
+                onChange={e => setArchSearch(e.target.value)}
+                className="pl-8 h-9 text-sm"
+              />
+            </div>
 
-          <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Kategorie</p>
-            {data && Object.entries(CATEGORY_COLORS).map(([cat, colors]) => {
-              const count = data.stats.categories[cat]?.count || 0;
-              if (!count) return null;
-              const label = data.category_labels[cat] || cat;
-              return (
-                <label key={cat} className="flex items-center gap-2 py-1 px-1 rounded hover:bg-accent/50 cursor-pointer text-sm">
-                  <input
-                    type="checkbox"
-                    checked={activeCategories.has(cat)}
-                    onChange={() => toggleCategory(cat)}
-                    className="rounded"
-                  />
-                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: colors.bg }} />
-                  {label}
-                  <span className="ml-auto text-xs text-muted-foreground bg-muted px-1.5 rounded">{count}</span>
-                </label>
-              );
-            })}
-          </div>
+            <div className="mb-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Kategorie</p>
+              {archData && Object.entries(CATEGORY_COLORS).map(([cat, colors]) => {
+                const count = archData.stats.categories[cat]?.count || 0;
+                if (!count) return null;
+                const label = archData.category_labels[cat] || cat;
+                return (
+                  <label key={cat} className="flex items-center gap-2 py-1 px-1 rounded hover:bg-accent/50 cursor-pointer text-sm">
+                    <input
+                      type="checkbox"
+                      checked={activeCategories.has(cat)}
+                      onChange={() => toggleCategory(cat)}
+                      className="rounded"
+                    />
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: colors.bg }} />
+                    {label}
+                    <span className="ml-auto text-xs text-muted-foreground bg-muted px-1.5 rounded">{count}</span>
+                  </label>
+                );
+              })}
+            </div>
 
-          <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Rozložení</p>
-            {LAYOUTS.map(l => (
-              <button
-                key={l.id}
-                onClick={() => setCurrentLayout(l.id)}
-                className={`block w-full text-left text-sm px-2 py-1 rounded mb-0.5 ${currentLayout === l.id ? "bg-blue-600 text-white" : "hover:bg-accent/50 text-muted-foreground"}`}
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
+            <div className="mb-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Rozložení</p>
+              {LAYOUTS.map(l => (
+                <button
+                  key={l.id}
+                  onClick={() => setCurrentLayout(l.id)}
+                  className={`block w-full text-left text-sm px-2 py-1 rounded mb-0.5 ${currentLayout === l.id ? "bg-blue-600 text-white" : "hover:bg-accent/50 text-muted-foreground"}`}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
 
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Hrany</p>
-            <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-slate-500" />závisí na</span>
-              <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-blue-500" />API volání</span>
-              <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-purple-500" />data flow</span>
-              <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-red-500" />spouští</span>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Hrany</p>
+              <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-slate-500" />závisí na</span>
+                <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-blue-500" />API volání</span>
+                <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-purple-500" />data flow</span>
+                <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-red-500" />spouští</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Graph */}
-        <div ref={cyRef} className="flex-1 bg-[#0a0e17]" />
+        {/* Workflow Sidebar */}
+        {activeTab === "workflow" && (
+          <div className="w-60 border-r p-3 overflow-y-auto shrink-0 hidden lg:block">
+            <div className="mb-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Kategorie uzlů</p>
+              {wfData && Object.entries(wfData.category_labels).map(([cat, label]) => {
+                const count = wfData.nodes.filter(n => n.category === cat).length;
+                const catColor = WORKFLOW_CATEGORY_COLORS[cat]?.bg || "#6b7280";
+                return (
+                  <div key={cat} className="flex items-center gap-2 py-1.5 px-1 text-sm">
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: catColor }} />
+                    <span className="text-foreground">{label}</span>
+                    <span className="ml-auto text-xs text-muted-foreground bg-muted px-1.5 rounded">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mb-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Fáze procesu</p>
+              {wfData && Object.entries(wfData.phase_labels).map(([phase, label]) => {
+                const count = wfData.nodes.filter(n => n.phase === phase).length;
+                return (
+                  <div key={phase} className="flex items-center gap-2 py-1 px-1 text-sm text-muted-foreground">
+                    <span className="text-foreground">{label}</span>
+                    <span className="ml-auto text-xs bg-muted px-1.5 rounded">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Hrany</p>
+              <div className="space-y-1 text-xs text-muted-foreground">
+                <span className="flex items-center gap-2"><span className="w-5 h-0.5 bg-blue-500 rounded" />Hlavní tok</span>
+                <span className="flex items-center gap-2"><span className="w-5 h-0.5 bg-amber-500 rounded border-dashed" />Zpětný tok</span>
+                <span className="flex items-center gap-2"><span className="w-5 h-0.5 bg-slate-500 rounded" />Email pipeline</span>
+                <span className="flex items-center gap-2"><span className="w-5 h-0.5 bg-emerald-500 rounded" style={{ borderTop: "1px dotted" }} />Podpůrný proces</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Architecture Graph */}
+        <div
+          ref={archCyRef}
+          className="flex-1 bg-[#0a0e17]"
+          style={{ display: activeTab === "architecture" ? "block" : "none" }}
+        />
+
+        {/* Workflow Graph */}
+        <div
+          ref={wfCyRef}
+          className="flex-1 bg-[#0a0e17]"
+          style={{ display: activeTab === "workflow" ? "block" : "none" }}
+        />
+
+        {/* Workflow loading overlay */}
+        {activeTab === "workflow" && wfLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/80 z-10">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            <span className="ml-3 text-muted-foreground">Načítám workflow...</span>
+          </div>
+        )}
       </div>
 
-      {/* Tooltip */}
-      {tooltip && (
+      {/* Architecture Tooltip */}
+      {activeTab === "architecture" && archTooltip && (
         <div
           className="fixed z-50 bg-card border rounded-xl shadow-2xl min-w-[300px] max-w-[420px] pointer-events-none"
-          style={{ left: tooltip.x, top: tooltip.y }}
+          style={{ left: archTooltip.x, top: archTooltip.y }}
         >
           <div className="flex items-center gap-2 px-4 py-3 border-b">
-            <Badge style={{ backgroundColor: CATEGORY_COLORS[tooltip.node.category]?.bg, color: CATEGORY_COLORS[tooltip.node.category]?.text }}>
-              {data?.category_labels[tooltip.node.category] || tooltip.node.category}
+            <Badge style={{ backgroundColor: CATEGORY_COLORS[archTooltip.node.category]?.bg, color: CATEGORY_COLORS[archTooltip.node.category]?.text }}>
+              {archData?.category_labels[archTooltip.node.category] || archTooltip.node.category}
             </Badge>
-            <span className="font-semibold text-sm">{tooltip.node.label}</span>
+            <span className="font-semibold text-sm">{archTooltip.node.label}</span>
           </div>
           <div className="px-4 py-3 text-sm">
-            <p className="text-muted-foreground mb-2">{tooltip.node.description || "Bez popisu"}</p>
-            {(tooltip.node.line_count > 0 || tooltip.node.function_count > 0) && (
+            <p className="text-muted-foreground mb-2">{archTooltip.node.description || "Bez popisu"}</p>
+            {(archTooltip.node.line_count > 0 || archTooltip.node.function_count > 0) && (
               <p className="text-xs text-muted-foreground border-t pt-2">
-                {tooltip.node.line_count > 0 && <><span className="text-foreground font-medium">{tooltip.node.line_count}</span> LOC &nbsp;|&nbsp; </>}
-                {tooltip.node.function_count > 0 && <><span className="text-foreground font-medium">{tooltip.node.function_count}</span> funkcí</>}
+                {archTooltip.node.line_count > 0 && <><span className="text-foreground font-medium">{archTooltip.node.line_count}</span> LOC &nbsp;|&nbsp; </>}
+                {archTooltip.node.function_count > 0 && <><span className="text-foreground font-medium">{archTooltip.node.function_count}</span> funkcí</>}
               </p>
             )}
-            {tooltip.node.endpoints.length > 0 && (
+            {archTooltip.node.endpoints.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
-                {tooltip.node.endpoints.slice(0, 6).map((ep, i) => (
+                {archTooltip.node.endpoints.slice(0, 6).map((ep, i) => (
                   <span key={i} className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{ep}</span>
                 ))}
-                {tooltip.node.endpoints.length > 6 && (
-                  <span className="text-xs bg-muted px-1.5 py-0.5 rounded">+{tooltip.node.endpoints.length - 6}</span>
+                {archTooltip.node.endpoints.length > 6 && (
+                  <span className="text-xs bg-muted px-1.5 py-0.5 rounded">+{archTooltip.node.endpoints.length - 6}</span>
                 )}
               </div>
             )}
           </div>
-          {tooltip.node.file_path && (
+          {archTooltip.node.file_path && (
             <div className="px-4 py-2 border-t text-xs text-muted-foreground font-mono">
-              {tooltip.node.file_path}
+              {archTooltip.node.file_path}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Workflow Tooltip */}
+      {activeTab === "workflow" && wfTooltip && (
+        <div
+          className="fixed z-50 bg-card border rounded-xl shadow-2xl min-w-[280px] max-w-[380px] pointer-events-none"
+          style={{ left: wfTooltip.x, top: wfTooltip.y }}
+        >
+          <div className="flex items-center gap-2 px-4 py-3 border-b">
+            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: wfTooltip.node.color }} />
+            <span className="font-semibold text-sm">{wfTooltip.node.label}</span>
+            {wfData && (
+              <Badge variant="outline" className="ml-auto text-xs">
+                {wfData.category_labels[wfTooltip.node.category] || wfTooltip.node.category}
+              </Badge>
+            )}
+          </div>
+          <div className="px-4 py-3 text-sm">
+            <p className="text-muted-foreground">{wfTooltip.node.description}</p>
+            {wfTooltip.node.phase && wfData && (
+              <p className="text-xs text-muted-foreground border-t pt-2 mt-2">
+                Fáze: <span className="text-foreground font-medium">{wfData.phase_labels[wfTooltip.node.phase] || wfTooltip.node.phase}</span>
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>
