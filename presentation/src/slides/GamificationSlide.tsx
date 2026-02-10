@@ -49,11 +49,11 @@ export const GamificationSlide: React.FC = () => {
             marginLeft: 20, padding: "4px 60px", borderRadius: 6,
             background: "rgba(255,255,255,0.06)", color: "#64748b", fontSize: 12,
           }}>
-            91.99.126.53:3000/zebricek
+            infer-forge.hradev.cz/trziste-ukolu
           </div>
         </div>
         <Img
-          src={staticFile("pages/12-zebricek.png")}
+          src={staticFile("pages/15-trziste-ukolu.png")}
           style={{ width: "100%", height: "calc(100% - 36px)", objectFit: "cover", objectPosition: "top left" }}
         />
       </div>
@@ -73,7 +73,7 @@ export const GamificationSlide: React.FC = () => {
             Motivace
           </div>
           <div style={{ fontSize: 36, fontWeight: 800, color: "#ffffff", lineHeight: 1.2 }}>
-            <span style={{ color: "#f59e0b" }}>Gamifikace</span>
+            <span style={{ color: "#f59e0b" }}>Tržiště úkolů</span>
           </div>
         </div>
 
@@ -126,7 +126,7 @@ export const GamificationSlide: React.FC = () => {
           background: "rgba(255,255,255,0.02)",
           border: "1px solid rgba(255,255,255,0.06)",
         }}>
-          Motivace týmu — body za každou akci v systému
+          Interní marketplace — úkoly s bodovými odměnami
         </div>
       </div>
     </AbsoluteFill>

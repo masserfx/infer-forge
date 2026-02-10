@@ -47,7 +47,7 @@ export const RagSlide: React.FC = () => {
             marginLeft: 20, padding: "4px 60px", borderRadius: 6,
             background: "rgba(255,255,255,0.06)", color: "#64748b", fontSize: 12,
           }}>
-            91.99.126.53:3000/zakazky
+            infer-forge.hradev.cz/zakazky
           </div>
         </div>
         <Img

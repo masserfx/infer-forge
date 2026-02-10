@@ -99,7 +99,7 @@ export const EndSlide: React.FC = () => {
             fontSize: 20,
             fontWeight: 600,
           }}>
-            Demo: 91.99.126.53:3000
+            Demo: infer-forge.hradev.cz
           </div>
           <div style={{
             padding: "14px 32px",

@@ -129,7 +129,7 @@ export default function PrezentacePage() {
     { time: 103, label: "Materiály" },
     { time: 109.5, label: "Dokumenty + OCR" },
     // ACT 4: Tým a výsledky
-    { time: 116, label: "Gamifikace" },
+    { time: 116, label: "Tržiště úkolů" },
     { time: 120.5, label: "Monitoring" },
     { time: 126, label: "Bezpečnost" },
     { time: 130.5, label: "Statistiky" },
