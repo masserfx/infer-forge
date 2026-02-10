@@ -53,7 +53,7 @@ class ConnectionManager:
                 try:
                     await ws.close()
                 except Exception:
-                    pass
+                    await logger.awarning("websocket_close_failed", user_id=_user_id)
         self.active_connections.clear()
 
         if self._redis:

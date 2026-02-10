@@ -22,13 +22,17 @@ import type { Order, OrderStatus } from "@/types";
 import { KanbanColumn } from "./kanban-column";
 import { KanbanCard } from "./kanban-card";
 
-const ORDER_STATUSES: OrderStatus[] = [
+const ACTIVE_STATUSES: OrderStatus[] = [
   "poptavka",
   "nabidka",
   "objednavka",
   "vyroba",
   "expedice",
   "fakturace",
+];
+
+const ORDER_STATUSES: OrderStatus[] = [
+  ...ACTIVE_STATUSES,
   "dokonceno",
 ];
 
@@ -75,8 +79,11 @@ export function KanbanBoard({ myOnly = false }: KanbanBoardProps) {
   );
 
   const { data: orders = [], isLoading } = useQuery({
-    queryKey: ["orders"],
-    queryFn: () => getOrders({ limit: 1000 }),
+    queryKey: ["orders", "kanban"],
+    queryFn: async () => {
+      const all = await getOrders({ limit: 200 });
+      return all.filter((o) => o.status !== "dokonceno");
+    },
   });
 
   // Extract unique customers for legend
@@ -115,10 +122,10 @@ export function KanbanBoard({ myOnly = false }: KanbanBoardProps) {
     mutationFn: ({ id, status }: { id: string; status: OrderStatus }) =>
       updateOrderStatus(id, status),
     onMutate: async ({ id, status }) => {
-      await queryClient.cancelQueries({ queryKey: ["orders"] });
-      const previousOrders = queryClient.getQueryData<Order[]>(["orders"]);
+      await queryClient.cancelQueries({ queryKey: ["orders", "kanban"] });
+      const previousOrders = queryClient.getQueryData<Order[]>(["orders", "kanban"]);
 
-      queryClient.setQueryData<Order[]>(["orders"], (old) =>
+      queryClient.setQueryData<Order[]>(["orders", "kanban"], (old) =>
         old?.map((order) =>
           order.id === id ? { ...order, status } : order
         ) || []
@@ -128,7 +135,7 @@ export function KanbanBoard({ myOnly = false }: KanbanBoardProps) {
     },
     onError: (_err, _variables, context) => {
       if (context?.previousOrders) {
-        queryClient.setQueryData(["orders"], context.previousOrders);
+        queryClient.setQueryData(["orders", "kanban"], context.previousOrders);
       }
     },
     onSettled: () => {
@@ -171,7 +178,7 @@ export function KanbanBoard({ myOnly = false }: KanbanBoardProps) {
     updateStatusMutation.mutate({ id: orderId, status: newStatus });
   };
 
-  const groupedOrders = ORDER_STATUSES.reduce(
+  const groupedOrders = ACTIVE_STATUSES.reduce(
     (acc, status) => {
       acc[status] = filteredOrders.filter((order) => order.status === status);
       return acc;
@@ -238,7 +245,7 @@ export function KanbanBoard({ myOnly = false }: KanbanBoardProps) {
       >
         {/* Mobile: vertical stacking */}
         <div className="md:hidden space-y-4">
-          {ORDER_STATUSES.map((status) => (
+          {ACTIVE_STATUSES.map((status) => (
             <KanbanColumn
               key={status}
               status={status}
@@ -250,7 +257,7 @@ export function KanbanBoard({ myOnly = false }: KanbanBoardProps) {
 
         {/* Tablet & Desktop: horizontal scroll with snap */}
         <div className="hidden md:flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
-          {ORDER_STATUSES.map((status) => (
+          {ACTIVE_STATUSES.map((status) => (
             <div key={status} className="snap-start">
               <KanbanColumn
                 status={status}

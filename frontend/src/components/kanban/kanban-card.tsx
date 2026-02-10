@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useRouter } from "next/navigation";
@@ -18,7 +19,7 @@ interface KanbanCardProps {
   order: Order;
 }
 
-export function KanbanCard({ order }: KanbanCardProps) {
+export const KanbanCard = memo(function KanbanCard({ order }: KanbanCardProps) {
   const router = useRouter();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -160,4 +161,4 @@ export function KanbanCard({ order }: KanbanCardProps) {
       </Card>
     </div>
   );
-}
+});

@@ -1,6 +1,8 @@
 """Authentication API endpoints."""
 
 import logging
+import time
+import threading
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -23,8 +25,43 @@ _logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Autentizace"])
 
 _MAX_LOGIN_ATTEMPTS = 5
+_FALLBACK_MAX_ATTEMPTS = 3
 _LOGIN_WINDOW_SECONDS = 60
 _LOGIN_KEY_PREFIX = "login_attempts"
+
+
+class _InMemoryRateLimiter:
+    """In-memory fallback rate limiter used when Redis is unavailable.
+
+    Uses a conservative limit (_FALLBACK_MAX_ATTEMPTS) since there is no
+    shared state across processes.
+    """
+
+    def __init__(self) -> None:
+        self._attempts: dict[str, list[float]] = {}
+        self._lock = threading.Lock()
+
+    def check(self, key: str) -> int:
+        """Return current attempt count for key within the TTL window."""
+        now = time.monotonic()
+        with self._lock:
+            timestamps = self._attempts.get(key, [])
+            # Prune expired entries
+            timestamps = [t for t in timestamps if now - t < _LOGIN_WINDOW_SECONDS]
+            self._attempts[key] = timestamps
+            return len(timestamps)
+
+    def record(self, key: str) -> None:
+        """Record a new attempt for key."""
+        now = time.monotonic()
+        with self._lock:
+            timestamps = self._attempts.get(key, [])
+            timestamps = [t for t in timestamps if now - t < _LOGIN_WINDOW_SECONDS]
+            timestamps.append(now)
+            self._attempts[key] = timestamps
+
+
+_fallback_limiter = _InMemoryRateLimiter()
 
 
 def _get_redis():
@@ -36,7 +73,10 @@ def _get_redis():
 
 
 def _check_login_rate(client_ip: str) -> None:
-    """Check login rate limit for a given IP using Redis. Raises 429 if exceeded."""
+    """Check login rate limit for a given IP using Redis. Raises 429 if exceeded.
+
+    Falls back to in-memory limiter with conservative limit when Redis is unavailable.
+    """
     try:
         redis = _get_redis()
         key = f"{_LOGIN_KEY_PREFIX}:{client_ip}"
@@ -50,11 +90,20 @@ def _check_login_rate(client_ip: str) -> None:
     except HTTPException:
         raise
     except Exception:
-        _logger.warning("redis_unavailable_for_rate_limit ip=%s", client_ip)
+        _logger.warning("redis_unavailable_for_rate_limit ip=%s fallback=in_memory", client_ip)
+        current = _fallback_limiter.check(client_ip)
+        if current >= _FALLBACK_MAX_ATTEMPTS:
+            _logger.warning(
+                "login_rate_limit_exceeded_fallback ip=%s attempts=%d", client_ip, current
+            )
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Příliš mnoho pokusů o přihlášení. Zkuste to za minutu.",
+            )
 
 
 def _record_failed_login(client_ip: str) -> None:
-    """Record a failed login attempt in Redis."""
+    """Record a failed login attempt in Redis. Falls back to in-memory limiter."""
     try:
         redis = _get_redis()
         key = f"{_LOGIN_KEY_PREFIX}:{client_ip}"
@@ -63,7 +112,8 @@ def _record_failed_login(client_ip: str) -> None:
         pipe.expire(key, _LOGIN_WINDOW_SECONDS)
         pipe.execute()
     except Exception:
-        _logger.warning("redis_unavailable_for_rate_limit ip=%s", client_ip)
+        _logger.warning("redis_unavailable_for_rate_limit ip=%s fallback=in_memory", client_ip)
+        _fallback_limiter.record(client_ip)
 
 
 @router.post("/login", response_model=TokenResponse)

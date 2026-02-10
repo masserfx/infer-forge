@@ -55,7 +55,7 @@ class ExcelExporter:
                     cell_value = str(cell.value) if cell.value is not None else ""
                     max_length = max(max_length, len(cell_value))
                 except Exception:
-                    pass
+                    logger.warning("column_width_calc_failed", column=column_letter)
 
             # Set column width with min/max bounds
             adjusted_width = min(max(max_length + 2, 10), 50)

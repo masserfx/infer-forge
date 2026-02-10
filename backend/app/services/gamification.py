@@ -17,6 +17,14 @@ from app.schemas.gamification import (
 
 logger = logging.getLogger(__name__)
 
+# Points awarded for order status transitions
+POINTS_INQUIRY_TO_OFFER = 5
+POINTS_OFFER_TO_ORDER = 10
+POINTS_ORDER_TO_PRODUCTION = 5
+POINTS_PRODUCTION_TO_SHIPPING = 10
+POINTS_SHIPPING_TO_INVOICING = 5
+POINTS_INVOICING_TO_COMPLETED = 20
+
 
 class GamificationService:
     """Service for managing user points and gamification."""
@@ -269,12 +277,12 @@ class GamificationService:
         """
         # Points mapping for transitions
         transitions = {
-            (OrderStatus.POPTAVKA, OrderStatus.NABIDKA): 5,
-            (OrderStatus.NABIDKA, OrderStatus.OBJEDNAVKA): 10,
-            (OrderStatus.OBJEDNAVKA, OrderStatus.VYROBA): 5,
-            (OrderStatus.VYROBA, OrderStatus.EXPEDICE): 10,
-            (OrderStatus.EXPEDICE, OrderStatus.FAKTURACE): 5,
-            (OrderStatus.FAKTURACE, OrderStatus.DOKONCENO): 20,
+            (OrderStatus.POPTAVKA, OrderStatus.NABIDKA): POINTS_INQUIRY_TO_OFFER,
+            (OrderStatus.NABIDKA, OrderStatus.OBJEDNAVKA): POINTS_OFFER_TO_ORDER,
+            (OrderStatus.OBJEDNAVKA, OrderStatus.VYROBA): POINTS_ORDER_TO_PRODUCTION,
+            (OrderStatus.VYROBA, OrderStatus.EXPEDICE): POINTS_PRODUCTION_TO_SHIPPING,
+            (OrderStatus.EXPEDICE, OrderStatus.FAKTURACE): POINTS_SHIPPING_TO_INVOICING,
+            (OrderStatus.FAKTURACE, OrderStatus.DOKONCENO): POINTS_INVOICING_TO_COMPLETED,
         }
 
         return transitions.get((old_status, new_status), 0)

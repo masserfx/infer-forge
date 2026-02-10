@@ -96,6 +96,7 @@ class PohodaStockParser:
             try:
                 purchasing_price = Decimal(purch_el.text) if purch_el is not None and purch_el.text else Decimal("0")
             except Exception:
+                logger.warning("Invalid purchasing price for stock item %s", code)
                 purchasing_price = Decimal("0")
 
             selling_price = None
@@ -103,7 +104,7 @@ class PohodaStockParser:
                 try:
                     selling_price = Decimal(sell_el.text)
                 except Exception:
-                    pass
+                    logger.warning("Invalid selling price for stock item %s", code)
 
             note = note_el.text if note_el is not None else None
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -17,7 +18,7 @@ interface KanbanColumnProps {
   borderColor: string;
 }
 
-export function KanbanColumn({ status, orders, borderColor }: KanbanColumnProps) {
+export const KanbanColumn = memo(function KanbanColumn({ status, orders, borderColor }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
   });
@@ -55,4 +56,4 @@ export function KanbanColumn({ status, orders, borderColor }: KanbanColumnProps)
       </ScrollArea>
     </div>
   );
-}
+});

@@ -157,29 +157,26 @@ class RecommendationService:
         ]
 
     async def _get_calculations_without_offer(self) -> list[dict[str, str]]:
-        # Find approved calculations that don't have an associated offer
+        # Find approved calculations that don't have an associated offer (single query)
         result = await self.db.execute(
             select(Calculation)
+            .outerjoin(Offer, Offer.order_id == Calculation.order_id)
             .where(Calculation.status == CalculationStatus.APPROVED)
+            .group_by(Calculation.id)
+            .having(func.count(Offer.id) == 0)
             .order_by(Calculation.updated_at.desc())
-            .limit(10)
+            .limit(5)
         )
-        calcs = list(result.scalars().all())
+        calcs = result.scalars().all()
 
-        # Check which ones have offers
-        recs = []
-        for c in calcs:
-            offer_result = await self.db.execute(
-                select(func.count()).select_from(Offer).where(Offer.order_id == c.order_id)
-            )
-            offer_count = offer_result.scalar() or 0
-            if offer_count == 0:
-                recs.append({
-                    "type": "approved_without_offer",
-                    "severity": "info",
-                    "title": f"Schválená kalkulace bez nabídky: {c.name}",
-                    "description": "Kalkulace schválena, ale nabídka zatím nebyla vytvořena",
-                    "action_url": f"/kalkulace/{c.id}",
-                    "entity_id": str(c.id),
-                })
-        return recs[:5]
+        return [
+            {
+                "type": "approved_without_offer",
+                "severity": "info",
+                "title": f"Schválená kalkulace bez nabídky: {c.name}",
+                "description": "Kalkulace schválena, ale nabídka zatím nebyla vytvořena",
+                "action_url": f"/kalkulace/{c.id}",
+                "entity_id": str(c.id),
+            }
+            for c in calcs
+        ]

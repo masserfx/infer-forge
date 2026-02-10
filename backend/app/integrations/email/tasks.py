@@ -380,7 +380,7 @@ async def _process_email_legacy(
                     classification=classification_result.category or "unknown"
                 ).inc()
             except Exception:
-                pass
+                logger.warning("poll_inbox.metrics_failed", message_id=raw_email.message_id)
 
             # Match email to order
             order_number_for_reply = None
