@@ -1,15 +1,15 @@
 """Add missing indexes for audit trail, segmentation, and email lookup.
 
-Revision ID: j4k5l6m7n8o9
-Revises: i3j4k5l6m7n8
+Revision ID: k5l6m7n8o9p0
+Revises: j4k5l6m7n8o9
 Create Date: 2026-02-10 10:00:00.000000
 
 """
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "j4k5l6m7n8o9"
-down_revision = "i3j4k5l6m7n8"
+revision = "k5l6m7n8o9p0"
+down_revision = "j4k5l6m7n8o9"
 branch_labels = None
 depends_on = None
 
