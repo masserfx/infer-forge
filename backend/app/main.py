@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core import get_db, get_logger, get_settings
+from app.core.config import Settings
 from app.core.database import close_db, init_db
 from app.core.health import check_database, check_redis, get_aggregated_health, get_version
 from app.core.sentry import init_sentry
@@ -31,6 +32,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     # Startup
     logger.info("application_startup", app_name=settings.APP_NAME)
+
+    # Validate SECRET_KEY — refuse to start in production with default key
+    if settings.SECRET_KEY == Settings.DEFAULT_SECRET_KEY:
+        if settings.ENVIRONMENT != "development":
+            raise RuntimeError(
+                "SECRET_KEY is set to the default value. "
+                "Set a strong random SECRET_KEY in .env before running in production. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+            )
+        logger.warning(
+            "insecure_secret_key",
+            msg="Using default SECRET_KEY — acceptable only for local development",
+        )
 
     # Initialize database (in production, use Alembic migrations instead)
     if settings.DEBUG:

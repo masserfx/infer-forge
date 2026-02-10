@@ -7,7 +7,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import bcrypt
-from jose import JWTError, jwt
+import jwt
+from jwt import InvalidTokenError
 
 from app.core.config import get_settings
 
@@ -89,7 +90,7 @@ def verify_token(token: str) -> dict[str, Any] | None:
             algorithms=[settings.ALGORITHM],
         )
         return payload
-    except JWTError:
+    except (InvalidTokenError, Exception):
         return None
 
 

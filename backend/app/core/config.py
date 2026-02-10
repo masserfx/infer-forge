@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     )
 
     # Security
+    DEFAULT_SECRET_KEY: ClassVar[str] = "CHANGE_ME_IN_PRODUCTION_USE_RANDOM_STRING"
     SECRET_KEY: str = Field(
         default="CHANGE_ME_IN_PRODUCTION_USE_RANDOM_STRING",
         description="Secret key for JWT token signing - must be random in production",
