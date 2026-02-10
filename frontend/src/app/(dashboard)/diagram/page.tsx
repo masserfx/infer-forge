@@ -12,6 +12,23 @@ import {
   Loader2,
   Network,
   GitBranch,
+  Mail,
+  Brain,
+  ScanLine,
+  Eye,
+  UserCheck,
+  FileText,
+  Calculator,
+  ClipboardCheck,
+  Cog,
+  Truck,
+  Receipt,
+  CheckCircle,
+  Wrench,
+  Handshake,
+  ArrowDown,
+  ArrowRight,
+  ChevronRight,
 } from "lucide-react";
 import type cytoscape from "cytoscape";
 
@@ -117,19 +134,26 @@ const LAYOUTS = [
   { id: "grid", label: "Mřížka" },
 ];
 
-// ── Workflow constants ───────────────────────────────────────────────────────
+// ── Workflow icon mapping ────────────────────────────────────────────────────
 
-const WORKFLOW_CATEGORY_COLORS: Record<string, { bg: string; border: string }> = {
-  pipeline:     { bg: "#64748b", border: "#475569" },
-  order_status: { bg: "#3b82f6", border: "#2563eb" },
-  support:      { bg: "#10b981", border: "#059669" },
-};
-
-const WORKFLOW_EDGE_COLORS: Record<string, string> = {
-  forward:  "#3b82f6",
-  back:     "#f59e0b",
-  pipeline: "#64748b",
-  support:  "#10b981",
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  mail: Mail,
+  brain: Brain,
+  scan: ScanLine,
+  eye: Eye,
+  "user-check": UserCheck,
+  inbox: FileText,
+  "file-text": FileText,
+  "clipboard-check": ClipboardCheck,
+  calculator: Calculator,
+  cog: Cog,
+  truck: Truck,
+  receipt: Receipt,
+  "check-circle": CheckCircle,
+  "file-output": FileText,
+  "refresh-cw": RefreshCw,
+  wrench: Wrench,
+  handshake: Handshake,
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -153,6 +177,176 @@ async function loadCytoscape() {
   return cy;
 }
 
+// ── Workflow column definitions ──────────────────────────────────────────────
+
+interface WfColumn {
+  id: string;
+  title: string;
+  color: string;
+  bgLight: string;
+  borderColor: string;
+  phases: string[];
+  nodeOrder: string[];
+}
+
+const WF_COLUMNS: WfColumn[] = [
+  {
+    id: "prijem",
+    title: "Příjem zakázky",
+    color: "#64748b",
+    bgLight: "rgba(100,116,139,0.08)",
+    borderColor: "rgba(100,116,139,0.25)",
+    phases: ["vstup"],
+    nodeOrder: ["pipe_email_in", "pipe_classify", "pipe_ocr", "pipe_parse", "pipe_customer"],
+  },
+  {
+    id: "obchod",
+    title: "Obchodní proces",
+    color: "#f59e0b",
+    bgLight: "rgba(245,158,11,0.08)",
+    borderColor: "rgba(245,158,11,0.25)",
+    phases: ["obchod"],
+    nodeOrder: ["status_poptavka", "sup_kalkulace", "status_nabidka", "sup_dokumenty", "status_objednavka"],
+  },
+  {
+    id: "vyroba",
+    title: "Výroba",
+    color: "#ef4444",
+    bgLight: "rgba(239,68,68,0.08)",
+    borderColor: "rgba(239,68,68,0.25)",
+    phases: ["výroba"],
+    nodeOrder: ["status_vyroba", "sup_operace", "sup_kooperace"],
+  },
+  {
+    id: "dokonceni",
+    title: "Dokončení",
+    color: "#10b981",
+    bgLight: "rgba(16,185,129,0.08)",
+    borderColor: "rgba(16,185,129,0.25)",
+    phases: ["logistika", "finance", "archiv"],
+    nodeOrder: ["status_expedice", "status_fakturace", "sup_pohoda", "status_dokonceno"],
+  },
+];
+
+// ── Workflow step card ───────────────────────────────────────────────────────
+
+function WfStepCard({ node, edges, isLast }: { node: WorkflowNode; edges: WorkflowEdge[]; isLast: boolean }) {
+  const Icon = ICON_MAP[node.icon] || FileText;
+  const isStatus = node.category === "order_status";
+  const isSupport = node.category === "support";
+
+  // Find forward edge label leading OUT of this node
+  const outEdge = edges.find(e => e.source === node.id && e.edge_type === "forward");
+  const transitionLabel = outEdge?.label;
+
+  return (
+    <div className="flex flex-col items-center">
+      {/* Card */}
+      <div
+        className={`group relative w-full rounded-xl border-2 p-4 transition-all hover:scale-[1.02] hover:shadow-lg ${
+          isStatus ? "bg-card" : "bg-card/60"
+        } ${isSupport ? "border-dashed" : ""}`}
+        style={{ borderColor: node.color + (isSupport ? "80" : "b0") }}
+      >
+        {/* Category badge */}
+        {isSupport && (
+          <span className="absolute -top-2.5 left-3 bg-background px-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            Podproces
+          </span>
+        )}
+
+        <div className="flex items-start gap-3">
+          {/* Icon circle */}
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+            style={{ backgroundColor: node.color + "20", border: `2px solid ${node.color}` }}
+          >
+            <span style={{ color: node.color }}><Icon className="h-5 w-5" /></span>
+          </div>
+
+          {/* Text */}
+          <div className="flex-1 min-w-0">
+            <h3 className={`font-bold leading-tight ${isStatus ? "text-base" : "text-sm"}`} style={{ color: node.color }}>
+              {node.label}
+            </h3>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              {node.description}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Arrow + transition label */}
+      {!isLast && (
+        <div className="flex flex-col items-center py-2">
+          {transitionLabel && (
+            <span className="mb-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+              {transitionLabel}
+            </span>
+          )}
+          <ArrowDown className="h-5 w-5 text-muted-foreground/50" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Workflow column component ────────────────────────────────────────────────
+
+function WfColumnView({ column, nodes, edges }: { column: WfColumn; nodes: WorkflowNode[]; edges: WorkflowEdge[] }) {
+  // Order nodes by predefined order
+  const orderedNodes = column.nodeOrder
+    .map(id => nodes.find(n => n.id === id))
+    .filter((n): n is WorkflowNode => n != null);
+
+  return (
+    <div
+      className="flex flex-col rounded-2xl border"
+      style={{ backgroundColor: column.bgLight, borderColor: column.borderColor }}
+    >
+      {/* Column header */}
+      <div
+        className="flex items-center gap-2 rounded-t-2xl px-5 py-3"
+        style={{ backgroundColor: column.color + "18", borderBottom: `2px solid ${column.borderColor}` }}
+      >
+        <div className="h-3 w-3 rounded-full" style={{ backgroundColor: column.color }} />
+        <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: column.color }}>
+          {column.title}
+        </h2>
+        <span className="ml-auto rounded-full bg-background/80 px-2 py-0.5 text-xs font-medium text-muted-foreground">
+          {orderedNodes.length}
+        </span>
+      </div>
+
+      {/* Steps */}
+      <div className="flex flex-col gap-0 p-4">
+        {orderedNodes.map((node, i) => (
+          <WfStepCard
+            key={node.id}
+            node={node}
+            edges={edges}
+            isLast={i === orderedNodes.length - 1}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Column transition arrow ──────────────────────────────────────────────────
+
+function ColumnArrow({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-1 px-1 self-center">
+      <ChevronRight className="h-6 w-6 text-muted-foreground/40" />
+      <span className="text-[10px] font-medium text-muted-foreground/60 [writing-mode:vertical-lr] rotate-180">
+        {label}
+      </span>
+      <ArrowRight className="h-5 w-5 text-muted-foreground/40" />
+    </div>
+  );
+}
+
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export default function DiagramPage() {
@@ -170,11 +364,8 @@ export default function DiagramPage() {
   const [archTooltip, setArchTooltip] = useState<{ node: GraphNode; x: number; y: number } | null>(null);
 
   // Workflow state
-  const wfCyRef = useRef<HTMLDivElement>(null);
-  const wfCyInstanceRef = useRef<unknown>(null);
   const [wfData, setWfData] = useState<WorkflowData | null>(null);
   const [wfLoading, setWfLoading] = useState(false);
-  const [wfTooltip, setWfTooltip] = useState<{ node: WorkflowNode; x: number; y: number } | null>(null);
 
   // ── Architecture data loading ──────────────────────────────────────────────
 
@@ -398,219 +589,6 @@ export default function DiagramPage() {
     }
   }, []);
 
-  // ── Workflow graph init ────────────────────────────────────────────────────
-
-  const initWorkflowGraph = useCallback(async (wfGraphData: WorkflowData) => {
-    if (!wfCyRef.current) return;
-
-    const cytoscape = await loadCytoscape();
-
-    if (wfCyInstanceRef.current) {
-      (wfCyInstanceRef.current as { destroy: () => void }).destroy();
-    }
-
-    const elements: cytoscape.ElementDefinition[] = [];
-
-    // Phase ordering for vertical position
-    const phaseOrder: Record<string, number> = {
-      vstup: 0,
-      obchod: 1,
-      "výroba": 2,
-      logistika: 3,
-      finance: 4,
-      archiv: 5,
-    };
-
-    for (const node of wfGraphData.nodes) {
-      const catColors = WORKFLOW_CATEGORY_COLORS[node.category] || WORKFLOW_CATEGORY_COLORS.order_status;
-      const isOrderStatus = node.category === "order_status";
-      const size = isOrderStatus ? 55 : 40;
-
-      elements.push({
-        group: "nodes",
-        data: {
-          id: node.id,
-          label: node.label,
-          description: node.description,
-          category: node.category,
-          phase: node.phase,
-          phaseOrder: phaseOrder[node.phase] ?? 3,
-          bgColor: node.color,
-          borderColor: catColors.border,
-          size,
-        },
-      });
-    }
-
-    const nodeIds = new Set(elements.filter((e) => e.group === "nodes").map((e) => e.data.id));
-    for (const edge of wfGraphData.edges) {
-      if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) continue;
-      elements.push({
-        group: "edges",
-        data: {
-          source: edge.source,
-          target: edge.target,
-          label: edge.label,
-          edgeType: edge.edge_type,
-          lineColor: WORKFLOW_EDGE_COLORS[edge.edge_type] || "#64748b",
-        },
-      });
-    }
-
-    const cy = cytoscape({
-      container: wfCyRef.current,
-      elements,
-      style: [
-        {
-          selector: "node",
-          style: {
-            width: "data(size)",
-            height: "data(size)",
-            "background-color": "data(bgColor)",
-            "background-opacity": 0.9,
-            "border-width": 3,
-            "border-color": "data(borderColor)",
-            label: "data(label)",
-            "text-valign": "bottom",
-            "text-halign": "center",
-            "font-size": 12,
-            "font-weight": "bold",
-            color: "#e2e8f0",
-            "text-margin-y": 10,
-            "text-outline-color": "#0a0e17",
-            "text-outline-width": 2.5,
-            shape: "round-rectangle",
-            opacity: 1,
-            "transition-property": "opacity, border-width, border-color",
-            "transition-duration": "0.25s",
-          },
-        },
-        {
-          selector: "node[category = 'order_status']",
-          style: {
-            shape: "round-rectangle",
-            "border-width": 3.5,
-            "font-size": 13,
-          },
-        },
-        {
-          selector: "node[category = 'pipeline']",
-          style: {
-            shape: "ellipse",
-            "background-opacity": 0.7,
-            "border-style": "dashed" as const,
-          },
-        },
-        {
-          selector: "node[category = 'support']",
-          style: {
-            shape: "diamond",
-            "background-opacity": 0.75,
-            "font-size": 10,
-          },
-        },
-        {
-          selector: "node.hover",
-          style: {
-            "border-width": 5,
-            "border-color": "#60a5fa",
-            "background-opacity": 1,
-            "font-size": 14,
-            color: "#f8fafc",
-            "z-index": 100,
-          },
-        },
-        { selector: "node.neighbor", style: { "border-width": 4, "border-color": "#60a5fa", "background-opacity": 0.95 } },
-        { selector: "node.faded", style: { opacity: 0.15 } },
-        {
-          selector: "edge",
-          style: {
-            width: 2.5,
-            "line-color": "data(lineColor)",
-            "target-arrow-color": "data(lineColor)",
-            "target-arrow-shape": "triangle",
-            "arrow-scale": 1,
-            "curve-style": "bezier",
-            opacity: 0.6,
-            label: "data(label)",
-            "font-size": 9,
-            color: "#94a3b8",
-            "text-rotation": "autorotate",
-            "text-outline-color": "#0a0e17",
-            "text-outline-width": 2,
-            "text-margin-y": -10,
-          },
-        },
-        {
-          selector: "edge[edgeType = 'back']",
-          style: {
-            "line-style": "dashed" as const,
-            width: 2,
-            opacity: 0.5,
-            "target-arrow-shape": "triangle-backcurve",
-          },
-        },
-        {
-          selector: "edge[edgeType = 'support']",
-          style: {
-            "line-style": "dotted" as const,
-            width: 1.5,
-            opacity: 0.4,
-          },
-        },
-        {
-          selector: "edge[edgeType = 'pipeline']",
-          style: {
-            width: 2,
-            opacity: 0.5,
-          },
-        },
-        { selector: "edge.highlighted", style: { opacity: 1, width: 4, "z-index": 50, "font-size": 11 } },
-        { selector: "edge.faded", style: { opacity: 0.05 } },
-      ] as cytoscape.StylesheetStyle[],
-      layout: {
-        name: "breadthfirst",
-        directed: true,
-        padding: 60,
-        spacingFactor: 1.6,
-        animate: true,
-        animationDuration: 600,
-        roots: "#pipe_email_in",
-      } as cytoscape.LayoutOptions & Record<string, unknown>,
-      minZoom: 0.15,
-      maxZoom: 3,
-      wheelSensitivity: 0.3,
-    });
-
-    cy.on("mouseover", "node", (evt) => {
-      const node = evt.target;
-      const connEdges = node.connectedEdges();
-      const neighbors = connEdges.connectedNodes().difference(node);
-      cy.elements().addClass("faded");
-      node.removeClass("faded").addClass("hover");
-      neighbors.removeClass("faded").addClass("neighbor");
-      connEdges.removeClass("faded").addClass("highlighted");
-
-      const pos = node.renderedPosition();
-      const nodeData = node.data() as WorkflowNode;
-      if (wfCyRef.current) {
-        const rect = wfCyRef.current.getBoundingClientRect();
-        setWfTooltip({ node: nodeData, x: pos.x + rect.left + 20, y: pos.y + rect.top - 20 });
-      }
-    });
-
-    cy.on("mouseout", "node", () => {
-      cy.elements().removeClass("faded hover highlighted neighbor");
-      setWfTooltip(null);
-    });
-
-    cy.on("tap", "node", (evt) => {
-      cy.animate({ center: { eles: evt.target }, zoom: 1.8 }, { duration: 400 });
-    });
-
-    wfCyInstanceRef.current = cy;
-  }, []);
-
   // ── Effects ────────────────────────────────────────────────────────────────
 
   // Initial load — always refresh architecture from codebase
@@ -634,14 +612,6 @@ export default function DiagramPage() {
       loadWorkflowData();
     }
   }, [activeTab, wfData, loadWorkflowData]);
-
-  // Rebuild workflow graph when data is available
-  useEffect(() => {
-    if (!wfData || activeTab !== "workflow") return;
-    // Slight delay to let the container render
-    const t = setTimeout(() => initWorkflowGraph(wfData), 50);
-    return () => clearTimeout(t);
-  }, [wfData, activeTab, initWorkflowGraph]);
 
   // Architecture search
   useEffect(() => {
@@ -676,16 +646,16 @@ export default function DiagramPage() {
   };
 
   const handleFit = () => {
-    const cy = (activeTab === "architecture" ? archCyInstanceRef.current : wfCyInstanceRef.current) as cytoscape.Core | null;
+    const cy = archCyInstanceRef.current as cytoscape.Core | null;
     if (cy) cy.animate({ fit: { eles: cy.elements(), padding: 50 } }, { duration: 400 });
   };
 
   const handleExport = () => {
-    const cy = (activeTab === "architecture" ? archCyInstanceRef.current : wfCyInstanceRef.current) as cytoscape.Core | null;
+    const cy = archCyInstanceRef.current as cytoscape.Core | null;
     if (!cy) return;
     const png = cy.png({ scale: 2, bg: "#0a0e17", full: true });
     const link = document.createElement("a");
-    link.download = activeTab === "architecture" ? "infer-forge-architecture.png" : "infer-forge-workflow.png";
+    link.download = "infer-forge-architecture.png";
     link.href = png;
     link.click();
   };
@@ -752,27 +722,27 @@ export default function DiagramPage() {
           </div>
         )}
 
-        {/* Workflow stats */}
-        {activeTab === "workflow" && wfData && (
-          <div className="hidden md:flex items-center gap-4 text-xs text-muted-foreground">
-            <span>Stavy: <span className="text-blue-500 font-semibold">{wfData.nodes.filter(n => n.category === "order_status").length}</span></span>
-            <span>Pipeline: <span className="text-blue-500 font-semibold">{wfData.nodes.filter(n => n.category === "pipeline").length}</span></span>
-            <span>Podprocesy: <span className="text-blue-500 font-semibold">{wfData.nodes.filter(n => n.category === "support").length}</span></span>
+        {/* Workflow description */}
+        {activeTab === "workflow" && (
+          <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground">
+            Životní cyklus zakázky od e-mailu po fakturaci
           </div>
         )}
 
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleFit}>
-            <Maximize className="h-4 w-4 mr-1" /> Vejít
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-1" /> PNG
-          </Button>
           {activeTab === "architecture" && (
-            <Button size="sm" onClick={handleArchRefresh} disabled={archRefreshing}>
-              <RefreshCw className={`h-4 w-4 mr-1 ${archRefreshing ? "animate-spin" : ""}`} />
-              Obnovit
-            </Button>
+            <>
+              <Button variant="outline" size="sm" onClick={handleFit}>
+                <Maximize className="h-4 w-4 mr-1" /> Vejít
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExport}>
+                <Download className="h-4 w-4 mr-1" /> PNG
+              </Button>
+              <Button size="sm" onClick={handleArchRefresh} disabled={archRefreshing}>
+                <RefreshCw className={`h-4 w-4 mr-1 ${archRefreshing ? "animate-spin" : ""}`} />
+                Obnovit
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -838,49 +808,6 @@ export default function DiagramPage() {
           </div>
         )}
 
-        {/* Workflow Sidebar */}
-        {activeTab === "workflow" && (
-          <div className="w-60 border-r p-3 overflow-y-auto shrink-0 hidden lg:block">
-            <div className="mb-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Kategorie uzlů</p>
-              {wfData && Object.entries(wfData.category_labels).map(([cat, label]) => {
-                const count = wfData.nodes.filter(n => n.category === cat).length;
-                const catColor = WORKFLOW_CATEGORY_COLORS[cat]?.bg || "#6b7280";
-                return (
-                  <div key={cat} className="flex items-center gap-2 py-1.5 px-1 text-sm">
-                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: catColor }} />
-                    <span className="text-foreground">{label}</span>
-                    <span className="ml-auto text-xs text-muted-foreground bg-muted px-1.5 rounded">{count}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mb-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Fáze procesu</p>
-              {wfData && Object.entries(wfData.phase_labels).map(([phase, label]) => {
-                const count = wfData.nodes.filter(n => n.phase === phase).length;
-                return (
-                  <div key={phase} className="flex items-center gap-2 py-1 px-1 text-sm text-muted-foreground">
-                    <span className="text-foreground">{label}</span>
-                    <span className="ml-auto text-xs bg-muted px-1.5 rounded">{count}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Hrany</p>
-              <div className="space-y-1 text-xs text-muted-foreground">
-                <span className="flex items-center gap-2"><span className="w-5 h-0.5 bg-blue-500 rounded" />Hlavní tok</span>
-                <span className="flex items-center gap-2"><span className="w-5 h-0.5 bg-amber-500 rounded border-dashed" />Zpětný tok</span>
-                <span className="flex items-center gap-2"><span className="w-5 h-0.5 bg-slate-500 rounded" />Email pipeline</span>
-                <span className="flex items-center gap-2"><span className="w-5 h-0.5 bg-emerald-500 rounded" style={{ borderTop: "1px dotted" }} />Podpůrný proces</span>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Architecture Graph */}
         <div
           ref={archCyRef}
@@ -888,18 +815,101 @@ export default function DiagramPage() {
           style={{ display: activeTab === "architecture" ? "block" : "none" }}
         />
 
-        {/* Workflow Graph */}
-        <div
-          ref={wfCyRef}
-          className="flex-1 bg-[#0a0e17]"
-          style={{ display: activeTab === "workflow" ? "block" : "none" }}
-        />
+        {/* Workflow Swimlane Diagram */}
+        {activeTab === "workflow" && (
+          <div className="flex-1 overflow-auto bg-background p-6">
+            {wfLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                <span className="ml-3 text-muted-foreground">Načítám workflow...</span>
+              </div>
+            ) : wfData ? (
+              <div className="mx-auto max-w-7xl">
+                {/* Title */}
+                <div className="mb-8 text-center">
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-emerald-500 bg-clip-text text-transparent">
+                    Proces zakázky — INFER FORGE
+                  </h1>
+                  <p className="mt-2 text-sm text-muted-foreground max-w-2xl mx-auto">
+                    Kompletní životní cyklus zakázky od příjmu poptávkového e-mailu přes kalkulaci, výrobu
+                    a expedici až po fakturaci v systému Pohoda. Generováno z aktuálního kódu aplikace.
+                  </p>
+                </div>
 
-        {/* Workflow loading overlay */}
-        {activeTab === "workflow" && wfLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/80 z-10">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            <span className="ml-3 text-muted-foreground">Načítám workflow...</span>
+                {/* Legend */}
+                <div className="mb-6 flex flex-wrap items-center justify-center gap-6 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-slate-500 bg-slate-500/20 text-[8px]">S</span>
+                    Stav zakázky
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-dashed border-emerald-500 bg-emerald-500/20 text-[8px]">P</span>
+                    Podproces
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <ArrowDown className="h-4 w-4" /> Hlavní tok
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <ArrowRight className="h-4 w-4" /> Přechod do další fáze
+                  </span>
+                </div>
+
+                {/* Columns grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] gap-4 xl:gap-0 items-start">
+                  {WF_COLUMNS.map((col, colIdx) => (
+                    <div key={col.id} className="contents">
+                      <WfColumnView
+                        column={col}
+                        nodes={wfData.nodes}
+                        edges={wfData.edges}
+                      />
+                      {colIdx < WF_COLUMNS.length - 1 && (
+                        <div className="hidden xl:flex">
+                          <ColumnArrow
+                            label={
+                              colIdx === 0 ? "Zakázka vytvořena" :
+                              colIdx === 1 ? "Zahájení výroby" :
+                              "Výroba dokončena"
+                            }
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Footer info */}
+                <div className="mt-8 rounded-xl border bg-muted/30 p-5">
+                  <h3 className="text-sm font-semibold mb-3">Stavový automat zakázky</h3>
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    {wfData.nodes
+                      .filter(n => n.category === "order_status")
+                      .map((n, i, arr) => (
+                        <span key={n.id} className="flex items-center gap-2">
+                          <span
+                            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold text-white"
+                            style={{ backgroundColor: n.color }}
+                          >
+                            {n.label}
+                          </span>
+                          {i < arr.length - 1 && (
+                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </span>
+                      ))
+                    }
+                  </div>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Přechody mezi stavy jsou validovány stavovým automatem v <code className="bg-muted rounded px-1">OrderService.STATUS_TRANSITIONS</code>.
+                    Každá změna stavu je zaznamenána v audit trail a přiděluje gamifikační body.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Nepodařilo se načíst workflow data.
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -940,32 +950,6 @@ export default function DiagramPage() {
               {archTooltip.node.file_path}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Workflow Tooltip */}
-      {activeTab === "workflow" && wfTooltip && (
-        <div
-          className="fixed z-50 bg-card border rounded-xl shadow-2xl min-w-[280px] max-w-[380px] pointer-events-none"
-          style={{ left: wfTooltip.x, top: wfTooltip.y }}
-        >
-          <div className="flex items-center gap-2 px-4 py-3 border-b">
-            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: wfTooltip.node.color }} />
-            <span className="font-semibold text-sm">{wfTooltip.node.label}</span>
-            {wfData && (
-              <Badge variant="outline" className="ml-auto text-xs">
-                {wfData.category_labels[wfTooltip.node.category] || wfTooltip.node.category}
-              </Badge>
-            )}
-          </div>
-          <div className="px-4 py-3 text-sm">
-            <p className="text-muted-foreground">{wfTooltip.node.description}</p>
-            {wfTooltip.node.phase && wfData && (
-              <p className="text-xs text-muted-foreground border-t pt-2 mt-2">
-                Fáze: <span className="text-foreground font-medium">{wfData.phase_labels[wfTooltip.node.phase] || wfTooltip.node.phase}</span>
-              </p>
-            )}
-          </div>
         </div>
       )}
     </div>
