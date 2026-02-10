@@ -90,7 +90,7 @@ def verify_token(token: str) -> dict[str, Any] | None:
             algorithms=[settings.ALGORITHM],
         )
         return payload
-    except (InvalidTokenError, Exception):
+    except InvalidTokenError:
         return None
 
 
