@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INFERBOX — Prezentace pro vedení</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-primary: #080c18;
+  --bg-secondary: #0d1225;
+  --bg-card: #111830;
+  --bg-card-hover: #161e3a;
+  --gold: #d4a843;
+  --gold-light: #e8c46a;
+  --gold-dark: #b08930;
+  --text-primary: #e8e8ec;
+  --text-secondary: #8a8fa8;
+  --text-muted: #5a5f78;
+  --border: rgba(212, 168, 67, 0.15);
+  --border-strong: rgba(212, 168, 67, 0.3);
+  --glow: rgba(212, 168, 67, 0.08);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+#three-bg {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+section {
+  position: relative;
+  z-index: 1;
+  padding: 100px 80px;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Scroll Animations */
+.fade-in {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.fade-in-delay-1 { transition-delay: 0.1s; }
+.fade-in-delay-2 { transition-delay: 0.2s; }
+.fade-in-delay-3 { transition-delay: 0.3s; }
+.fade-in-delay-4 { transition-delay: 0.4s; }
+.fade-in-delay-5 { transition-delay: 0.5s; }
+
+/* Section title */
+.section-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+}
+
+.section-subtitle {
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  max-width: 700px;
+  line-height: 1.7;
+}
+
+/* ======================== 1. HERO ======================== */
+#hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 40px;
+  position: relative;
+}
+
+.hero-content { position: relative; z-index: 2; }
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 28px;
+  border: 1px solid var(--border-strong);
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 48px;
+  backdrop-filter: blur(10px);
+  background: rgba(212, 168, 67, 0.04);
+}
+
+.hero-badge span { opacity: 0.4; }
+
+.hero-title {
+  font-size: 72px;
+  font-weight: 800;
+  letter-spacing: -2px;
+  line-height: 1.05;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--gold-light) 50%, var(--gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-subtitle {
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-bottom: 56px;
+  letter-spacing: 0.5px;
+}
+
+.hero-subtitle em {
+  font-style: normal;
+  color: var(--gold);
+  font-weight: 500;
+}
+
+.scroll-arrow {
+  position: absolute;
+  bottom: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  animation: bounce 2.5s ease-in-out infinite;
+  cursor: pointer;
+}
+
+.scroll-arrow svg {
+  width: 24px;
+  height: 24px;
+  stroke: var(--gold);
+  stroke-width: 2;
+  fill: none;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(12px); }
+}
+
+/* ======================== 2. PROBLÉMY ======================== */
+#problems { background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%); }
+
+.problems-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+  margin-top: 56px;
+}
+
+.problem-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px 24px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.problem-card:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-card-hover);
+  transform: translateY(-4px);
+}
+
+.problem-icon {
+  font-size: 36px;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.problem-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+}
+
+.problem-card p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.old-tools {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-top: 48px;
+  flex-wrap: wrap;
+}
+
+.old-tool {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: line-through;
+  text-decoration-color: #e74c3c;
+  text-decoration-thickness: 2px;
+  opacity: 0.6;
+}
+
+/* ======================== 3. WORKFLOW ======================== */
+#workflow {
+  background: var(--bg-secondary);
+  padding: 100px 80px 120px;
+}
+
+.workflow-diagram {
+  margin-top: 64px;
+  position: relative;
+}
+
+.workflow-row {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.workflow-row:last-child { margin-bottom: 0; }
+
+.workflow-step {
+  position: relative;
+  width: 200px;
+  padding: 24px 16px;
+  border-radius: 16px;
+  text-align: center;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  transition: all 0.3s ease;
+}
+
+.workflow-step:hover {
+  border-color: var(--gold);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(212, 168, 67, 0.15);
+}
+
+.step-number {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--bg-primary);
+}
+
+.step-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.workflow-step h4 {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+
+.workflow-step p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.step-tag {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.tag-ai { background: rgba(212, 168, 67, 0.15); color: var(--gold); }
+.tag-auto { background: rgba(46, 204, 113, 0.15); color: #2ecc71; }
+.tag-sync { background: rgba(52, 152, 219, 0.15); color: #3498db; }
+
+.workflow-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: var(--gold);
+  animation: pulse-arrow 2s ease-in-out infinite;
+  align-self: center;
+}
+
+@keyframes pulse-arrow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.workflow-connector {
+  display: flex;
+  justify-content: center;
+  margin: -20px 0;
+  position: relative;
+}
+
+.connector-line {
+  width: 2px;
+  height: 40px;
+  background: linear-gradient(to bottom, var(--gold), transparent);
+  position: relative;
+}
+
+.connector-line::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--gold);
+}
+
+/* Step colors */
+.step-poptavka .step-number { background: #e74c3c; }
+.step-nabidka .step-number { background: #e67e22; }
+.step-objednavka .step-number { background: var(--gold); }
+.step-vyroba .step-number { background: #2ecc71; }
+.step-expedice .step-number { background: #3498db; }
+.step-fakturace .step-number { background: #9b59b6; }
+.step-dokonceno .step-number { background: #1abc9c; }
+
+.step-poptavka { border-left: 3px solid #e74c3c; }
+.step-nabidka { border-left: 3px solid #e67e22; }
+.step-objednavka { border-left: 3px solid var(--gold); }
+.step-vyroba { border-left: 3px solid #2ecc71; }
+.step-expedice { border-left: 3px solid #3498db; }
+.step-fakturace { border-left: 3px solid #9b59b6; }
+.step-dokonceno { border-left: 3px solid #1abc9c; }
+
+/* ======================== 4. EKONOMICKÉ METRIKY ======================== */
+#metrics {
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  padding: 100px 80px 120px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-top: 56px;
+}
+
+.metric-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px;
+  transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-card-hover);
+  transform: translateY(-4px);
+}
+
+.metric-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.metric-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.metric-badge {
+  padding: 4px 14px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 800;
+  background: rgba(212, 168, 67, 0.15);
+  color: var(--gold);
+}
+
+.metric-comparison {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.metric-old {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: line-through;
+  text-decoration-color: #e74c3c;
+}
+
+.metric-arrow-icon {
+  font-size: 20px;
+  color: var(--gold);
+}
+
+.metric-new {
+  font-size: 28px;
+  font-weight: 800;
+  color: #2ecc71;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 100px;
+  background: linear-gradient(90deg, var(--gold-dark), var(--gold-light));
+  width: 0;
+  transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.metric-summary {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, rgba(212, 168, 67, 0.08) 0%, rgba(212, 168, 67, 0.02) 100%);
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  padding: 48px;
+  text-align: center;
+}
+
+.summary-amount {
+  font-size: 56px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 12px;
+  line-height: 1.2;
+}
+
+.summary-label {
+  font-size: 20px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.summary-detail {
+  font-size: 15px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+/* ======================== 5. FUNKCE ======================== */
+#features {
+  background: var(--bg-primary);
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 56px;
+}
+
+.feature-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 36px 32px;
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-card-hover);
+  transform: translateY(-4px);
+}
+
+.feature-icon {
+  font-size: 40px;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.feature-card h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.feature-card p {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ======================== 6. TECH STACK ======================== */
+#tech {
+  background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+}
+
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 56px;
+}
+
+.tech-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px 28px;
+  transition: all 0.3s ease;
+}
+
+.tech-card:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-card-hover);
+}
+
+.tech-card h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.tech-list {
+  list-style: none;
+}
+
+.tech-list li {
+  font-size: 15px;
+  color: var(--text-secondary);
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tech-list li:last-child { border-bottom: none; }
+
+.tech-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  flex-shrink: 0;
+}
+
+/* ======================== 7. BEZPEČNOST ======================== */
+#security {
+  background: var(--bg-secondary);
+}
+
+.security-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 56px;
+}
+
+.security-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px 28px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.security-card:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-card-hover);
+  transform: translateY(-4px);
+}
+
+.security-icon {
+  font-size: 36px;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.security-card h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.security-card p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ======================== 8. ROI TIMELINE ======================== */
+#roi {
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+}
+
+.timeline {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: 64px;
+  position: relative;
+  padding: 0 40px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  top: 40px;
+  left: 80px;
+  right: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, #e74c3c, #e67e22, var(--gold), #2ecc71);
+  border-radius: 2px;
+}
+
+.timeline-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 220px;
+  position: relative;
+}
+
+.timeline-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid;
+  background: var(--bg-primary);
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 2;
+}
+
+.timeline-item:nth-child(1) .timeline-dot { border-color: #e74c3c; box-shadow: 0 0 20px rgba(231, 76, 60, 0.3); }
+.timeline-item:nth-child(2) .timeline-dot { border-color: #e67e22; box-shadow: 0 0 20px rgba(230, 126, 34, 0.3); }
+.timeline-item:nth-child(3) .timeline-dot { border-color: var(--gold); box-shadow: 0 0 20px rgba(212, 168, 67, 0.3); }
+.timeline-item:nth-child(4) .timeline-dot { border-color: #2ecc71; box-shadow: 0 0 20px rgba(46, 204, 113, 0.3); }
+
+.timeline-month {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.timeline-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.timeline-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.roi-summary {
+  text-align: center;
+  margin-top: 72px;
+  padding: 48px;
+  background: linear-gradient(135deg, rgba(212, 168, 67, 0.06) 0%, rgba(46, 204, 113, 0.04) 100%);
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+}
+
+.roi-amount {
+  font-size: 52px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--gold), #2ecc71);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 10px;
+}
+
+.roi-label {
+  font-size: 20px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* ======================== 9. CTA ======================== */
+#cta {
+  background: var(--bg-primary);
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.cta-title {
+  font-size: 48px;
+  font-weight: 800;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.cta-subtitle {
+  font-size: 20px;
+  color: var(--text-secondary);
+  margin-bottom: 48px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 48px;
+  background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+  color: var(--bg-primary);
+  font-size: 18px;
+  font-weight: 700;
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  position: relative;
+  letter-spacing: 0.5px;
+}
+
+.cta-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(212, 168, 67, 0.3);
+}
+
+.cta-button::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 100px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  opacity: 0;
+  z-index: -1;
+  filter: blur(16px);
+  animation: cta-glow 2.5s ease-in-out infinite;
+}
+
+@keyframes cta-glow {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.5; }
+}
+
+.cta-demo {
+  margin-top: 24px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.cta-demo a {
+  color: var(--gold);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.cta-demo a:hover { text-decoration: underline; }
+
+/* ======================== NAV DOTS ======================== */
+.nav-dots {
+  position: fixed;
+  right: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nav-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.3;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  padding: 0;
+  position: relative;
+}
+
+.nav-dot.active {
+  background: var(--gold);
+  opacity: 1;
+  transform: scale(1.3);
+}
+
+.nav-dot:hover {
+  opacity: 0.8;
+  transform: scale(1.2);
+}
+
+.nav-dot-label {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  background: var(--bg-card);
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.nav-dot:hover .nav-dot-label { opacity: 1; }
+
+/* ======================== RESPONSIVE ======================== */
+@media (max-width: 1200px) {
+  .problems-grid { grid-template-columns: repeat(3, 1fr); }
+  .workflow-row { flex-wrap: wrap; }
+  .workflow-step { width: 160px; }
+  .timeline { flex-wrap: wrap; gap: 32px; justify-content: center; }
+  .timeline::before { display: none; }
+}
+
+@media (max-width: 900px) {
+  section { padding: 80px 32px; }
+  .hero-title { font-size: 48px; }
+  .section-title { font-size: 36px; }
+  .problems-grid { grid-template-columns: repeat(2, 1fr); }
+  .metrics-grid { grid-template-columns: 1fr; }
+  .features-grid { grid-template-columns: repeat(2, 1fr); }
+  .tech-grid { grid-template-columns: repeat(2, 1fr); }
+  .security-grid { grid-template-columns: repeat(2, 1fr); }
+  .summary-amount, .roi-amount { font-size: 40px; }
+  .nav-dots { display: none; }
+}
+
+@media (max-width: 600px) {
+  section { padding: 64px 20px; }
+  .hero-title { font-size: 36px; }
+  .problems-grid, .features-grid, .tech-grid, .security-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- Three.js Background -->
+<canvas id="three-bg"></canvas>
+
+<!-- Navigation Dots -->
+<nav class="nav-dots" id="navDots"></nav>
+
+<!-- ==================== 1. HERO ==================== -->
+<section id="hero">
+  <div class="hero-content">
+    <div class="hero-badge fade-in">
+      ISO 9001 <span>|</span> Infer s.r.o. <span>|</span> On-premise
+    </div>
+    <h1 class="hero-title fade-in fade-in-delay-1">INFERBOX</h1>
+    <p class="hero-subtitle fade-in fade-in-delay-2">
+      Od poptávky po fakturaci — <em>automaticky</em>
+    </p>
+  </div>
+  <a href="#problems" class="scroll-arrow">
+    <span>Více</span>
+    <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+  </a>
+</section>
+
+<!-- ==================== 2. SOUČASNÉ PROBLÉMY ==================== -->
+<section id="problems">
+  <div class="container">
+    <p class="section-label fade-in">Současný stav</p>
+    <h2 class="section-title fade-in fade-in-delay-1">Kde ztrácíme čas a peníze</h2>
+    <p class="section-subtitle fade-in fade-in-delay-2">
+      Každý den se opakují stejné problémy, které stojí firmu stovky tisíc korun měsíčně.
+    </p>
+
+    <div class="problems-grid">
+      <div class="problem-card fade-in fade-in-delay-1">
+        <span class="problem-icon">📧</span>
+        <h3>Ztracené emaily</h3>
+        <p>Poptávky se ztrácí v osobních schránkách. Nikdo neví, kdo co řeší.</p>
+      </div>
+      <div class="problem-card fade-in fade-in-delay-2">
+        <span class="problem-icon">📊</span>
+        <h3>Excel kalkulace</h3>
+        <p>Ruční výpočty v Excelu, chyby v cenách, neaktuální ceníky.</p>
+      </div>
+      <div class="problem-card fade-in fade-in-delay-3">
+        <span class="problem-icon">❓</span>
+        <h3>Neznámý stav zakázky</h3>
+        <p>Zákazník volá, nikdo neví, kde zakázka je. Chaos v komunikaci.</p>
+      </div>
+      <div class="problem-card fade-in fade-in-delay-4">
+        <span class="problem-icon">⌨️</span>
+        <h3>Ruční Pohoda</h3>
+        <p>Dvojí zadávání dat. Překlepy, chybějící položky, zdržení.</p>
+      </div>
+      <div class="problem-card fade-in fade-in-delay-5">
+        <span class="problem-icon">📁</span>
+        <h3>Rozptýlené dokumenty</h3>
+        <p>Soubory na discích, v emailech, na papíře. Nic se nedá najít.</p>
+      </div>
+    </div>
+
+    <div class="old-tools fade-in">
+      <span class="old-tool">Excel</span>
+      <span class="old-tool">Outlook</span>
+      <span class="old-tool">Papír</span>
+      <span class="old-tool">Telefon</span>
+      <span class="old-tool">Poznámky</span>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 3. WORKFLOW DIAGRAM ==================== -->
+<section id="workflow">
+  <div class="container">
+    <p class="section-label fade-in">Lifecycle zakázky</p>
+    <h2 class="section-title fade-in fade-in-delay-1">Kompletní workflow — od A do Z</h2>
+    <p class="section-subtitle fade-in fade-in-delay-2">
+      Každý krok je automatizovaný, sledovatelný a propojený. Žádné ruční předávání.
+    </p>
+
+    <div class="workflow-diagram fade-in fade-in-delay-3">
+      <!-- Top row: 4 steps -->
+      <div class="workflow-row">
+        <div class="workflow-step step-poptavka">
+          <span class="step-number">1</span>
+          <span class="step-icon">📨</span>
+          <h4>POPTÁVKA</h4>
+          <p>Email přijat a klasifikován AI</p>
+          <span class="step-tag tag-ai">AI</span>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step step-nabidka">
+          <span class="step-number">2</span>
+          <span class="step-icon">📋</span>
+          <h4>NABÍDKA</h4>
+          <p>Automatická kalkulace a PDF generování</p>
+          <span class="step-tag tag-auto">AUTO</span>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step step-objednavka">
+          <span class="step-number">3</span>
+          <span class="step-icon">✅</span>
+          <h4>OBJEDNÁVKA</h4>
+          <p>Potvrzení a synchronizace s Pohodou</p>
+          <span class="step-tag tag-sync">SYNC</span>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step step-vyroba">
+          <span class="step-number">4</span>
+          <span class="step-icon">🏭</span>
+          <h4>VÝROBA</h4>
+          <p>Kanban board, tracking, notifikace</p>
+          <span class="step-tag tag-auto">AUTO</span>
+        </div>
+      </div>
+
+      <!-- Connector -->
+      <div class="workflow-connector">
+        <div class="connector-line"></div>
+      </div>
+
+      <!-- Bottom row: 3 steps -->
+      <div class="workflow-row">
+        <div class="workflow-step step-expedice">
+          <span class="step-number">5</span>
+          <span class="step-icon">🚚</span>
+          <h4>EXPEDICE</h4>
+          <p>Dodací listy, avíza, logistika</p>
+          <span class="step-tag tag-auto">AUTO</span>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step step-fakturace">
+          <span class="step-number">6</span>
+          <span class="step-icon">💰</span>
+          <h4>FAKTURACE</h4>
+          <p>Automatický export do Pohody</p>
+          <span class="step-tag tag-sync">SYNC</span>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step step-dokonceno">
+          <span class="step-number">7</span>
+          <span class="step-icon">🏆</span>
+          <h4>DOKONČENO</h4>
+          <p>Archivace, reporting, statistiky</p>
+          <span class="step-tag tag-auto">AUTO</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 4. EKONOMICKÉ METRIKY ==================== -->
+<section id="metrics">
+  <div class="container">
+    <p class="section-label fade-in">Tvrdá čísla</p>
+    <h2 class="section-title fade-in fade-in-delay-1">Měřitelný dopad na firmu</h2>
+    <p class="section-subtitle fade-in fade-in-delay-2">
+      Reálné úspory kalkulované na základě současných procesů a mzdových nákladů.
+    </p>
+
+    <div class="metrics-grid">
+      <div class="metric-card fade-in fade-in-delay-1">
+        <div class="metric-header">
+          <span class="metric-title">Zpracování poptávky</span>
+          <span class="metric-badge">-75%</span>
+        </div>
+        <div class="metric-comparison">
+          <span class="metric-old">2-4 hodiny</span>
+          <span class="metric-arrow-icon">→</span>
+          <span class="metric-new">&lt; 30 min</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" data-width="75"></div>
+        </div>
+      </div>
+
+      <div class="metric-card fade-in fade-in-delay-2">
+        <div class="metric-header">
+          <span class="metric-title">Tvorba nabídky</span>
+          <span class="metric-badge">-87%</span>
+        </div>
+        <div class="metric-comparison">
+          <span class="metric-old">4-8 hodin</span>
+          <span class="metric-arrow-icon">→</span>
+          <span class="metric-new">&lt; 1 hod</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" data-width="87"></div>
+        </div>
+      </div>
+
+      <div class="metric-card fade-in fade-in-delay-3">
+        <div class="metric-header">
+          <span class="metric-title">Chybovost</span>
+          <span class="metric-badge">-90%</span>
+        </div>
+        <div class="metric-comparison">
+          <span class="metric-old">5 %</span>
+          <span class="metric-arrow-icon">→</span>
+          <span class="metric-new">0.5 %</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" data-width="90"></div>
+        </div>
+      </div>
+
+      <div class="metric-card fade-in fade-in-delay-4">
+        <div class="metric-header">
+          <span class="metric-title">Pohoda zadávání</span>
+          <span class="metric-badge">-100%</span>
+        </div>
+        <div class="metric-comparison">
+          <span class="metric-old">Hodiny ručně</span>
+          <span class="metric-arrow-icon">→</span>
+          <span class="metric-new">Automatické</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" data-width="100"></div>
+        </div>
+      </div>
+
+      <div class="metric-summary fade-in fade-in-delay-5">
+        <div class="summary-amount" id="savingsCounter">340 000 – 680 000 Kč</div>
+        <div class="summary-label">měsíční úspora na mzdových nákladech</div>
+        <div class="summary-detail">Kalkulace na základě 8 administrativních pracovníků při průměrné hrubé mzdě 45 000 Kč</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 5. FUNKCE SYSTÉMU ==================== -->
+<section id="features">
+  <div class="container">
+    <p class="section-label fade-in">Klíčové funkce</p>
+    <h2 class="section-title fade-in fade-in-delay-1">Co INFERBOX umí</h2>
+    <p class="section-subtitle fade-in fade-in-delay-2">
+      Modulární systém pokrývající celý obchodní a výrobní cyklus.
+    </p>
+
+    <div class="features-grid">
+      <div class="feature-card fade-in fade-in-delay-1">
+        <span class="feature-icon">🤖</span>
+        <h3>AI klasifikace emailů</h3>
+        <p>Automatické třídění příchozích emailů, extrakce poptávkových dat, identifikace zákazníka a prioritizace.</p>
+      </div>
+      <div class="feature-card fade-in fade-in-delay-2">
+        <span class="feature-icon">🧮</span>
+        <h3>Automatická kalkulace</h3>
+        <p>Výpočet cen na základě ceníků materiálů, marží a historických dat. Generování PDF nabídek.</p>
+      </div>
+      <div class="feature-card fade-in fade-in-delay-3">
+        <span class="feature-icon">🔄</span>
+        <h3>Pohoda synchronizace</h3>
+        <p>Obousměrná synchronizace s ekonomickým systémem. Faktury, dodací listy, adresář.</p>
+      </div>
+      <div class="feature-card fade-in fade-in-delay-4">
+        <span class="feature-icon">📄</span>
+        <h3>Generování dokumentů</h3>
+        <p>Automatické vytváření nabídek, objednávek, dodacích listů a faktur z šablon.</p>
+      </div>
+      <div class="feature-card fade-in fade-in-delay-5">
+        <span class="feature-icon">📌</span>
+        <h3>Kanban výroba</h3>
+        <p>Vizuální řízení výroby. Drag&drop, notifikace, sledování stavu v reálném čase.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <span class="feature-icon">🎮</span>
+        <h3>Gamifikace</h3>
+        <p>Motivační systém pro zaměstnance. Body, odznaky, žebříčky, měsíční výzvy.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 6. TECHNOLOGICKÝ STACK ==================== -->
+<section id="tech">
+  <div class="container">
+    <p class="section-label fade-in">Technologie</p>
+    <h2 class="section-title fade-in fade-in-delay-1">Na čem INFERBOX stojí</h2>
+    <p class="section-subtitle fade-in fade-in-delay-2">
+      Moderní, prověřený stack navržený pro spolehlivost a výkon.
+    </p>
+
+    <div class="tech-grid">
+      <div class="tech-card fade-in fade-in-delay-1">
+        <h3>Backend</h3>
+        <ul class="tech-list">
+          <li><span class="tech-dot"></span>FastAPI (Python)</li>
+          <li><span class="tech-dot"></span>SQLAlchemy ORM</li>
+          <li><span class="tech-dot"></span>Celery + Redis</li>
+          <li><span class="tech-dot"></span>WebSocket real-time</li>
+        </ul>
+      </div>
+      <div class="tech-card fade-in fade-in-delay-2">
+        <h3>Frontend</h3>
+        <ul class="tech-list">
+          <li><span class="tech-dot"></span>Next.js 15 (React)</li>
+          <li><span class="tech-dot"></span>TypeScript</li>
+          <li><span class="tech-dot"></span>Tailwind CSS</li>
+          <li><span class="tech-dot"></span>Zustand state mgmt</li>
+        </ul>
+      </div>
+      <div class="tech-card fade-in fade-in-delay-3">
+        <h3>AI / ML</h3>
+        <ul class="tech-list">
+          <li><span class="tech-dot"></span>Claude API (Anthropic)</li>
+          <li><span class="tech-dot"></span>Klasifikace emailů</li>
+          <li><span class="tech-dot"></span>Extrakce dat (NER)</li>
+          <li><span class="tech-dot"></span>Prediktivní analýza</li>
+        </ul>
+      </div>
+      <div class="tech-card fade-in fade-in-delay-1">
+        <h3>Data</h3>
+        <ul class="tech-list">
+          <li><span class="tech-dot"></span>PostgreSQL 16</li>
+          <li><span class="tech-dot"></span>Redis cache</li>
+          <li><span class="tech-dot"></span>MinIO (S3) storage</li>
+          <li><span class="tech-dot"></span>Alembic migrace</li>
+        </ul>
+      </div>
+      <div class="tech-card fade-in fade-in-delay-2">
+        <h3>Deploy</h3>
+        <ul class="tech-list">
+          <li><span class="tech-dot"></span>Docker Compose</li>
+          <li><span class="tech-dot"></span>Nginx reverse proxy</li>
+          <li><span class="tech-dot"></span>Let's Encrypt SSL</li>
+          <li><span class="tech-dot"></span>On-premise server</li>
+        </ul>
+      </div>
+      <div class="tech-card fade-in fade-in-delay-3">
+        <h3>Integrace</h3>
+        <ul class="tech-list">
+          <li><span class="tech-dot"></span>Pohoda mServer (XML)</li>
+          <li><span class="tech-dot"></span>IMAP/SMTP email</li>
+          <li><span class="tech-dot"></span>REST API</li>
+          <li><span class="tech-dot"></span>Webhook notifikace</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 7. BEZPEČNOST ==================== -->
+<section id="security">
+  <div class="container">
+    <p class="section-label fade-in">Bezpečnost</p>
+    <h2 class="section-title fade-in fade-in-delay-1">Enterprise-grade zabezpečení</h2>
+    <p class="section-subtitle fade-in fade-in-delay-2">
+      Vaše data zůstávají pod vaší kontrolou. Vždy.
+    </p>
+
+    <div class="security-grid">
+      <div class="security-card fade-in fade-in-delay-1">
+        <span class="security-icon">👥</span>
+        <h3>RBAC role</h3>
+        <p>Granulární řízení přístupu. Admin, manažer, obchodník, výroba, ekonom.</p>
+      </div>
+      <div class="security-card fade-in fade-in-delay-2">
+        <span class="security-icon">🔐</span>
+        <h3>AES-256 šifrování</h3>
+        <p>Data šifrována at-rest i in-transit. Certifikáty Let's Encrypt.</p>
+      </div>
+      <div class="security-card fade-in fade-in-delay-3">
+        <span class="security-icon">📝</span>
+        <h3>Audit trail</h3>
+        <p>Kompletní historie všech operací. Kdo, co, kdy změnil.</p>
+      </div>
+      <div class="security-card fade-in fade-in-delay-1">
+        <span class="security-icon">🇪🇺</span>
+        <h3>GDPR compliance</h3>
+        <p>Plný soulad s nařízením GDPR. Právo na výmaz, export dat.</p>
+      </div>
+      <div class="security-card fade-in fade-in-delay-2">
+        <span class="security-icon">🏢</span>
+        <h3>On-premise</h3>
+        <p>Běží na vašem serveru. Žádná data neopouští firemní síť.</p>
+      </div>
+      <div class="security-card fade-in fade-in-delay-3">
+        <span class="security-icon">✅</span>
+        <h3>ISO 9001</h3>
+        <p>Systém navržen v souladu s požadavky ISO 9001 na řízení kvality.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 8. ROI TIMELINE ==================== -->
+<section id="roi">
+  <div class="container">
+    <p class="section-label fade-in">Návratnost investice</p>
+    <h2 class="section-title fade-in fade-in-delay-1">Kdy se to zaplatí</h2>
+    <p class="section-subtitle fade-in fade-in-delay-2">
+      Konzervativní odhad na základě průměrných mzdových úspor a zvýšení efektivity.
+    </p>
+
+    <div class="timeline fade-in fade-in-delay-3">
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-month">Měsíc 1-2</div>
+        <div class="timeline-title">Nasazení</div>
+        <div class="timeline-desc">Instalace, migrace dat, školení klíčových uživatelů</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-month">Měsíc 3</div>
+        <div class="timeline-title">Adopce</div>
+        <div class="timeline-desc">Plný provoz, první měřitelné úspory, optimalizace procesů</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-month">Měsíc 6</div>
+        <div class="timeline-title">Break-even</div>
+        <div class="timeline-desc">Investice se vrátila, systém generuje čistou úsporu</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-month">Měsíc 12</div>
+        <div class="timeline-title">Plná návratnost</div>
+        <div class="timeline-desc">Stabilní ROI, rozšiřování funkcionality, škálování</div>
+      </div>
+    </div>
+
+    <div class="roi-summary fade-in fade-in-delay-4">
+      <div class="roi-amount">4 – 8 mil. Kč ročně</div>
+      <div class="roi-label">celková kalkulovaná úspora při plném nasazení</div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 9. CTA ==================== -->
+<section id="cta">
+  <div class="container">
+    <div class="fade-in">
+      <p class="section-label">Další krok</p>
+      <h2 class="cta-title">Připraveni na změnu?</h2>
+      <p class="cta-subtitle">
+        Domluvte si prezentaci systému INFERBOX a zjistěte, kolik vaše firma může ušetřit.
+      </p>
+      <a href="mailto:leos@hradev.cz?subject=INFERBOX — Zájem o prezentaci" class="cta-button">
+        Domluvit prezentaci
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <div class="cta-demo">
+        nebo si rovnou vyzkoušejte <a href="https://infer-forge.hradev.cz" target="_blank">živé demo</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Three.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  // ===================== THREE.JS PARTICLE NETWORK =====================
+  const canvas = document.getElementById('three-bg');
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  camera.position.z = 300;
+
+  const PARTICLE_COUNT = 800;
+  const CONNECTION_DISTANCE = 120;
+  const positions = new Float32Array(PARTICLE_COUNT * 3);
+  const velocities = [];
+
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    positions[i * 3] = (Math.random() - 0.5) * 800;
+    positions[i * 3 + 1] = (Math.random() - 0.5) * 600;
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 400;
+    velocities.push({
+      x: (Math.random() - 0.5) * 0.3,
+      y: (Math.random() - 0.5) * 0.3,
+      z: (Math.random() - 0.5) * 0.15
+    });
+  }
+
+  // Particles
+  const particleGeometry = new THREE.BufferGeometry();
+  particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+  const particleMaterial = new THREE.PointsMaterial({
+    color: 0xd4a843,
+    size: 2,
+    transparent: true,
+    opacity: 0.5,
+    sizeAttenuation: true
+  });
+
+  const particles = new THREE.Points(particleGeometry, particleMaterial);
+  scene.add(particles);
+
+  // Lines
+  const lineGeometry = new THREE.BufferGeometry();
+  const linePositions = new Float32Array(PARTICLE_COUNT * PARTICLE_COUNT * 6);
+  lineGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+
+  const lineMaterial = new THREE.LineBasicMaterial({
+    color: 0xd4a843,
+    transparent: true,
+    opacity: 0.06
+  });
+
+  const lines = new THREE.LineSegments(lineGeometry, lineMaterial);
+  scene.add(lines);
+
+  // Mouse parallax
+  let mouseX = 0, mouseY = 0;
+  document.addEventListener('mousemove', (e) => {
+    mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+    mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+  });
+
+  // Animation
+  function animate() {
+    requestAnimationFrame(animate);
+
+    const pos = particleGeometry.attributes.position.array;
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      pos[i * 3] += velocities[i].x;
+      pos[i * 3 + 1] += velocities[i].y;
+      pos[i * 3 + 2] += velocities[i].z;
+
+      if (Math.abs(pos[i * 3]) > 400) velocities[i].x *= -1;
+      if (Math.abs(pos[i * 3 + 1]) > 300) velocities[i].y *= -1;
+      if (Math.abs(pos[i * 3 + 2]) > 200) velocities[i].z *= -1;
+    }
+
+    particleGeometry.attributes.position.needsUpdate = true;
+
+    // Update connections (sample for performance)
+    let lineIndex = 0;
+    const linePos = lineGeometry.attributes.position.array;
+    const step = 4; // Sample every 4th particle for lines
+
+    for (let i = 0; i < PARTICLE_COUNT; i += step) {
+      for (let j = i + step; j < PARTICLE_COUNT; j += step) {
+        const dx = pos[i * 3] - pos[j * 3];
+        const dy = pos[i * 3 + 1] - pos[j * 3 + 1];
+        const dz = pos[i * 3 + 2] - pos[j * 3 + 2];
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        if (dist < CONNECTION_DISTANCE) {
+          linePos[lineIndex++] = pos[i * 3];
+          linePos[lineIndex++] = pos[i * 3 + 1];
+          linePos[lineIndex++] = pos[i * 3 + 2];
+          linePos[lineIndex++] = pos[j * 3];
+          linePos[lineIndex++] = pos[j * 3 + 1];
+          linePos[lineIndex++] = pos[j * 3 + 2];
+        }
+      }
+    }
+
+    // Clear remaining
+    for (let i = lineIndex; i < linePos.length; i++) {
+      linePos[i] = 0;
+    }
+
+    lineGeometry.attributes.position.needsUpdate = true;
+    lineGeometry.setDrawRange(0, lineIndex / 3);
+
+    // Camera parallax
+    camera.position.x += (mouseX * 30 - camera.position.x) * 0.02;
+    camera.position.y += (-mouseY * 20 - camera.position.y) * 0.02;
+    camera.lookAt(scene.position);
+
+    renderer.render(scene, camera);
+  }
+
+  animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // ===================== INTERSECTION OBSERVER =====================
+  const observerOptions = { threshold: 0.15, rootMargin: '0px 0px -50px 0px' };
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+
+        // Animate progress bars inside
+        const bars = entry.target.querySelectorAll('.progress-fill');
+        bars.forEach(bar => {
+          const width = bar.getAttribute('data-width');
+          if (width) {
+            setTimeout(() => { bar.style.width = width + '%'; }, 300);
+          }
+        });
+
+        observer.unobserve(entry.target);
+      }
+    });
+  }, observerOptions);
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+  // ===================== NAVIGATION DOTS =====================
+  const sections = [
+    { id: 'hero', label: 'Úvod' },
+    { id: 'problems', label: 'Problémy' },
+    { id: 'workflow', label: 'Workflow' },
+    { id: 'metrics', label: 'Metriky' },
+    { id: 'features', label: 'Funkce' },
+    { id: 'tech', label: 'Technologie' },
+    { id: 'security', label: 'Bezpečnost' },
+    { id: 'roi', label: 'ROI' },
+    { id: 'cta', label: 'Kontakt' }
+  ];
+
+  const navDots = document.getElementById('navDots');
+  sections.forEach(sec => {
+    const dot = document.createElement('button');
+    dot.className = 'nav-dot';
+    dot.setAttribute('data-section', sec.id);
+    dot.innerHTML = '<span class="nav-dot-label">' + sec.label + '</span>';
+    dot.addEventListener('click', () => {
+      document.getElementById(sec.id).scrollIntoView({ behavior: 'smooth' });
+    });
+    navDots.appendChild(dot);
+  });
+
+  // Active dot on scroll
+  const sectionEls = sections.map(s => document.getElementById(s.id));
+  const dots = navDots.querySelectorAll('.nav-dot');
+
+  function updateActiveDot() {
+    let currentIndex = 0;
+    const scrollY = window.scrollY + window.innerHeight / 3;
+
+    sectionEls.forEach((sec, i) => {
+      if (sec && sec.offsetTop <= scrollY) currentIndex = i;
+    });
+
+    dots.forEach((dot, i) => {
+      dot.classList.toggle('active', i === currentIndex);
+    });
+  }
+
+  window.addEventListener('scroll', updateActiveDot, { passive: true });
+  updateActiveDot();
+
+})();
+</script>
+
+</body>
+</html>

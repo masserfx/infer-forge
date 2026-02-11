@@ -162,12 +162,12 @@ export default function PrezentacePage() {
             Prezentace projektu
           </h1>
           <p className="text-muted-foreground mt-1">
-            INFER FORGE — automatizační platforma pro strojírenství
+            INFERBOX — automatizační platforma pro strojírenství
           </p>
         </div>
         <a
           href="/infer-forge.mp4"
-          download="INFER_FORGE_prezentace.mp4"
+          download="INFERBOX_prezentace.mp4"
           className="inline-flex"
         >
           <Button variant="outline" size="sm">

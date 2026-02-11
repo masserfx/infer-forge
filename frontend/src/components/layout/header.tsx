@@ -111,7 +111,7 @@ export function Header() {
         <SheetContent side="left" className="w-64">
           <div className="flex h-16 items-center px-2">
             <Link href="/dashboard" className="flex items-center gap-2 font-bold text-lg">
-              INFER FORGE
+              INFERBOX
             </Link>
           </div>
           <nav className="flex flex-col space-y-1 mt-4">
@@ -142,7 +142,7 @@ export function Header() {
       {/* Desktop breadcrumbs placeholder */}
       <div className="flex-1 min-w-0">
         <h1 className="text-base sm:text-lg font-semibold truncate">
-          {navItems.find((item) => pathname?.startsWith(item.href))?.label || "INFER FORGE"}
+          {navItems.find((item) => pathname?.startsWith(item.href))?.label || "INFERBOX"}
         </h1>
       </div>
 

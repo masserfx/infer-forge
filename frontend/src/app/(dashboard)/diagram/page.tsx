@@ -655,7 +655,7 @@ export default function DiagramPage() {
     if (!cy) return;
     const png = cy.png({ scale: 2, bg: "#0a0e17", full: true });
     const link = document.createElement("a");
-    link.download = "infer-forge-architecture.png";
+    link.download = "inferbox-architecture.png";
     link.href = png;
     link.click();
   };
@@ -828,7 +828,7 @@ export default function DiagramPage() {
                 {/* Title */}
                 <div className="mb-8 text-center">
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-emerald-500 bg-clip-text text-transparent">
-                    Proces zakázky — INFER FORGE
+                    Proces zakázky — INFERBOX
                   </h1>
                   <p className="mt-2 text-sm text-muted-foreground max-w-2xl mx-auto">
                     Kompletní životní cyklus zakázky od příjmu poptávkového e-mailu přes kalkulaci, výrobu
