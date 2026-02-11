@@ -111,7 +111,7 @@ export function Header() {
         <SheetContent side="left" className="w-64">
           <div className="flex h-16 items-center px-2">
             <Link href="/dashboard" className="flex items-center gap-2 text-lg">
-              <span className="font-normal">infer</span><span className="font-bold">box</span>
+              <span><span className="font-normal">infer</span><span className="font-bold">box</span></span>
             </Link>
           </div>
           <nav className="flex flex-col space-y-1 mt-4">
