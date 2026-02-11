@@ -4,7 +4,7 @@
 
 **Verze:** 1.0  
 **Datum:** 7. února 2026  
-**Kódový název projektu:** INFER FORGE  
+**Kódový název projektu:** inferbox  
 **Klasifikace:** Interní — Strategický dokument
 
 ---
@@ -13,7 +13,7 @@
 
 Infer s.r.o. je výrobně orientovaná strojírenská společnost se sídlem v Praze, specializující se na komplexní dodávky v oblasti potrubních dílů a systémů, obrábění, svařování, montáží průmyslových zařízení a ocelových konstrukcí. Firma je certifikována dle ČSN EN ISO 9001:2016 a dodává produkty s plnou kvalitativní dokumentací (WPQR, WPS, NDT).
 
-Cílem projektu **INFER FORGE** je vybudovat automatizační platformu, která digitalizuje klíčové obchodní a výrobní procesy — od příjmu poptávky přes tvorbu nabídky, zpracování výkresové dokumentace, generování výrobních sestav, až po fakturaci v ekonomickém systému Pohoda. Platforma bude řízena AI agenty orchestrovanými zkušeným Product & Engineering Leaderem.
+Cílem projektu **inferbox** je vybudovat automatizační platformu, která digitalizuje klíčové obchodní a výrobní procesy — od příjmu poptávky přes tvorbu nabídky, zpracování výkresové dokumentace, generování výrobních sestav, až po fakturaci v ekonomickém systému Pohoda. Platforma bude řízena AI agenty orchestrovanými zkušeným Product & Engineering Leaderem.
 
 ---
 
@@ -65,13 +65,13 @@ Průmyslové podniky v oblasti energetiky, petrochemie, hutnictví a těžkého 
 
 ---
 
-## 4. Architektura řešení INFER FORGE
+## 4. Architektura řešení inferbox
 
 ### 4.1 Přehled systému
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        INFER FORGE                              │
+│                        inferbox                                  │
 │                   Orchestrační vrstva (AI)                      │
 ├─────────┬──────────┬───────────┬────────────┬──────────────────┤
 │  EMAIL  │  PARSER  │ KALKULACE │  POHODA    │  DOKUMENTY       │
@@ -256,7 +256,7 @@ knihovna: openpyxl + pandas
 ## 6. Workflow — End-to-End zpracování zakázky
 
 ```
-ZÁKAZNÍK                  INFER FORGE                    INFER TÝM
+ZÁKAZNÍK                  inferbox                       INFER TÝM
    │                          │                              │
    │── Email s poptávkou ────▸│                              │
    │   (výkresy, BOM, spec)   │                              │
@@ -593,7 +593,7 @@ Tým je organizován jako **product-led engineering squad** vedený zkušeným l
 
 ### A. Kontextové instrukce pro AI agenty
 
-Každý AI agent v systému INFER FORGE má přístup k tomuto PRD jako ke svému primárnímu kontextovému dokumentu. Agenti se řídí následujícími pravidly:
+Každý AI agent v systému **inferbox** má přístup k tomuto PRD jako ke svému primárnímu kontextovému dokumentu. Agenti se řídí následujícími pravidly:
 
 1. **Vždy pracuj v kontextu strojírenské výroby** — terminologie, normy, materiály
 2. **Respektuj ISO 9001** — trasovatelnost, dokumentace, verzování
@@ -618,7 +618,7 @@ Každý AI agent v systému INFER FORGE má přístup k tomuto PRD jako ke svém
 
 ---
 
-*Tento dokument slouží jako primární zdroj pravdy pro developerský tým projektu INFER FORGE. Veškeré změny procházejí schválením Product & Engineering Leadera.*
+*Tento dokument slouží jako primární zdroj pravdy pro developerský tým projektu **inferbox**. Veškeré změny procházejí schválením Product & Engineering Leadera.*
 
 **Připravil:** AI Product Architect  
 **Pro:** Infer s.r.o. — Ing. Lukáš Benček, Ing. Martin Tůma  

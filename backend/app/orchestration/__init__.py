@@ -1,1 +1,1 @@
-"""INFER FORGE Multi-Agent Document Orchestration System."""
+"""inferbox Multi-Agent Document Orchestration System."""

@@ -11,7 +11,7 @@ alerting:
         - targets: ['alertmanager:9093']
 
 scrape_configs:
-  - job_name: "infer-forge-backend"
+  - job_name: "inferbox-backend"
     static_configs:
       - targets: ["backend:8000"]
     metrics_path: "/metrics"

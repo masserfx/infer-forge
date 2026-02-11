@@ -79,10 +79,10 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build backend Docker image
-        run: docker build ./backend -t infer-forge-backend:test
+        run: docker build ./backend -t inferbox-backend:test
 
       - name: Build frontend Docker image
-        run: docker build ./frontend -t infer-forge-frontend:test
+        run: docker build ./frontend -t inferbox-frontend:test
 
   security-audit:
     runs-on: ubuntu-latest

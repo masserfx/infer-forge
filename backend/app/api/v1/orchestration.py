@@ -1033,7 +1033,7 @@ async def test_email_pipeline(body: TestEmailRequest):
 
         agent = EmailIngestionAgent()
         raw_email_data = {
-            "message_id": f"<test-{uuid4()}@infer-forge-test>",
+            "message_id": f"<test-{uuid4()}@inferbox-test>",
             "from_email": body.from_email,
             "subject": body.subject,
             "body_text": body.body_text,
@@ -1294,7 +1294,7 @@ async def batch_upload_eml(
             msg = email_module.message_from_bytes(content)
 
             # Extract basic headers
-            message_id = msg.get("Message-ID", f"<batch-{uuid4()}@infer-forge>")
+            message_id = msg.get("Message-ID", f"<batch-{uuid4()}@inferbox>")
             from_email = msg.get("From", "unknown@unknown.com")
             subject = msg.get("Subject", "(bez předmětu)")
 

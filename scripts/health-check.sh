@@ -1,5 +1,5 @@
 #!/bin/bash
-# Komplexní health check pro INFER FORGE produkční stack
+# Komplexní health check pro inferbox produkční stack
 
 set -e
 
@@ -24,7 +24,7 @@ warning() {
     echo -e "${COLOR_YELLOW}⚠️  $1${COLOR_RESET}"
 }
 
-echo "=== INFER FORGE Health Check ==="
+echo "=== inferbox Health Check ==="
 echo ""
 
 # 1. Docker containers
@@ -107,7 +107,7 @@ echo ""
 echo "7️⃣  Kontrola disk usage..."
 if command -v docker &> /dev/null; then
     echo "Docker volumes:"
-    docker system df -v | grep -E "VOLUME NAME|infer-forge" || true
+    docker system df -v | grep -E "VOLUME NAME|inferbox" || true
 fi
 echo ""
 
@@ -115,7 +115,7 @@ echo ""
 echo "8️⃣  Kontrola memory usage..."
 if command -v docker &> /dev/null; then
     docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" | \
-        grep -E "NAME|infer-forge" || true
+        grep -E "NAME|inferbox" || true
 fi
 echo ""
 

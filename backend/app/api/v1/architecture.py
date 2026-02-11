@@ -9,7 +9,7 @@ from fastapi import APIRouter
 
 router = APIRouter(prefix="/architektura", tags=["architektura"])
 
-# Resolve paths — works both locally (infer-forge/) and in Docker (/prezentace mount)
+# Resolve paths — works both locally (inferbox/) and in Docker (/prezentace mount)
 _LOCAL_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 _LOCAL_PREZENTACE = _LOCAL_ROOT / "prezentace"
 _DOCKER_PREZENTACE = Path("/prezentace")

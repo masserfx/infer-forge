@@ -2,7 +2,7 @@ import { chromium } from "playwright";
 import * as fs from "fs";
 import * as path from "path";
 
-const BASE_URL = "https://infer-forge.hradev.cz";
+const BASE_URL = "https://inferbox.hradev.cz";
 const LOGIN_EMAIL = "admin@infer.cz";
 const LOGIN_PASSWORD = "admin123";
 

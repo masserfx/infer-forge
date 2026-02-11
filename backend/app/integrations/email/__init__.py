@@ -1,4 +1,4 @@
-"""Email integration module for INFER FORGE.
+"""Email integration module for inferbox.
 
 Provides async IMAP and SMTP clients for email operations.
 """

@@ -1,12 +1,12 @@
 # Nasazení Zálohovacího Systému na Produkční Server
 
-Kroky pro instalaci automatických záloh na produkčním serveru INFER FORGE.
+Kroky pro instalaci automatických záloh na produkčním serveru inferbox.
 
 ## Prerekvizity
 
 - Produkční server: `91.99.126.53`
 - SSH přístup s root oprávněními
-- Docker Compose běžící (INFER FORGE deployed)
+- Docker Compose běžící (inferbox deployed)
 - `.env.prod` soubor nakonfigurovaný
 
 ## Instalace na Produkčním Serveru
@@ -21,7 +21,7 @@ ssh hetzner-leos   # nebo: ssh leos@91.99.126.53
 ### 2. Ověření Projektu
 
 ```bash
-cd /opt/infer-forge
+cd /opt/inferbox
 
 # Zkontrolovat, že Docker Compose běží
 docker compose -f docker-compose.prod.yml ps
@@ -32,7 +32,7 @@ docker compose -f docker-compose.prod.yml ps
 ### 3. Ověření Zálohovacích Skriptů
 
 ```bash
-cd /opt/infer-forge
+cd /opt/inferbox
 
 # Zkontrolovat, že skripty existují
 ls -l scripts/backup*.sh scripts/restore_db.sh
@@ -60,36 +60,36 @@ sudo ./scripts/backup-cron.sh
 Výstup by měl být:
 
 ```
-Setting up INFER FORGE backup cron jobs...
+Setting up inferbox backup cron jobs...
 Cron jobs installed successfully!
 
 Backup schedule:
   - Daily backup:  Every day at 2:00 AM (retention: 7 days)
   - Weekly backup: Every Sunday at 3:00 AM (retention: 90 days)
 
-Backup location: /opt/infer-forge/backups
-Log file: /var/log/infer-forge-backup.log
+Backup location: /opt/inferbox/backups
+Log file: /var/log/inferbox-backup.log
 ```
 
 ### 5. Ověření Cron Jobs
 
 ```bash
 # Zobrazit nainstalované cron joby
-sudo crontab -l | grep infer-forge
+sudo crontab -l | grep inferbox
 ```
 
 Měli byste vidět:
 
 ```cron
-0 2 * * * cd /opt/infer-forge && /opt/infer-forge/scripts/backup_db.sh >> /var/log/infer-forge-backup.log 2>&1
-0 3 * * 0 cd /opt/infer-forge && /opt/infer-forge/scripts/backup_db.sh --weekly >> /var/log/infer-forge-backup.log 2>&1
+0 2 * * * cd /opt/inferbox && /opt/inferbox/scripts/backup_db.sh >> /var/log/inferbox-backup.log 2>&1
+0 3 * * 0 cd /opt/inferbox && /opt/inferbox/scripts/backup_db.sh --weekly >> /var/log/inferbox-backup.log 2>&1
 ```
 
 ### 6. Test Manuální Zálohy
 
 ```bash
 # Vytvořit první zálohu ručně (nemusíte čekat do 2:00)
-cd /opt/infer-forge
+cd /opt/inferbox
 ./scripts/backup_db.sh
 ```
 
@@ -99,15 +99,15 @@ Výstup by měl být:
 [2026-02-08 14:30:00] =========================================
 [2026-02-08 14:30:00] Starting DAILY backup
 [2026-02-08 14:30:00] =========================================
-[2026-02-08 14:30:02] Backing up PostgreSQL database to: /opt/infer-forge/backups/infer-forge-backup-2026-02-08-143000.sql.gz
+[2026-02-08 14:30:02] Backing up PostgreSQL database to: /opt/inferbox/backups/inferbox-backup-2026-02-08-143000.sql.gz
 [2026-02-08 14:30:05] Database backup complete: 15M
-[2026-02-08 14:30:05] Backing up uploads volume to: /opt/infer-forge/backups/uploads-2026-02-08
+[2026-02-08 14:30:05] Backing up uploads volume to: /opt/inferbox/backups/uploads-2026-02-08
 [2026-02-08 14:30:07] Uploads backup complete: 2.3M
 [2026-02-08 14:30:07] Running backup rotation...
 [2026-02-08 14:30:07] =========================================
 [2026-02-08 14:30:07] Backup completed successfully!
-[2026-02-08 14:30:07] Database: /opt/infer-forge/backups/infer-forge-backup-2026-02-08-143000.sql.gz
-[2026-02-08 14:30:07] Uploads: /opt/infer-forge/backups/uploads-2026-02-08.tar.gz
+[2026-02-08 14:30:07] Database: /opt/inferbox/backups/inferbox-backup-2026-02-08-143000.sql.gz
+[2026-02-08 14:30:07] Uploads: /opt/inferbox/backups/uploads-2026-02-08.tar.gz
 [2026-02-08 14:30:07] =========================================
 ```
 
@@ -115,14 +115,14 @@ Výstup by měl být:
 
 ```bash
 # Zkontrolovat vytvořené zálohy
-ls -lh /opt/infer-forge/backups/
+ls -lh /opt/inferbox/backups/
 
 # Měli byste vidět:
-# -rw-r--r-- 1 root root 15M Feb  8 14:30 infer-forge-backup-2026-02-08-143000.sql.gz
+# -rw-r--r-- 1 root root 15M Feb  8 14:30 inferbox-backup-2026-02-08-143000.sql.gz
 # -rw-r--r-- 1 root root 2.3M Feb  8 14:30 uploads-2026-02-08.tar.gz
 
 # Zkontrolovat log
-tail -50 /var/log/infer-forge-backup.log
+tail -50 /var/log/inferbox-backup.log
 ```
 
 ### 8. Test Týdenní Zálohy
@@ -132,7 +132,7 @@ tail -50 /var/log/infer-forge-backup.log
 ./scripts/backup_db.sh --weekly
 
 # Ověřit
-ls -lh /opt/infer-forge/backups/infer-forge-weekly-*.sql.gz
+ls -lh /opt/inferbox/backups/inferbox-weekly-*.sql.gz
 ```
 
 ## Monitoring
@@ -141,27 +141,27 @@ ls -lh /opt/infer-forge/backups/infer-forge-weekly-*.sql.gz
 
 ```bash
 # Real-time sledování záloh
-tail -f /var/log/infer-forge-backup.log
+tail -f /var/log/inferbox-backup.log
 ```
 
 ### Kontrola Poslední Zálohy
 
 ```bash
 # Kdy byla poslední úspěšná záloha?
-grep "Backup completed successfully" /var/log/infer-forge-backup.log | tail -1
+grep "Backup completed successfully" /var/log/inferbox-backup.log | tail -1
 
 # Velikost poslední zálohy
-ls -lht /opt/infer-forge/backups/*.sql.gz | head -1
+ls -lht /opt/inferbox/backups/*.sql.gz | head -1
 ```
 
 ### Kontrola Chyb
 
 ```bash
 # Hledat chyby v logu
-grep ERROR /var/log/infer-forge-backup.log
+grep ERROR /var/log/inferbox-backup.log
 
 # Pokud jsou chyby, zkontrolovat detaily
-tail -100 /var/log/infer-forge-backup.log
+tail -100 /var/log/inferbox-backup.log
 ```
 
 ## Test Restore (Důležité!)
@@ -173,7 +173,7 @@ tail -100 /var/log/infer-forge-backup.log
 ./scripts/backup_db.sh
 
 # 2. Najít nejnovější zálohu
-LATEST_BACKUP=$(ls -t /opt/infer-forge/backups/infer-forge-backup-*.sql.gz | head -1)
+LATEST_BACKUP=$(ls -t /opt/inferbox/backups/inferbox-backup-*.sql.gz | head -1)
 echo "Latest backup: $LATEST_BACKUP"
 
 # 3. Restore (vytvoří safety backup před restore)
@@ -183,7 +183,7 @@ echo "Latest backup: $LATEST_BACKUP"
 # Type 'yes' to continue: yes
 
 # Výstup:
-# [2026-02-08 14:35:00] RESTORE: Creating safety backup: /opt/infer-forge/backups/safety-backup-2026-02-08-143500.sql.gz
+# [2026-02-08 14:35:00] RESTORE: Creating safety backup: /opt/inferbox/backups/safety-backup-2026-02-08-143500.sql.gz
 # [2026-02-08 14:35:02] RESTORE: Safety backup complete: 15M
 # [2026-02-08 14:35:02] RESTORE: Dropping database 'infer_forge'...
 # [2026-02-08 14:35:03] RESTORE: Creating database 'infer_forge'...
@@ -210,12 +210,12 @@ docker compose -f docker-compose.prod.yml up -d
 
 ```bash
 # Vytvořit backup adresář s správnými oprávněními
-sudo mkdir -p /opt/infer-forge/backups
-sudo chmod 755 /opt/infer-forge/backups
+sudo mkdir -p /opt/inferbox/backups
+sudo chmod 755 /opt/inferbox/backups
 
 # Vytvořit log soubor
-sudo touch /var/log/infer-forge-backup.log
-sudo chmod 644 /var/log/infer-forge-backup.log
+sudo touch /var/log/inferbox-backup.log
+sudo chmod 644 /var/log/inferbox-backup.log
 ```
 
 ### Problém: Cron job neběží
@@ -229,14 +229,14 @@ sudo systemctl start cron
 sudo systemctl enable cron
 
 # Zkontrolovat cron logy
-sudo grep CRON /var/log/syslog | grep infer-forge
+sudo grep CRON /var/log/syslog | grep inferbox
 ```
 
 ### Problém: Zálohy zabírají moc místa
 
 ```bash
 # Zkontrolovat velikost backupů
-du -sh /opt/infer-forge/backups
+du -sh /opt/inferbox/backups
 
 # Ručně spustit rotaci
 ./scripts/backup-rotation.sh
@@ -252,7 +252,7 @@ du -sh /opt/infer-forge/backups
 ```bash
 # Příklad: týdenní rsync na vzdálený server
 # Přidat do crontabu:
-0 4 * * 0 rsync -avz --progress /opt/infer-forge/backups/infer-forge-weekly-*.sql.gz.gpg offsite-server:/backups/
+0 4 * * 0 rsync -avz --progress /opt/inferbox/backups/inferbox-weekly-*.sql.gz.gpg offsite-server:/backups/
 ```
 
 ### 2. Šifrování Záloh (Pro Off-site)
@@ -262,9 +262,9 @@ du -sh /opt/infer-forge/backups
 sudo apt-get install gnupg
 
 # Šifrovat zálohu před přenosem
-gpg --symmetric --cipher-algo AES256 /opt/infer-forge/backups/infer-forge-weekly-*.sql.gz
+gpg --symmetric --cipher-algo AES256 /opt/inferbox/backups/inferbox-weekly-*.sql.gz
 
-# Výsledek: infer-forge-weekly-*.sql.gz.gpg (šifrovaný)
+# Výsledek: inferbox-weekly-*.sql.gz.gpg (šifrovaný)
 ```
 
 ### 3. Nastavit Email Alerting
@@ -277,15 +277,15 @@ sudo apt-get install mailutils
 
 # Upravit backup_db.sh - přidat na konec:
 if [ $? -eq 0 ]; then
-    echo "Backup completed successfully" | mail -s "INFER FORGE Backup OK" admin@infer.cz
+    echo "Backup completed successfully" | mail -s "inferbox Backup OK" admin@infer.cz
 else
-    echo "Backup FAILED! Check logs at /var/log/infer-forge-backup.log" | mail -s "INFER FORGE Backup FAILED" admin@infer.cz
+    echo "Backup FAILED! Check logs at /var/log/inferbox-backup.log" | mail -s "inferbox Backup FAILED" admin@infer.cz
 fi
 ```
 
 ### 4. Monitoring s Prometheus/Grafana
 
-INFER FORGE už má Prometheus + Grafana. Můžete přidat metriky pro backup monitoring:
+inferbox už má Prometheus + Grafana. Můžete přidat metriky pro backup monitoring:
 
 ```bash
 # Vytvořit node_exporter textfile collector
@@ -324,7 +324,7 @@ docker volume rm infer-forge_pgdata infer-forge_uploads
 docker compose -f docker-compose.prod.yml up -d db
 
 # Obnovit z týdenní zálohy
-./scripts/restore_db.sh /opt/infer-forge/backups/infer-forge-weekly-LATEST.sql.gz
+./scripts/restore_db.sh /opt/inferbox/backups/inferbox-weekly-LATEST.sql.gz
 
 # Nastartovat všechny služby
 docker compose -f docker-compose.prod.yml up -d
@@ -341,15 +341,15 @@ docker compose -f docker-compose.prod.yml up -d
    - ✅ RPO (Recovery Point Objective): Kolik dat jsme ztratili?
    - ✅ Funkčnost: Vše funguje správně?
 
-3. Uložit test report do `/opt/infer-forge/docs/dr_test_YYYY-MM-DD.md`
+3. Uložit test report do `/opt/inferbox/docs/dr_test_YYYY-MM-DD.md`
 
 ## Checklist po Instalaci
 
-- [ ] Cron jobs nainstalované (`crontab -l | grep infer-forge`)
-- [ ] První denní záloha vytvořená (`ls /opt/infer-forge/backups/`)
+- [ ] Cron jobs nainstalované (`crontab -l | grep inferbox`)
+- [ ] První denní záloha vytvořená (`ls /opt/inferbox/backups/`)
 - [ ] První týdenní záloha vytvořená
 - [ ] Test restore úspěšný
-- [ ] Log monitoring nastaven (`tail -f /var/log/infer-forge-backup.log`)
+- [ ] Log monitoring nastaven (`tail -f /var/log/inferbox-backup.log`)
 - [ ] Email alerting nakonfigurován (optional)
 - [ ] Off-site backup nastaven (recommended)
 - [ ] Disaster Recovery test naplánován (quarterly)
@@ -358,6 +358,6 @@ docker compose -f docker-compose.prod.yml up -d
 ## Kontakt
 
 V případě problémů:
-- **Dokumentace:** `/opt/infer-forge/docs/BACKUP_SYSTEM.md`
-- **Logy:** `/var/log/infer-forge-backup.log`
+- **Dokumentace:** `/opt/inferbox/docs/BACKUP_SYSTEM.md`
+- **Logy:** `/var/log/inferbox-backup.log`
 - **Support:** Leoš Hradek

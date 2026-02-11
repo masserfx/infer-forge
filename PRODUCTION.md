@@ -1,6 +1,6 @@
-# INFER FORGE - Produkční Quick Start
+# inferbox - Produkční Quick Start
 
-Rychlý návod pro spuštění produkční verze INFER FORGE.
+Rychlý návod pro spuštění produkční verze **inferbox**.
 
 ## Rychlé spuštění (Local testing)
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# SSL/TLS Certificate Setup Script for INFER FORGE
+# SSL/TLS Certificate Setup Script for inferbox
 # Usage:
 #   ./scripts/setup-ssl.sh --self-signed              # Generate self-signed cert for dev/testing
 #   ./scripts/setup-ssl.sh --letsencrypt example.com  # Get Let's Encrypt cert for production
@@ -149,7 +149,7 @@ renew_letsencrypt() {
 
 show_usage() {
     cat << EOF
-SSL/TLS Setup Script pro INFER FORGE
+SSL/TLS Setup Script pro inferbox
 
 Usage:
   $0 --self-signed                  # Vygeneruje self-signed certifikát pro dev/testing

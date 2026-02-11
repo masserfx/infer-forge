@@ -1,5 +1,5 @@
 groups:
-  - name: infer_forge_critical
+  - name: inferbox_critical
     interval: 30s
     rules:
       - alert: BackendDown
@@ -47,7 +47,7 @@ groups:
           summary: "Vysoký podíl HTTP 5xx chyb"
           description: "Backend má {{ $value | humanizePercentage }} 5xx odpovědí v posledních 5 minutách na {{ $labels.instance }}."
 
-  - name: infer_forge_warnings
+  - name: inferbox_warnings
     interval: 1m
     rules:
       - alert: CeleryQueueBacklog

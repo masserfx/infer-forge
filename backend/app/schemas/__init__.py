@@ -1,4 +1,4 @@
-"""Pydantic schemas for INFER FORGE API."""
+"""Pydantic schemas for inferbox API."""
 
 from .auth import (
     LoginRequest,

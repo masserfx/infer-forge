@@ -1,7 +1,7 @@
 [project]
-name = "infer-forge-backend"
+name = "inferbox-backend"
 version = "0.1.0"
-description = "INFER FORGE backend - automatizační platforma pro strojírenskou firmu Infer s.r.o."
+description = "inferbox backend - automatizační platforma pro strojírenskou firmu Infer s.r.o."
 requires-python = ">=3.12"
 dependencies = [
     "fastapi==0.115.0",

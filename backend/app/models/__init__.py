@@ -1,4 +1,4 @@
-"""SQLAlchemy models for INFER FORGE."""
+"""SQLAlchemy models for inferbox."""
 
 from .audit import AuditAction, AuditLog
 from .base import Base, TimestampMixin, UUIDPKMixin

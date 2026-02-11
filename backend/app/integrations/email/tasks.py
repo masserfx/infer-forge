@@ -218,7 +218,7 @@ async def _poll_inbox_async(settings: object) -> dict[str, object]:
                     content_hash = hashlib.sha256(
                         f"{raw_email.subject}|{raw_email.from_email}|{raw_email.received_at}".encode()
                     ).hexdigest()[:16]
-                    raw_email.message_id = f"<gen-{content_hash}-{uuid4().hex[:8]}@infer-forge>"
+                    raw_email.message_id = f"<gen-{content_hash}-{uuid4().hex[:8]}@inferbox>"
                     logger.info(
                         "poll_inbox.generated_message_id",
                         generated_id=raw_email.message_id,
@@ -629,7 +629,7 @@ def send_auto_reply(
                 "email": settings.SMTP_FROM_EMAIL,
             },
             "today": datetime.now(UTC).strftime("%d.%m.%Y"),
-            "sender_name": "INFER FORGE",
+            "sender_name": "inferbox",
             "sender_email": settings.SMTP_FROM_EMAIL,
         }
 

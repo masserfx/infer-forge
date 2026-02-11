@@ -1,4 +1,4 @@
-"""FastAPI application entry point for INFER FORGE backend.
+"""FastAPI application entry point for inferbox backend.
 
 Configures middleware, routes, and lifecycle events.
 """

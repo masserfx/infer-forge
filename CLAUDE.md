@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Projekt
 
-INFER FORGE — automatizační platforma pro strojírenskou firmu Infer s.r.o. (IČO: 04856562). Firma vyrábí potrubní díly, svařence, ocelové konstrukce a provádí montáže průmyslových zařízení. Certifikace ISO 9001:2016.
+**inferbox** — automatizační platforma pro strojírenskou firmu Infer s.r.o. (IČO: 04856562). Firma vyrábí potrubní díly, svařence, ocelové konstrukce a provádí montáže průmyslových zařízení. Certifikace ISO 9001:2016.
 
 ## Tech Stack
 

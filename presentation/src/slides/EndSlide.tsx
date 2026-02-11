@@ -48,7 +48,7 @@ export const EndSlide: React.FC = () => {
           color: "#ef4444",
           marginBottom: 24,
         }}>
-          INFER FORGE
+          inferbox
         </div>
 
         <div style={{
@@ -99,7 +99,7 @@ export const EndSlide: React.FC = () => {
             fontSize: 20,
             fontWeight: 600,
           }}>
-            Demo: infer-forge.hradev.cz
+            Demo: inferbox.hradev.cz
           </div>
           <div style={{
             padding: "14px 32px",
@@ -110,7 +110,7 @@ export const EndSlide: React.FC = () => {
             fontSize: 20,
             fontWeight: 600,
           }}>
-            github.com/masserfx/infer-forge
+            github.com/masserfx/inferbox
           </div>
         </div>
 

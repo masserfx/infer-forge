@@ -1,5 +1,5 @@
 /**
- * API client for INFER FORGE backend.
+ * API client for inferbox backend.
  * All API calls go through this module for consistent error handling.
  */
 

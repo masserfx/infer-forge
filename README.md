@@ -1,10 +1,10 @@
-# INFER FORGE
+# inferbox
 
 Automatizační platforma pro strojírenskou firmu Infer s.r.o. (IČO: 04856562).
 
 ## O projektu
 
-INFER FORGE automatizuje klíčové procesy strojírenské firmy Infer s.r.o., která se specializuje na výrobu potrubních dílů, svařenců, ocelových konstrukcí a montáže průmyslových zařízení. Systém je certifikován dle ISO 9001:2016.
+**inferbox** automatizuje klíčové procesy strojírenské firmy Infer s.r.o., která se specializuje na výrobu potrubních dílů, svařenců, ocelových konstrukcí a montáže průmyslových zařízení. Systém je certifikován dle ISO 9001:2016.
 
 ### Hlavní funkce
 
@@ -306,4 +306,4 @@ Vyvíjeno s Claude Code (claude.ai/code) pomocí subagentů:
 
 ---
 
-**INFER FORGE** - Automatizace pro moderní strojírenství
+**inferbox** - Automatizace pro moderní strojírenství

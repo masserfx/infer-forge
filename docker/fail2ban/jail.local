@@ -1,4 +1,4 @@
-# INFER FORGE Fail2ban Configuration
+# inferbox Fail2ban Configuration
 # Protects Nginx from HTTP auth bruteforce and rate limit violations
 
 [nginx-http-auth]

@@ -1,6 +1,6 @@
-# E2E Testy INFER FORGE Frontend
+# E2E Testy inferbox Frontend
 
-Playwright E2E testovací framework pro INFER FORGE aplikaci.
+Playwright E2E testovací framework pro **inferbox** aplikaci.
 
 ## Spuštění testů
 

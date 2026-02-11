@@ -22,7 +22,7 @@ Spoj se na server přes `ssh hetzner-root` a proveď:
 
 ```bash
 # Proměnné
-PROJ_DIR=/home/leos/infer-forge
+PROJ_DIR=/home/leos/inferbox
 COMPOSE="docker compose -f docker-compose.prod.yml"
 
 # Pull
@@ -55,7 +55,7 @@ curl -sf http://localhost:8000/api/v1/orchestrace/stats | python3 -m json.tool |
 curl -sf http://localhost:3000 -o /dev/null && echo "OK: frontend" || echo "FAIL: frontend"
 
 # Container status
-docker ps --format "table {{.Names}}\t{{.Status}}" | grep infer-forge
+docker ps --format "table {{.Names}}\t{{.Status}}" | grep inferbox
 ```
 
 ## 5. Výstup

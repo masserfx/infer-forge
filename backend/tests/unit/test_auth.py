@@ -1,4 +1,4 @@
-"""Unit tests for authentication and RBAC in INFER FORGE.
+"""Unit tests for authentication and RBAC in inferbox.
 
 Tests cover:
 - User model and UserRole enum

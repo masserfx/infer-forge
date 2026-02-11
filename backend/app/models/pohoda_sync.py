@@ -13,8 +13,8 @@ from .base import Base, UUIDPKMixin
 class SyncDirection(str, enum.Enum):
     """Sync direction enum."""
 
-    EXPORT = "export"  # INFER FORGE -> Pohoda
-    IMPORT = "import"  # Pohoda -> INFER FORGE
+    EXPORT = "export"  # inferbox -> Pohoda
+    IMPORT = "import"  # Pohoda -> inferbox
 
 
 class SyncStatus(str, enum.Enum):

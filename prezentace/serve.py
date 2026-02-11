@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-INFER FORGE — Dynamic Architecture Server
+inferbox — Dynamic Architecture Server
 Serves the interactive flowchart and re-generates graph data on demand.
 
 Usage:
@@ -100,7 +100,7 @@ def make_handler(directory: str):
 
 
 def main():
-    print(f"\033[1;34mINFER FORGE Architecture Server\033[0m")
+    print(f"\033[1;34minferbox Architecture Server\033[0m")
     print(f"Generating initial graph data...")
     subprocess.run(
         [sys.executable, str(ANALYZER)],

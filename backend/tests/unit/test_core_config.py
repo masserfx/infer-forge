@@ -9,7 +9,7 @@ from app.core.config import Settings, get_settings
 def test_settings_default_values() -> None:
     """Test that Settings loads with default values."""
     settings = Settings()
-    assert settings.APP_NAME == "INFER FORGE"
+    assert settings.APP_NAME == "inferbox"
     assert settings.ALGORITHM == "HS256"
     assert settings.ACCESS_TOKEN_EXPIRE_MINUTES == 480
     assert settings.POHODA_ICO == "04856562"

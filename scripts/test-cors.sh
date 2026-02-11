@@ -43,7 +43,7 @@ echo "2. Nepovolený origin"
 test_cors "http://evil.com" "blocked"
 
 echo "3. Produkční doména (pokud nastaveno)"
-test_cors "https://infer-forge.example.com" "depends"
+test_cors "https://inferbox.example.com" "depends"
 
 echo "=== Test dokončen ==="
 echo ""

@@ -1,4 +1,4 @@
-"""AI agents for email processing in the INFER FORGE platform.
+"""AI agents for email processing in the inferbox platform.
 
 Provides email classification and structured data extraction agents
 powered by Anthropic Claude API with tool_use for reliable output.

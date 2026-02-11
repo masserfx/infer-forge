@@ -315,7 +315,7 @@ class ExcelExporter:
             ws.freeze_panes = "A2"
 
             # Add metadata
-            wb.properties.creator = "INFER FORGE"
+            wb.properties.creator = "inferbox"
             wb.properties.created = datetime.now()
 
             # Save workbook
@@ -426,7 +426,7 @@ class ExcelExporter:
             ws.freeze_panes = "A2"
 
             # Add metadata
-            wb.properties.creator = "INFER FORGE"
+            wb.properties.creator = "inferbox"
             wb.properties.created = datetime.now()
             wb.properties.title = "Materiálová potřeba (BOM)"
 

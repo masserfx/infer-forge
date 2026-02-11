@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PostgreSQL backup script for INFER FORGE
+# PostgreSQL backup script for inferbox
 # Usage: ./scripts/backup_db.sh [--weekly]
 # Requires: docker compose, POSTGRES_USER, POSTGRES_DB, POSTGRES_PASSWORD env vars
 
@@ -7,8 +7,8 @@ set -euo pipefail
 
 # Configuration
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BACKUP_DIR="${BACKUP_DIR:-/opt/infer-forge/backups}"
-LOG_FILE="${LOG_FILE:-/var/log/infer-forge-backup.log}"
+BACKUP_DIR="${BACKUP_DIR:-/opt/inferbox/backups}"
+LOG_FILE="${LOG_FILE:-/var/log/inferbox-backup.log}"
 RETENTION_DAYS="${RETENTION_DAYS:-30}"
 WEEKLY_RETENTION_DAYS="${WEEKLY_RETENTION_DAYS:-90}"
 
@@ -25,10 +25,10 @@ DATE_ONLY=$(date +%Y-%m-%d)
 
 # Backup file names
 if [ "$WEEKLY_BACKUP" = true ]; then
-    DB_BACKUP_FILE="${BACKUP_DIR}/infer-forge-weekly-${TIMESTAMP}.sql.gz"
+    DB_BACKUP_FILE="${BACKUP_DIR}/inferbox-weekly-${TIMESTAMP}.sql.gz"
     UPLOADS_BACKUP_DIR="${BACKUP_DIR}/uploads-weekly-${DATE_ONLY}"
 else
-    DB_BACKUP_FILE="${BACKUP_DIR}/infer-forge-backup-${TIMESTAMP}.sql.gz"
+    DB_BACKUP_FILE="${BACKUP_DIR}/inferbox-backup-${TIMESTAMP}.sql.gz"
     UPLOADS_BACKUP_DIR="${BACKUP_DIR}/uploads-${DATE_ONLY}"
 fi
 
@@ -112,10 +112,10 @@ else
     # Fallback: simple retention by days
     log "Removing backups older than ${RETENTION_DAYS} days..."
     if [ "$WEEKLY_BACKUP" = true ]; then
-        find "$BACKUP_DIR" -name "infer-forge-weekly-*.sql.gz" -mtime "+${RETENTION_DAYS}" -delete 2>/dev/null || true
+        find "$BACKUP_DIR" -name "inferbox-weekly-*.sql.gz" -mtime "+${RETENTION_DAYS}" -delete 2>/dev/null || true
         find "$BACKUP_DIR" -name "uploads-weekly-*.tar.gz" -mtime "+${RETENTION_DAYS}" -delete 2>/dev/null || true
     else
-        find "$BACKUP_DIR" -name "infer-forge-backup-*.sql.gz" -mtime "+${RETENTION_DAYS}" -delete 2>/dev/null || true
+        find "$BACKUP_DIR" -name "inferbox-backup-*.sql.gz" -mtime "+${RETENTION_DAYS}" -delete 2>/dev/null || true
         find "$BACKUP_DIR" -name "uploads-*.tar.gz" -mtime "+${RETENTION_DAYS}" -delete 2>/dev/null || true
     fi
 fi

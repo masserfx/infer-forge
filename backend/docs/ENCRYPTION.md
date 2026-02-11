@@ -2,7 +2,7 @@
 
 ## Přehled
 
-INFER FORGE implementuje AES-256-GCM šifrování pro všechny dokumenty uložené na filesystému. Šifrování je transparentní - aplikace automaticky šifruje při ukládání a dešifruje při čtení.
+inferbox implementuje AES-256-GCM šifrování pro všechny dokumenty uložené na filesystému. Šifrování je transparentní - aplikace automaticky šifruje při ukládání a dešifruje při čtení.
 
 ## Konfigurace
 

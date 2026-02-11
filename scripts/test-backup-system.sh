@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Test script for INFER FORGE backup system
+# Test script for inferbox backup system
 # Usage: ./scripts/test-backup-system.sh
 
 set -euo pipefail
@@ -33,7 +33,7 @@ log_info() {
 }
 
 echo "========================================="
-echo "INFER FORGE Backup System Test"
+echo "inferbox Backup System Test"
 echo "========================================="
 echo ""
 
@@ -133,49 +133,49 @@ fi
 # 6. Check backup directory (if on production server)
 log_info ""
 log_info "Checking backup directory..."
-if [ -d "/opt/infer-forge/backups" ]; then
-    log_pass "Backup directory exists: /opt/infer-forge/backups"
+if [ -d "/opt/inferbox/backups" ]; then
+    log_pass "Backup directory exists: /opt/inferbox/backups"
 
     # Check permissions
-    if [ -w "/opt/infer-forge/backups" ]; then
+    if [ -w "/opt/inferbox/backups" ]; then
         log_pass "Backup directory is writable"
     else
         log_warn "Backup directory is not writable"
     fi
 
     # Count existing backups
-    BACKUP_COUNT=$(find /opt/infer-forge/backups -name "*.sql.gz" 2>/dev/null | wc -l)
+    BACKUP_COUNT=$(find /opt/inferbox/backups -name "*.sql.gz" 2>/dev/null | wc -l)
     if [ "$BACKUP_COUNT" -gt 0 ]; then
         log_pass "Found ${BACKUP_COUNT} existing backup(s)"
     else
         log_warn "No backups found (not created yet)"
     fi
 else
-    log_warn "Backup directory /opt/infer-forge/backups does not exist (will be created on first backup)"
+    log_warn "Backup directory /opt/inferbox/backups does not exist (will be created on first backup)"
 fi
 
 # 7. Check log file
 log_info ""
 log_info "Checking log file..."
-if [ -f "/var/log/infer-forge-backup.log" ]; then
-    log_pass "Log file exists: /var/log/infer-forge-backup.log"
+if [ -f "/var/log/inferbox-backup.log" ]; then
+    log_pass "Log file exists: /var/log/inferbox-backup.log"
 
     # Check if writable
-    if [ -w "/var/log/infer-forge-backup.log" ]; then
+    if [ -w "/var/log/inferbox-backup.log" ]; then
         log_pass "Log file is writable"
     else
         log_warn "Log file is not writable"
     fi
 
     # Show last backup entry
-    LAST_BACKUP=$(grep "Backup completed successfully" /var/log/infer-forge-backup.log 2>/dev/null | tail -1 || echo "")
+    LAST_BACKUP=$(grep "Backup completed successfully" /var/log/inferbox-backup.log 2>/dev/null | tail -1 || echo "")
     if [ -n "$LAST_BACKUP" ]; then
         log_pass "Last successful backup: ${LAST_BACKUP}"
     else
         log_warn "No successful backups in log yet"
     fi
 else
-    log_warn "Log file /var/log/infer-forge-backup.log does not exist (will be created on first backup)"
+    log_warn "Log file /var/log/inferbox-backup.log does not exist (will be created on first backup)"
 fi
 
 # 8. Check cron jobs (if running as root or with sudo)
@@ -217,7 +217,7 @@ if [ $FAILED -eq 0 ]; then
     echo "Next steps:"
     echo "  1. Install cron jobs: sudo ./scripts/backup-cron.sh"
     echo "  2. Test manual backup: ./scripts/backup_db.sh"
-    echo "  3. Monitor logs: tail -f /var/log/infer-forge-backup.log"
+    echo "  3. Monitor logs: tail -f /var/log/inferbox-backup.log"
     exit 0
 else
     echo -e "${RED}✗ Some tests failed. Please fix the issues above.${NC}"

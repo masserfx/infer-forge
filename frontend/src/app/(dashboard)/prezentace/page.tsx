@@ -166,7 +166,7 @@ export default function PrezentacePage() {
           </p>
         </div>
         <a
-          href="/infer-forge.mp4"
+          href="/inferbox.mp4"
           download="inferbox_prezentace.mp4"
           className="inline-flex"
         >
@@ -187,7 +187,7 @@ export default function PrezentacePage() {
             <video
               ref={videoRef}
               className="w-full aspect-video"
-              src="/infer-forge.mp4"
+              src="/inferbox.mp4"
               preload="metadata"
               playsInline
             />

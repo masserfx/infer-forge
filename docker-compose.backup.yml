@@ -4,7 +4,7 @@
 services:
   backup:
     image: postgres:16-alpine
-    container_name: infer-forge-backup
+    container_name: inferbox-backup
     environment:
       - POSTGRES_HOST=db
       - POSTGRES_USER=${POSTGRES_USER:-infer}

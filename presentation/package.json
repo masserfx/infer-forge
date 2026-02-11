@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "studio": "remotion studio src/index.ts",
-    "render": "remotion render src/index.ts InferForge out/infer-forge.mp4",
-    "render-gif": "remotion render src/index.ts InferForge out/infer-forge.gif --image-format=png",
-    "still": "remotion still src/index.ts InferForge out/thumbnail.png --frame=0"
+    "render": "remotion render src/index.ts Inferbox out/inferbox.mp4",
+    "render-gif": "remotion render src/index.ts Inferbox out/inferbox.gif --image-format=png",
+    "still": "remotion still src/index.ts Inferbox out/thumbnail.png --frame=0"
   },
   "keywords": [],
   "author": "",

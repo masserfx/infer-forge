@@ -48,7 +48,7 @@ export const DashboardSlide: React.FC = () => {
             marginLeft: 20, padding: "4px 60px", borderRadius: 6,
             background: "rgba(255,255,255,0.06)", color: "#64748b", fontSize: 12,
           }}>
-            infer-forge.hradev.cz/dashboard
+            inferbox.hradev.cz/dashboard
           </div>
         </div>
         <Img

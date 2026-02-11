@@ -61,7 +61,7 @@ const slideConfig: { element: React.ReactNode; durationSec: number }[] = [
   { element: <EndSlide />, durationSec: 5 },
 ];
 
-export const InferForgePresentation: React.FC = () => {
+export const InferboxPresentation: React.FC = () => {
   let frame = 0;
 
   const slides: { from: number; duration: number; element: React.ReactNode }[] = [];

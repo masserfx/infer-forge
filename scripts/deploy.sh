@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# deploy.sh — Automated production deployment for INFER FORGE
+# deploy.sh — Automated production deployment for inferbox
 # Usage: ./scripts/deploy.sh [--skip-tests] [--skip-build]
 #
 # Connects to Hetzner server, pulls latest, rebuilds, migrates, verifies.
@@ -8,7 +8,7 @@ set -euo pipefail
 
 # ─── Config ─────────────────────────────────────────────────
 SSH_HOST="hetzner-root"
-PROJ_DIR="/home/leos/infer-forge"
+PROJ_DIR="/home/leos/inferbox"
 COMPOSE="docker compose -f docker-compose.prod.yml"
 SERVICES="backend frontend celery-worker celery-beat"
 BUILD_SERVICES="backend frontend"
@@ -112,7 +112,7 @@ fi
 
 echo ""
 echo "=== Container Status ==="
-docker ps --format "table {{.Names}}\t{{.Status}}" | grep infer-forge
+docker ps --format "table {{.Names}}\t{{.Status}}" | grep inferbox
 
 echo ""
 echo "=== Safety Switches ==="

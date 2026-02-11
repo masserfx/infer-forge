@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     )
 
     # Application
-    APP_NAME: str = "INFER FORGE"
+    APP_NAME: str = "inferbox"
     ENVIRONMENT: str = Field(
         default="development", description="Environment (development, staging, production)"
     )

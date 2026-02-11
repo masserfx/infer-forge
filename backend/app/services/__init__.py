@@ -1,4 +1,4 @@
-"""Business logic services for INFER FORGE."""
+"""Business logic services for inferbox."""
 
 from .anomaly import AnomalyService
 from .assignment import AssignmentService

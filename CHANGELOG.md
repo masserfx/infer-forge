@@ -1,6 +1,6 @@
 # Changelog
 
-Všechny významné změny v projektu INFER FORGE.
+Všechny významné změny v projektu **inferbox**.
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.0.0/),
 verzování podle [Semantic Versioning](https://semver.org/lang/cs/).
@@ -14,9 +14,9 @@ verzování podle [Semantic Versioning](https://semver.org/lang/cs/).
   - Záloha PostgreSQL přes `docker compose exec db pg_dump`
   - Komprese gzip
   - Záloha uploads volume (docker cp + tar.gz)
-  - Pojmenování: `infer-forge-backup-YYYY-MM-DD-HHMMSS.sql.gz`
+  - Pojmenování: `inferbox-backup-YYYY-MM-DD-HHMMSS.sql.gz`
   - Exit code kontrola + error reporting
-  - Logování do `/var/log/infer-forge-backup.log`
+  - Logování do `/var/log/inferbox-backup.log`
 - **scripts/backup-rotation.sh** - Retention policy management
   - 7 denních záloh (smaže starší)
   - 4 týdenní zálohy (smaže starší než 28 dní)
@@ -177,7 +177,7 @@ verzování podle [Semantic Versioning](https://semver.org/lang/cs/).
 
 ### Added
 
-- Iniciální projekt scaffold pro INFER FORGE
+- Iniciální projekt scaffold pro **inferbox**
 - Backend: FastAPI, SQLAlchemy, Celery
 - Frontend: Next.js 14, TypeScript, Tailwind
 - Docker Compose pro development

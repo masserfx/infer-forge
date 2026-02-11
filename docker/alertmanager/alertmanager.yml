@@ -28,7 +28,7 @@ receivers:
     email_configs:
       - to: admin@infer.cz
         headers:
-          Subject: '[INFER FORGE] {{ .GroupLabels.alertname }} - {{ .Status | toUpper }}'
+          Subject: '[inferbox] {{ .GroupLabels.alertname }} - {{ .Status | toUpper }}'
         html: |
           <h2>Alert: {{ .GroupLabels.alertname }}</h2>
           <p><strong>Status:</strong> {{ .Status | toUpper }}</p>

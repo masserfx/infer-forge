@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# PostgreSQL restore script for INFER FORGE
+# PostgreSQL restore script for inferbox
 # Usage: ./scripts/restore_db.sh /path/to/backup.sql.gz [/path/to/uploads-backup.tar.gz]
 
 set -euo pipefail
 
 # Configuration
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BACKUP_DIR="${BACKUP_DIR:-/opt/infer-forge/backups}"
-LOG_FILE="${LOG_FILE:-/var/log/infer-forge-backup.log}"
+BACKUP_DIR="${BACKUP_DIR:-/opt/inferbox/backups}"
+LOG_FILE="${LOG_FILE:-/var/log/inferbox-backup.log}"
 
 # Arguments
 BACKUP_FILE="${1:-}"
@@ -48,7 +48,7 @@ DB_NAME="${POSTGRES_DB:-infer_forge}"
 DB_USER="${POSTGRES_USER:-infer}"
 
 log "========================================="
-log "INFER FORGE Database Restore"
+log "inferbox Database Restore"
 log "========================================="
 log "Backup file: ${BACKUP_FILE}"
 if [ -n "$UPLOADS_BACKUP" ] && [ -f "$UPLOADS_BACKUP" ]; then

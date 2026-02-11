@@ -559,7 +559,7 @@ class TestExcelExporter:
         assert ws.cell(row=3, column=1).value == 2
 
         # Check metadata
-        assert wb.properties.creator == "INFER FORGE"
+        assert wb.properties.creator == "inferbox"
 
         wb.close()
 

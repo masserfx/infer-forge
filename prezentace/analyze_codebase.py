@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-INFER FORGE — Dynamic Codebase Analyzer
+inferbox — Dynamic Codebase Analyzer
 Analyzes backend + frontend and generates a JSON graph for interactive visualization.
 Re-run to get fresh state from the actual codebase.
 """

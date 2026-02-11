@@ -1,4 +1,4 @@
-"""Seed realistic manufacturing data for INFER FORGE demos.
+"""Seed realistic manufacturing data for inferbox demos.
 
 Adds 5 real engineering companies as customers, 8 manufacturing orders
 with realistic pipe/steel items, 3 calculations, and 15 material prices.

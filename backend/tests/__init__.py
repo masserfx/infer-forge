@@ -1,1 +1,1 @@
-"""Test suite for INFER FORGE backend."""
+"""Test suite for inferbox backend."""

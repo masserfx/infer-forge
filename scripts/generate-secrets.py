@@ -45,7 +45,7 @@ def create_env_template(output_path: Path | None = None) -> str:
     Returns:
         Vygenerovaný obsah
     """
-    template = f"""# INFER FORGE - Produkční konfigurace
+    template = f"""# inferbox - Produkční konfigurace
 # Vygenerováno automaticky {secrets.token_hex(8)}
 # NIKDY necommituj tento soubor do Git!
 
@@ -134,7 +134,7 @@ def generate_individual_secrets() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Generátor bezpečných hesel pro INFER FORGE",
+        description="Generátor bezpečných hesel pro inferbox",
     )
     parser.add_argument(
         "--output",

@@ -1,4 +1,4 @@
-"""Seed demo data for INFER FORGE local development."""
+"""Seed demo data for inferbox local development."""
 
 import asyncio
 from datetime import UTC, date, timedelta

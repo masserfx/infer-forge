@@ -1138,7 +1138,7 @@ document.getElementById('btn-fit').addEventListener('click', () => {
 document.getElementById('btn-export').addEventListener('click', () => {
     const png = cy.png({ scale: 2, bg: '#0a0e17', full: true });
     const link = document.createElement('a');
-    link.download = 'infer-forge-architecture.png';
+    link.download = 'inferbox-architecture.png';
     link.href = png;
     link.click();
 });

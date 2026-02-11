@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Setup cron jobs for INFER FORGE backups
+# Setup cron jobs for inferbox backups
 # Usage: sudo ./scripts/backup-cron.sh
 
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LOG_FILE="/var/log/infer-forge-backup.log"
+LOG_FILE="/var/log/inferbox-backup.log"
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
@@ -14,8 +14,8 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Ensure backup directory exists
-mkdir -p /opt/infer-forge/backups
-chmod 755 /opt/infer-forge/backups
+mkdir -p /opt/inferbox/backups
+chmod 755 /opt/inferbox/backups
 
 # Ensure log file exists
 touch "$LOG_FILE"
@@ -25,18 +25,18 @@ chmod 644 "$LOG_FILE"
 chmod +x "${PROJECT_ROOT}/scripts/backup_db.sh"
 chmod +x "${PROJECT_ROOT}/scripts/backup-rotation.sh"
 
-echo "Setting up INFER FORGE backup cron jobs..."
+echo "Setting up inferbox backup cron jobs..."
 
 # Create temporary cron file
 TEMP_CRON=$(mktemp)
 
-# Get existing crontab (excluding old INFER FORGE entries)
-(crontab -l 2>/dev/null || echo "") | grep -v "infer-forge" > "$TEMP_CRON" || true
+# Get existing crontab (excluding old inferbox entries)
+(crontab -l 2>/dev/null || echo "") | grep -v "inferbox" > "$TEMP_CRON" || true
 
 # Add new cron entries
 cat >> "$TEMP_CRON" << EOF
 
-# INFER FORGE automated backups
+# inferbox automated backups
 # Daily backup at 2:00 AM
 0 2 * * * cd ${PROJECT_ROOT} && ${PROJECT_ROOT}/scripts/backup_db.sh >> ${LOG_FILE} 2>&1
 
@@ -55,7 +55,7 @@ echo "Backup schedule:"
 echo "  - Daily backup:  Every day at 2:00 AM (retention: 7 days)"
 echo "  - Weekly backup: Every Sunday at 3:00 AM (retention: 90 days)"
 echo ""
-echo "Backup location: /opt/infer-forge/backups"
+echo "Backup location: /opt/inferbox/backups"
 echo "Log file: ${LOG_FILE}"
 echo ""
 echo "To view current crontab: crontab -l"

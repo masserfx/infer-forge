@@ -1,4 +1,4 @@
-Stav projektu INFER FORGE:
+Stav projektu inferbox:
 1. Přečti CLAUDE.md
 2. Spusť testy, reportuj výsledky
 3. TODO/FIXME/HACK v kódu

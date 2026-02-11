@@ -56,7 +56,7 @@ export const SolutionSlide: React.FC = () => {
         marginBottom: 70,
         textAlign: "center",
       }}>
-        INFER FORGE automatizuje kompletní životní cyklus zakázky
+        inferbox automatizuje kompletní životní cyklus zakázky
       </div>
 
       {/* Flow diagram */}

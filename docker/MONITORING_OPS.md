@@ -1,4 +1,4 @@
-# INFER FORGE Monitoring Operations Guide
+# inferbox Monitoring Operations Guide
 
 ## Rychlé příkazy
 
@@ -157,7 +157,7 @@ GRAFANA_API_KEY="<your-api-key>"
 curl -s -H "Authorization: Bearer $GRAFANA_API_KEY" http://localhost:3002/api/search | jq '.[] | {id: .id, title: .title, uri: .uri}'
 
 # Export dashboard JSON
-curl -s -H "Authorization: Bearer $GRAFANA_API_KEY" http://localhost:3002/api/dashboards/uid/infer-forge | jq '.dashboard' > backup-dashboard.json
+curl -s -H "Authorization: Bearer $GRAFANA_API_KEY" http://localhost:3002/api/dashboards/uid/inferbox | jq '.dashboard' > backup-dashboard.json
 
 # Import dashboard
 curl -X POST -H "Authorization: Bearer $GRAFANA_API_KEY" -H "Content-Type: application/json" \

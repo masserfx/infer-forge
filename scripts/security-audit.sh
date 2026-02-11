@@ -1,5 +1,5 @@
 #!/bin/bash
-# INFER FORGE Security Audit Script
+# inferbox Security Audit Script
 # Performs comprehensive security checks on Docker stack
 # Usage: ./scripts/security-audit.sh
 
@@ -41,7 +41,7 @@ print_fail() {
     ((FAIL_COUNT++))
 }
 
-print_header "INFER FORGE Security Audit"
+print_header "inferbox Security Audit"
 echo "Date: $(date)"
 echo "Project: $PROJECT_ROOT"
 
@@ -99,7 +99,7 @@ if [ -n "$OPEN_PORTS" ]; then
         case $port in
             22) print_ok "Port $port (SSH)" ;;
             80|443) print_ok "Port $port (HTTP/HTTPS)" ;;
-            3000|3001|3002|8000|5432|5433|6379|9090) print_ok "Port $port (INFER FORGE stack)" ;;
+            3000|3001|3002|8000|5432|5433|6379|9090) print_ok "Port $port (inferbox stack)" ;;
             *) print_warn "Port $port (unexpected, verify if needed)" ;;
         esac
     done
@@ -108,7 +108,7 @@ fi
 # 4. Docker Image Vulnerabilities (if docker scout available)
 print_header "4. Docker Image Vulnerabilities"
 if command -v docker &> /dev/null && docker scout version &> /dev/null 2>&1; then
-    for image in infer-forge-backend infer-forge-frontend; do
+    for image in inferbox-backend inferbox-frontend; do
         if docker images | grep -q "$image"; then
             SCOUT_OUTPUT=$(docker scout cves "$image" 2>&1 || echo "scan_failed")
             if echo "$SCOUT_OUTPUT" | grep -q "0C.*0H.*0M.*0L"; then

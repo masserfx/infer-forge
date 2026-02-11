@@ -12,7 +12,7 @@ settings = get_settings()
 
 # Initialize Celery app
 celery_app = Celery(
-    "infer_forge",
+    "inferbox",
     broker=str(settings.REDIS_URL),
     backend=str(settings.REDIS_URL),
     include=[

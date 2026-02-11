@@ -1,6 +1,6 @@
-# INFER FORGE -- Uzivatelska prirucka
+# inferbox -- Uzivatelska prirucka
 
-> Verze 1.0 | Aktualizace: unor 2026 | Platforma: INFER FORGE v1.0
+> Verze 1.0 | Aktualizace: unor 2026 | Platforma: inferbox v1.0
 > Provozovatel: Infer s.r.o. (ICO: 04856562)
 
 ---
@@ -8,7 +8,7 @@
 ## Obsah
 
 - [1. Uvod](#1-uvod)
-  - [1.1 Co je INFER FORGE](#11-co-je-infer-forge)
+  - [1.1 Co je inferbox](#11-co-je-infer-forge)
   - [1.2 Pro koho je urcen](#12-pro-koho-je-urcen)
   - [1.3 Systemove pozadavky](#13-systemove-pozadavky)
   - [1.4 Pristup do aplikace](#14-pristup-do-aplikace)
@@ -78,9 +78,9 @@
 
 ## 1. Uvod
 
-### 1.1 Co je INFER FORGE
+### 1.1 Co je inferbox
 
-INFER FORGE je automatizacni platforma navrzena pro strojirenske firmy. Integruje spravu zakazek, kalkulaci, dokumentu, emailove komunikace a ucetniho systemu Pohoda do jednoho nastroje s podporou umele inteligence.
+inferbox je automatizacni platforma navrzena pro strojirenske firmy. Integruje spravu zakazek, kalkulaci, dokumentu, emailove komunikace a ucetniho systemu Pohoda do jednoho nastroje s podporou umele inteligence.
 
 Platforma pokryva cely zivotni cyklus zakazky:
 
@@ -929,7 +929,7 @@ Sekce **"Hromadny upload EML"** umoznuje nahrat vice EML souboru najednou pro hr
 > Overtte: (1) Pohoda mServer bezi, (2) spravna IP adresa a port v konfiguraci, (3) ucet ma prava pro API pristup. Detaily chyby najdete v logu na strance Pohoda.
 
 **Otazka: V Pohode se zobrazi spatne znaky (krakozabry).**
-> INFER FORGE generuje XML v kodovani Windows-1250, jak vyzaduje Pohoda. Pokud vidite spatne znaky, kontaktujte administratora -- muze se jednat o chybu v konfiguraci.
+> inferbox generuje XML v kodovani Windows-1250, jak vyzaduje Pohoda. Pokud vidite spatne znaky, kontaktujte administratora -- muze se jednat o chybu v konfiguraci.
 
 ### Email
 
@@ -959,5 +959,5 @@ V pripade technickych problemu kontaktujte:
 
 ---
 
-> **INFER FORGE** -- Automatizacni platforma pro strojirenstvi
+> **inferbox** -- Automatizacni platforma pro strojirenstvi
 > (c) 2026 Infer s.r.o. | Vsechna prava vyhrazena.

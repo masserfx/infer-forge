@@ -50,7 +50,7 @@ export const TitleSlide: React.FC = () => {
         textTransform: "uppercase",
         marginBottom: 24,
       }}>
-        INFER FORGE
+        inferbox
       </div>
 
       {/* Title */}

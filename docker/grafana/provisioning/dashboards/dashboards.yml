@@ -1,6 +1,6 @@
 apiVersion: 1
 providers:
-  - name: 'INFER FORGE'
+  - name: 'inferbox'
     orgId: 1
     folder: ''
     type: file

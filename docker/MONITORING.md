@@ -1,4 +1,4 @@
-# INFER FORGE Monitoring Stack
+# inferbox Monitoring Stack
 
 ## Komponenty
 
@@ -13,7 +13,7 @@ Centrální metriky server, sbírá data z:
 
 ### Grafana (Port 3002)
 Vizualizace metrik, dashboardy:
-- INFER FORGE Dashboard: 13 panelů (HTTP, Celery, DB, Redis, System)
+- inferbox Dashboard: 13 panelů (HTTP, Celery, DB, Redis, System)
 - Auto-provisioned z `/docker/grafana/dashboards/infer-forge.json`
 
 **Přístup (prod):** `http://localhost:3002`

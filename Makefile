@@ -6,7 +6,7 @@ YELLOW := $(shell tput -Txterm setaf 3)
 RESET  := $(shell tput -Txterm sgr0)
 
 help: ## Zobrazí nápovědu
-	@echo "$(GREEN)INFER FORGE - Makefile příkazy$(RESET)"
+	@echo "$(GREEN)inferbox - Makefile příkazy$(RESET)"
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-15s$(RESET) %s\n", $$1, $$2}'
 	@echo ""

@@ -882,8 +882,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "INFER FORGE - Přehled",
-  "uid": "infer-forge-main",
+  "title": "inferbox - Přehled",
+  "uid": "inferbox-main",
   "version": 0,
   "weekStart": ""
 }

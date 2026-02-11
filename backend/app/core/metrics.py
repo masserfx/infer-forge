@@ -1,7 +1,7 @@
 from prometheus_client import Counter, Histogram, Info
 
 # App info
-app_info = Info("infer_forge", "INFER FORGE application info")
+app_info = Info("inferbox", "inferbox application info")
 app_info.info({"version": "0.1.0", "environment": "production"})
 
 # HTTP metrics (used by middleware)
