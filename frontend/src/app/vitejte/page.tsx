@@ -324,7 +324,7 @@ export default function WelcomePage() {
           className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-[0.15em] text-white"
           style={{ animation: mounted ? "logoReveal 1.2s ease-out forwards" : "none" }}
         >
-          INFER<span className="text-orange-500">BOX</span>
+          <span className="font-light">infer</span><span className="text-orange-500">box</span>
         </h1>
 
         {/* Tagline */}
@@ -425,7 +425,7 @@ export default function WelcomePage() {
       <section className="relative py-20 sm:py-28 px-4 sm:px-8">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4">
-            Co pro vás <span className="text-orange-500">INFERBOX</span> udělá
+            Co pro vás <span className="text-orange-500">infer<span className="font-bold">box</span></span> udělá
           </h2>
           <p className="text-zinc-500 text-center mb-16 max-w-lg mx-auto">
             Každý email, každý výkres, každá poptávka — zpracováno automaticky
@@ -588,7 +588,7 @@ export default function WelcomePage() {
       {/* ── FOOTER ── */}
       <footer className="py-8 px-4 text-center">
         <p className="text-xs text-zinc-700">
-          INFERBOX v2.0 &middot; Infer s.r.o. &middot; ISO 9001:2016
+          infer<span className="font-bold">box</span> v2.0 &middot; Infer s.r.o. &middot; ISO 9001:2016
         </p>
       </footer>
     </div>

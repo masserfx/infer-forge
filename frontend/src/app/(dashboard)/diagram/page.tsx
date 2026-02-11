@@ -828,7 +828,7 @@ export default function DiagramPage() {
                 {/* Title */}
                 <div className="mb-8 text-center">
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-emerald-500 bg-clip-text text-transparent">
-                    Proces zakázky — INFERBOX
+                    Proces zakázky — <span className="font-normal">infer</span>box
                   </h1>
                   <p className="mt-2 text-sm text-muted-foreground max-w-2xl mx-auto">
                     Kompletní životní cyklus zakázky od příjmu poptávkového e-mailu přes kalkulaci, výrobu

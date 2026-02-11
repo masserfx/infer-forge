@@ -16,7 +16,7 @@ export function PrintHeader() {
     <div className="hidden print:block mb-8 border-b-2 border-gray-900 pb-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">INFERBOX</h1>
+          <h1 className="text-3xl">infer<span className="font-bold">box</span></h1>
           <p className="text-lg text-gray-700 mt-1">Analytické reporty</p>
         </div>
         <div className="text-right">

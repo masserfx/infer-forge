@@ -142,7 +142,7 @@ export default function NastaveniPage() {
           <div className="space-y-3 p-4">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Aplikace</span>
-              <span className="font-medium">INFERBOX</span>
+              <span>infer<span className="font-bold">box</span></span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Verze</span>

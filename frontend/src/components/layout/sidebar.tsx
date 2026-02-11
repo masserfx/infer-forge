@@ -126,8 +126,8 @@ export function Sidebar() {
     >
       <div className="flex h-16 items-center border-b px-4 justify-between">
         {!isCollapsed && (
-          <Link href="/dashboard" className="flex items-center gap-2 font-bold text-lg">
-            INFERBOX
+          <Link href="/dashboard" className="flex items-center gap-2 text-lg">
+            <span className="font-normal">infer</span><span className="font-bold">box</span>
           </Link>
         )}
         <Button

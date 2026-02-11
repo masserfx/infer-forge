@@ -229,7 +229,7 @@ export function AITokenReportDialog({
 <html lang="cs">
 <head>
   <meta charset="utf-8">
-  <title>INFERBOX - Report AI nakladu</title>
+  <title>inferbox - Report AI nakladu</title>
   <style>
     @page { size: A4 portrait; margin: 1.5cm; }
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -390,7 +390,7 @@ export function AITokenReportDialog({
             <div ref={reportRef} className="hidden">
               <div className="header">
                 <div>
-                  <h1>INFERBOX</h1>
+                  <h1><span style={{fontWeight: 400}}>infer</span>box</h1>
                   <div className="subtitle">
                     Report nakladu na AI &mdash; {PERIOD_LABELS[period]}
                   </div>
@@ -490,7 +490,7 @@ export function AITokenReportDialog({
               </div>
 
               <div className="footer">
-                <span>INFERBOX v0.1.0 | Infer s.r.o. | ICO: 04856562</span>
+                <span>inferbox v0.1.0 | Infer s.r.o. | ICO: 04856562</span>
                 <span>AI provider: Anthropic Claude | Model: Sonnet</span>
               </div>
             </div>

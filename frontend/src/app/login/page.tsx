@@ -56,7 +56,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
-          <div className="mb-2 text-2xl font-bold">INFERBOX</div>
+          <div className="mb-2 text-2xl">infer<span className="font-bold">box</span></div>
           <CardTitle className="text-xl">Přihlášení</CardTitle>
           <CardDescription>
             Zadejte své přihlašovací údaje pro vstup do systému

@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "INFERBOX",
+  title: "inferbox",
   description: "Automatizační platforma pro strojírenskou výrobu",
 };
 

@@ -110,8 +110,8 @@ export function Header() {
         </SheetTrigger>
         <SheetContent side="left" className="w-64">
           <div className="flex h-16 items-center px-2">
-            <Link href="/dashboard" className="flex items-center gap-2 font-bold text-lg">
-              INFERBOX
+            <Link href="/dashboard" className="flex items-center gap-2 text-lg">
+              <span className="font-normal">infer</span><span className="font-bold">box</span>
             </Link>
           </div>
           <nav className="flex flex-col space-y-1 mt-4">
@@ -142,7 +142,7 @@ export function Header() {
       {/* Desktop breadcrumbs placeholder */}
       <div className="flex-1 min-w-0">
         <h1 className="text-base sm:text-lg font-semibold truncate">
-          {navItems.find((item) => pathname?.startsWith(item.href))?.label || "INFERBOX"}
+          {navItems.find((item) => pathname?.startsWith(item.href))?.label || <><span className="font-normal">infer</span><span className="font-bold">box</span></>}
         </h1>
       </div>
 
